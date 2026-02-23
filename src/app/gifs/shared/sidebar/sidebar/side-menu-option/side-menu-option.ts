@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterLink } from "@angular/router";
-import { Module } from '../../../interfaces/menu';
+import { Module } from '../../../../interfaces/menu';
 
 @Component({
   selector: 'app-side-menu-option',

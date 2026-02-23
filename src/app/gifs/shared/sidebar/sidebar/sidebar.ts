@@ -1,6 +1,7 @@
 import { Component, signal } from '@angular/core';
-import { SideMenuOption } from '../side-menu-option/side-menu-option';
 import { Module } from '../../../interfaces/menu';
+import { SideMenuOption } from './side-menu-option/side-menu-option';
+import { environment } from '../../../../../environments/environment.development';
 
 @Component({
   selector: 'app-sidebar',
@@ -9,6 +10,8 @@ import { Module } from '../../../interfaces/menu';
 })
 export default class Sidebar { 
   // En tu componente.ts
+
+  envs = environment;
  modules = signal<Module[]>([
   {
     id: 1,
