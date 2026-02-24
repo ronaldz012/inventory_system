@@ -3,7 +3,6 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
     {
         path:'dashboard',
-        loadComponent:() =>import('./gifs/pages/dashboard/dashboard'),
         children:[
                 {
                     path:'trending',
@@ -16,7 +15,12 @@ export const routes: Routes = [
         ]
     },
     {
+      path:'login',
+      loadComponent: () => import('./core/auth/pages/login/login'),
+    },
+    {
         path:'**',
         redirectTo:'dashboard'
     }
+
 ];
