@@ -1,13 +1,17 @@
-<ul class="flex flex-col gap-1 px-2">
-
-    @for(module of modules(); track module.id)
-    {
-        <div class=" flex flex-col gap-1">
-            <span class="flex items-center text-base text-gray-300 p-3 rounded-lg">{{module.name}}</span>
-        @for (menu of module.menus ; track $index) {
-            <li><a class="flex items-center text-base mx-4 text-gray-200 p-3 rounded-lg hover:bg-gray-700 transition-colors;" routerLink="{{menu.route}}">{{menu.label}}</a></li>
-        }
-        </div>
-
-    }
+<ul class="flex flex-col gap-1 px-2 overflow-y-auto">
+  @for(module of modules(); track module.id) {
+    <div class="flex flex-col gap-1">
+        <span class="text-base text-gray-300 p-3 font-bold uppercase text-xs">
+          {{module.name}}
+        </span>
+      @for (menu of module.menus; track menu.route) {
+        <li>
+          <a class="flex items-center text-base mx-4 text-gray-200 p-3 rounded-lg hover:bg-blue-700 transition-colors"
+             [routerLink]="menu.route">
+            {{menu.name}}
+          </a>
+        </li>
+      }
+    </div>
+  }
 </ul>

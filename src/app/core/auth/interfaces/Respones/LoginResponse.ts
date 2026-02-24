@@ -9,7 +9,7 @@ export default interface LoginResponse {
    authProvider?: string;
    user: User;
    roles?: string[];
-   modules?: Modules[];
+   modules?: Module[];
 }
 
 export interface User {
@@ -21,7 +21,7 @@ export interface User {
    lastName: string;
 }
 
-export interface Modules {
+export interface Module {
    id?: number;
    name?: string;
    canCreate?: boolean;

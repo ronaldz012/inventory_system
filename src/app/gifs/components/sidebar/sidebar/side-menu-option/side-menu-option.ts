@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterLink } from "@angular/router";
-import { Module } from '../../../../interfaces/menu';
+import {Module} from '../../../../../core/auth/interfaces/Respones/LoginResponse';
 
 @Component({
   selector: 'app-side-menu-option',
@@ -8,7 +8,7 @@ import { Module } from '../../../../interfaces/menu';
   templateUrl: './side-menu-option.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SideMenuOption { 
-  modules = input<Module[]>()
+export default class SideMenuOption {
+  modules = input.required<Module[]>()
 
 }

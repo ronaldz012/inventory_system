@@ -1,7 +1,9 @@
-import { Component, signal } from '@angular/core';
-import { Module } from '../../../interfaces/menu';
-import { SideMenuOption } from './side-menu-option/side-menu-option';
+import {Component, inject, signal} from '@angular/core';
 import { environment } from '../../../../../environments/environment.development';
+import {RouterLink} from '@angular/router';
+import SideMenuOption from './side-menu-option/side-menu-option';
+import {AuthService} from '../../../../core/auth/auth.service';
+import {Module} from '../../../../core/auth/interfaces/Respones/LoginResponse';
 
 @Component({
   selector: 'app-sidebar',
@@ -10,25 +12,29 @@ import { environment } from '../../../../../environments/environment.development
 })
 export default class Sidebar {
   // En tu componente.ts
-
-  envs = environment;
- modules = signal<Module[]>([
-  {
-    id: 1,
-    name: 'Dashboard',
-    read: true, write: true, update: true, delete: false,
-    menus: [
-      { id: 101, label: 'Resumen General', route: '/dashboard/main' },
-      { id: 102, label: 'Estadísticas', route: '/dashboard/stats' }
-    ]
-  },
-  {
-    id: 2,
-    name: 'Inventario',
-    read: true, write: false, update: false, delete: false,
-    menus: [
-      { id: 201, label: 'Productos', route: '/inventory/items' }
-    ]
+  constructor() {
+  console.log('Sidebar');
   }
-])
+  authService = inject(AuthService);
+
+  modules = signal<Module[]>(this.authService.getModules())
+//  modules = signal<Module[]>([
+//   {
+//     id: 1,
+//     name: 'Dashboard',
+//     read: true, write: true, update: true, delete: false,
+//     menus: [
+//       { id: 101, label: 'Resumen General', route: '/dashboard/main' },
+//       { id: 102, label: 'Estadísticas', route: '/dashboard/stats' }
+//     ]
+//   },
+//   {
+//     id: 2,
+//     name: 'Inventario',
+//     read: true, write: false, update: false, delete: false,
+//     menus: [
+//       { id: 201, label: 'Productos', route: '/inventory/items' }
+//     ]
+//   }
+// ])
 }
