@@ -20,6 +20,7 @@ const imageUrls: string[] = [
 ];
 //test for many small windows
 //test for commit windows in webstorm
+//this componente is for searching thing
 @Component({
   selector: 'app-search',
   imports: [
