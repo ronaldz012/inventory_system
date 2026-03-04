@@ -1,8 +1,11 @@
 <div class="flex ">
     <app-sidebar></app-sidebar>
-    <div class="flex-1 mx-4">
+    <div class="flex-1">
       <div class="flex flex-col gap-y-1">
-        <router-outlet/>
+        <app-topbar/>
+        <div class="mx-4"> <!-- content-->
+          <router-outlet/>
+        </div>
       </div>
     </div>
 </div>

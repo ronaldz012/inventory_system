@@ -4,3 +4,9 @@
 .nav-link {
   @apply flex items-center text-base text-gray-200 p-3 rounded-lg hover:bg-gray-700 transition-colors;
 }
+.material-icons {
+  display: inline-flex;
+  vertical-align: middle;
+  align-items: center;
+  justify-content: center;
+}
