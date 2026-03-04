@@ -18,7 +18,7 @@ const imageUrls: string[] = [
     "https://flowbite.s3.amazonaws.com/docs/gallery/square/image-11.jpg",
     "https://flowbite.s3.amazonaws.com/docs/gallery/square/image-11.jpg"
 ];
-
+//test for many small windows
 @Component({
   selector: 'app-search',
   imports: [
