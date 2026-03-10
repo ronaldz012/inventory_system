@@ -1,11 +1,12 @@
 import {Component, signal} from '@angular/core';
 import {Product} from '../../interfaces/product';
 import ProductItem from '../../product-list/product-item/product-item';
+import {ProductList} from '../../product-list/product-list';
 
 @Component({
   selector: 'app-products',
   imports: [
-    ProductItem
+    ProductList
   ],
   templateUrl: './products.html',
   styles: ``,

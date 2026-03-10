@@ -1,8 +1,11 @@
-<div class="grid grid-cols-5 items-center p-4 bg-white border-b hover:bg-gray-50">
+<div class="grid grid-cols-[60px_1fr_100px_100px_auto] items-center p-4 bg-white border-b hover:bg-gray-50">
+
   <span class="font-mono text-xs text-gray-500 ">{{product().id}}</span>
   <span class="font-medium text-gray-900">{{product().name}}</span>
-  <span class="px-2 py-1 rounded-full text-xs">{{product().stock}}</span>
-  <span class="px-2 py-1 rounded-full text-xs">{{product().price}}</span>
+  <span class="px-2 py-1 rounded-full text-xs justify-self-center">{{product().stock}}</span>
+  <span class="px-2 py-1 rounded-full text-xs justify-self-center">{{product().price}}</span>
+
+
   <div class="flex-row space-x-2 justify-self-end">
     <button class="rounded-full bg-gray-50 hover:bg-gray-300 transition-all text-gray-400 material-icons">
       <span class="material-icons">visibility</span>
