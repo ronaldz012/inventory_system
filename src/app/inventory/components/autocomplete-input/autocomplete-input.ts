@@ -1,12 +1,16 @@
-import {Component, input, output, signal} from '@angular/core';
+import {Component, input, model, output, signal} from '@angular/core';
+import {FormsModule, ReactiveFormsModule} from '@angular/forms';
 
 @Component({
   selector: 'app-autocomplete-input',
-  imports: [],
+  imports: [
+    ReactiveFormsModule,
+    FormsModule
+  ],
   templateUrl: './autocomplete-input.html'
 })
 export class AutocompleteInput {
-
+  value = model<number>(0);
   options = input<{id:number, name:string}[]>([])
   filteredoptions = signal<{id:number , name: string}[]>([])
   inputValue = signal<string>("");

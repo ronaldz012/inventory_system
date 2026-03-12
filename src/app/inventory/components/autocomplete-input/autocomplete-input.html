@@ -1,20 +1,7 @@
-<div class="relative">
-  <input
-    type="text"
-    [placeholder]="placeHolder()"
-    (input)="filterBrands($event)"
-    (focus)="showBrands.set(true)"
-    (blur)="onBlur('brands')"
-    class="w-full px-4 py-2 border rounded-lg"
-  />
-  @if (showBrands() && options().length > 0) {
-    <ul class="absolute z-10 w-full bg-white border rounded-lg shadow mt-1 max-h-48 overflow-y-auto">
-      @for (option of filteredoptions(); track option.id) {
-        <li (mousedown)="selectOption(option)"
-            class="px-4 py-2 hover:bg-blue-50 cursor-pointer">
-          {{ option.name }}
-        </li>
-      }
-    </ul>
+<select [ngModel]="value()" (ngModelChange)="value.set($event)"
+        class="w-full px-4 py-2 border rounded-lg bg-white">
+  <option value="0">-- {{ placeHolder() }} --</option>
+  @for (item of options(); track item.id) {
+    <option [value]="item.id">{{ item.name }}</option>
   }
-</div>
+</select>
