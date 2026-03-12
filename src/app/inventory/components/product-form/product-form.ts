@@ -1,12 +1,10 @@
 import {Component, inject, input, output, signal} from '@angular/core';
-import {FormBuilder, FormGroup, ReactiveFormsModule, Validators} from '@angular/forms';
+import {FormBuilder, ReactiveFormsModule, Validators} from '@angular/forms';
 import {CreateProductDto} from '../../interfaces/Dtos/create-product-dto';
 import {AutocompleteInput} from '../autocomplete-input/autocomplete-input';
 import {Category} from '../../interfaces/Dtos/category-dto';
 import {Brand} from '../../interfaces/Dtos/brand-dto';
-import {BrandService} from '../../services/brand-service';
 import {ProductService} from '../../services/product-service';
-import {timeInterval, timeout} from 'rxjs';
 
 @Component({
   selector: 'app-product-form',
@@ -65,6 +63,4 @@ export class ProductForm {
     });
 
   }
-
-  protected readonly BrandService = BrandService;
 }
