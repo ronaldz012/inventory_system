@@ -4,6 +4,7 @@ import {Category} from '../../../interfaces/Dtos/category-dto';
 import {Brand} from '../../../interfaces/Dtos/brand-dto';
 import {FormBuilder, ReactiveFormsModule, Validators} from '@angular/forms';
 import {debounceTime, distinctUntilChanged} from 'rxjs';
+import {validate} from '@angular/forms/signals';
 
 @Component({
   selector: 'app-product-filters',
@@ -17,7 +18,9 @@ export  default  class ProductFilters implements OnInit {
   private fb = inject(FormBuilder);
   filtersForm = this.fb.group(
     {
-      filter: ['']
+      filter: [''],
+      categoryId: [null, [Validators.required]],
+      brandId:[null, [Validators.required]],
     })
 
 
@@ -26,7 +29,11 @@ export  default  class ProductFilters implements OnInit {
       debounceTime(400),
       distinctUntilChanged()
     ).subscribe(values => {
-      this.filtersChanged.emit({filter:this.filtersForm.value.filter??''});
+      this.filtersChanged.emit({
+        filter:this.filtersForm.value.filter??'',
+        brandId: this.filtersForm.value.brandId,
+        categoryId: this.filtersForm.value.categoryId
+      });
     });
   }
 
