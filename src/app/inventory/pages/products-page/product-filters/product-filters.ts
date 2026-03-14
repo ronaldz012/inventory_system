@@ -18,7 +18,7 @@ export  default  class ProductFilters implements OnInit {
   private fb = inject(FormBuilder);
   filtersForm = this.fb.group(
     {
-      filter: [''],
+      filter: [null,Validators.required],
       categoryId: [null, [Validators.required]],
       brandId:[null, [Validators.required]],
     })
@@ -30,7 +30,7 @@ export  default  class ProductFilters implements OnInit {
       distinctUntilChanged()
     ).subscribe(values => {
       this.filtersChanged.emit({
-        filter:this.filtersForm.value.filter??'',
+        filter:this.filtersForm.value.filter?? undefined,
         brandId: this.filtersForm.value.brandId,
         categoryId: this.filtersForm.value.categoryId
       });
