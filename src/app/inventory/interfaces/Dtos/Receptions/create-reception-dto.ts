@@ -5,8 +5,8 @@ export default interface createReceptionDto {
 }
 
 export interface Item {
-   productId?: number;
-   newProduct?: NewProduct;
+   productId: number | null;
+   newProduct: NewProduct | null;
    variants: Variants[];
 }
 
@@ -21,16 +21,16 @@ export interface NewProduct {
 }
 
 export interface Variants {
-   productVariantId?: number;
-   newVariant?: NewVariant;
+   productVariantId: number | null;
+   newVariant: NewVariant | null;
    quantityReceived: number;
    unitCost: number;
 }
 
 export interface NewVariant {
-   productId?: number;
-   description?: string;
-   size?: string;
-   color?: string;
-   price?: number;
+   productId: number;
+   description: string;
+   size: string;
+   color: string;
+   price: number;
 }

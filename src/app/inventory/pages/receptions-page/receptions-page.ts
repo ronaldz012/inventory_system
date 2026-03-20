@@ -12,6 +12,7 @@ import ReceptionForm from './reception-form/reception-form';
 export default class ReceptionsPage {
   view = signal<string>('list');
 
+
   showForm(): void {
     this.view.set('form');
   }

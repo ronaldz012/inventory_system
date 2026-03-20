@@ -1,9 +1,13 @@
 import {Component, inject, input, output, signal} from '@angular/core';
 import {FormArray, FormBuilder, FormControl, ReactiveFormsModule, Validators} from '@angular/forms';
 import {ReceptionService} from '../../../services/reception-service';
-import {ItemFormGroup} from './common/item-form-group';
+import {ItemFormGroup, NewProductFormGroup, NewReceptionForm} from './common/item-form-group';
 import {VariantFormGroup} from './common/variant-form-group';
-import createReceptionDto from '../../../interfaces/Dtos/Receptions/create-reception-dto';
+import createReceptionDto, {
+  Item,
+  NewProduct,
+  NewVariant
+} from '../../../interfaces/Dtos/Receptions/create-reception-dto';
 import ReceptionItem from './reception-item/reception-item';
 
 @Component({
@@ -31,12 +35,12 @@ export default class ReceptionForm {
   isSubmitting = signal(false);
   submitError = signal<string | null>(null);
 
+
   // ── Form ──────────────────────────────────────────────────────────────────
-  form = this.fb.group({
+  form: NewReceptionForm = this.fb.group<NewReceptionForm['controls']>({
     notes: this.fb.control('', { nonNullable: true }),
     items: this.fb.array<ItemFormGroup>([]),
   });
-
   // ── Accessors ─────────────────────────────────────────────────────────────
   get notesCtrl(): FormControl {
     return this.form.controls.notes;
@@ -57,19 +61,19 @@ export default class ReceptionForm {
   }
 
   private buildItemGroup(): ItemFormGroup {
-    return this.fb.group({
-      productId: this.fb.control<number | null>(null, Validators.required),
-      newProduct: this.fb.group({
+    return this.fb.group<ItemFormGroup['controls']>({
+      productId: this.fb.control<number | null>(null, { validators: [Validators.required] }),
+      newProduct: this.fb.group<NewProductFormGroup['controls']>({
         name: this.fb.control('', { nonNullable: true }),
         description: this.fb.control('', { nonNullable: true }),
         categoryId: this.fb.control<number | null>(null),
         brandId: this.fb.control<number | null>(null),
-        unitMeasurementSin: this.fb.control<number | null>(null),
-        economicActivity: this.fb.control('', { nonNullable: true }),
-        productCodeSin: this.fb.control<number | null>(null),
+        basePrice: this.fb.control<number>(0,{nonNullable: true}),
       }),
-      variants: this.fb.array<VariantFormGroup>([this.buildVariantGroup()]),
-    }) as ItemFormGroup;
+      variants: this.fb.array<VariantFormGroup>([
+        this.buildVariantGroup()
+      ]),
+    });
   }
 
   private buildVariantGroup(): VariantFormGroup {
@@ -87,7 +91,7 @@ export default class ReceptionForm {
       ]),
       unitCost: this.fb.control<number | null>(null, [
         Validators.required,
-        Validators.min(0.01),
+        Validators.min(0.5),
       ]),
     }) as VariantFormGroup;
   }
@@ -96,25 +100,50 @@ export default class ReceptionForm {
   onSubmit(): void {
     this.form.markAllAsTouched();
 
-    if (this.form.invalid || this.itemsArray.length === 0) return;
+    const getFormErrors = (formGroup: any) => {
+      Object.keys(formGroup.controls).forEach(key => {
+        const control = formGroup.get(key);
+        if (control.invalid) {
+          // Si el control es un grupo o array, entramos recursivamente
+          if (control.controls) {
+            getFormErrors(control);
+          } else {
+            console.error(`Campo inválido: ${key}`, control.errors);
+          }
+        }
+      });
+
+      // Revisar si el error está en el objeto padre (Validador de grupo)
+      if (formGroup.errors) {
+        console.error(`Error en el objeto raíz/grupo:`, formGroup.errors);
+      }
+    };
+
+    getFormErrors(this.form);
+
+    if (this.form.invalid || this.itemsArray.length === 0) {
+      console.log('Estado de itemsArray length:', this.itemsArray.length);
+      return;
+    }
+
 
     const payload = this.buildPayload();
     console.log('Payload a enviar:', payload);
 
-    // TODO: descomentar cuando el endpoint esté listo
-    // this.isSubmitting.set(true);
-    // this.submitError.set(null);
-    // this.receptionService.create(payload).subscribe({
-    //   next: () => {
-    //     this.isSubmitting.set(false);
-    //     this.saved.emit();
-    //   },
-    //   error: (err) => {
-    //     this.isSubmitting.set(false);
-    //     this.submitError.set('Error al guardar la recepción. Intentá de nuevo.');
-    //     console.error(err);
-    //   },
-    // });
+
+    this.isSubmitting.set(true);
+    this.submitError.set(null);
+    this.receptionService.create(payload).subscribe({
+      next: () => {
+        this.isSubmitting.set(false);
+        this.saved.emit();
+      },
+      error: (err) => {
+        this.isSubmitting.set(false);
+        this.submitError.set('EGuardarrror al guardar la recepción. Intentá de nuevo.');
+        console.error(err);
+      },
+    });
   }
 
   private buildPayload(): createReceptionDto {
@@ -128,33 +157,35 @@ export default class ReceptionForm {
         const isNewProduct = !item.productId;
 
         return {
-          productId: isNewProduct ? undefined : item.productId ?? undefined,
-          newProduct: isNewProduct ? {
-            name: item.newProduct.name,
-            description: item.newProduct.description,
-            categoryId: item.newProduct.categoryId!,
-            brandId: item.newProduct.brandId!,
-            unitMeasurementSin: item.newProduct.unitMeasurementSin!,
-            economicActivity: item.newProduct.economicActivity,
-            productCodeSin: item.newProduct.productCodeSin!,
-          } : undefined,
+          productId: isNewProduct ? null : item.productId,
+          newProduct: isNewProduct
+            ? ({
+              name: item.newProduct.name,
+              description: item.newProduct.description,
+              categoryId: item.newProduct.categoryId,
+              brandId: item.newProduct.brandId,
+            } as NewProduct)
+            : null,
           variants: itemCtrl.controls.variants.controls.map((varCtrl) => {
             const variant = varCtrl.getRawValue();
             const isNewVariant = !variant.productVariantId;
 
             return {
-              productVariantId: isNewVariant ? undefined : variant.productVariantId ?? undefined,
-              newVariant: isNewVariant ? {
-                description: variant.newVariant.description,
-                size: variant.newVariant.size,
-                color: variant.newVariant.color,
-                price: variant.newVariant.price!,
-              } : undefined,
-              quantityReceived: variant.quantityReceived!,
-              unitCost: variant.unitCost!,
+              productVariantId: isNewVariant ? null : variant.productVariantId,
+              quantityReceived: variant.quantityReceived,
+              unitCost: variant.unitCost,
+              newVariant: isNewVariant
+                ? ({
+                  description: variant.newVariant.description,
+                  size: variant.newVariant.size,
+                  color: variant.newVariant.color,
+                  price: variant.newVariant.price,
+                  productId: item.productId ?? 0,
+                } as NewVariant)
+                : null,
             };
           }),
-        };
+        } as Item;
       }),
     };
   }

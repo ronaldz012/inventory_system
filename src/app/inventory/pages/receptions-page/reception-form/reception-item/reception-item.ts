@@ -14,12 +14,18 @@ import {ProductService} from '../../../../services/product-service';
 import {debounceTime, distinctUntilChanged, Subject, switchMap} from 'rxjs';
 import {ItemFormGroup} from '../common/item-form-group';
 import ReceptionVariant from './reception-variant/reception-variant';
+import {ProductForm} from '../../../products-page/product-form/product-form';
+import {Category} from '../../../../interfaces/Dtos/category-dto';
+import {Brand} from '../../../../interfaces/Dtos/brand-dto';
+import {CategoryService} from '../../../../services/category-service';
+import {BrandService} from '../../../../services/brand-service';
 
 @Component({
   selector: 'app-reception-item',
   imports: [
     ReceptionVariant,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    ProductForm
   ],
   templateUrl: './reception-item.html',
   styles: ``,
@@ -28,14 +34,19 @@ export default class ReceptionItem implements OnInit {
   // ── Dependencies ──────────────────────────────────────────────────────────
   private fb = inject(FormBuilder);
   private productService = inject(ProductService);
+  private categoryService = inject(CategoryService);
+  private brandService = inject(BrandService);
 
   // ── Inputs ────────────────────────────────────────────────────────────────
   form = input.required<ItemFormGroup>();
+  collapsed = signal(false);
   index = input<number>(0);
+
+  brands = signal<Brand[]>([])
+  categories = signal<Category[]>([])
 
   // ── Outputs ───────────────────────────────────────────────────────────────
   remove = output<void>();
-
   // ── Estado local ──────────────────────────────────────────────────────────
   isNewProduct = signal(false);
   productSearch = signal('');
@@ -51,6 +62,8 @@ export default class ReceptionItem implements OnInit {
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   ngOnInit(): void {
+    this.brandService.GetAll().subscribe(x => this.brands.set(x))
+   this.categoryService.getAll().subscribe(x => this.categories.set(x))
     this.searchInput$
       .pipe(
         debounceTime(400),
@@ -131,6 +144,7 @@ export default class ReceptionItem implements OnInit {
     this.newProductGroup.get('name')?.setValidators([Validators.required]);
     this.newProductGroup.get('categoryId')?.setValidators([Validators.required]);
     this.newProductGroup.get('brandId')?.setValidators([Validators.required]);
+    this.newProductGroup.get('basePrice')?.setValidators([Validators.required]);
     this.newProductGroup.updateValueAndValidity();
     // Limpiar variantes existentes y agregar una nueva
     this.clearVariants();
@@ -143,6 +157,7 @@ export default class ReceptionItem implements OnInit {
     this.newProductGroup.get('name')?.clearValidators();
     this.newProductGroup.get('categoryId')?.clearValidators();
     this.newProductGroup.get('brandId')?.clearValidators();
+    this.newProductGroup.get('basePrice')?.clearValidators();
     this.newProductGroup.updateValueAndValidity();
     this.productIdCtrl.setValidators([Validators.required]);
     this.productIdCtrl.updateValueAndValidity();
@@ -167,7 +182,7 @@ export default class ReceptionItem implements OnInit {
   }
 
   private buildVariantGroup(): VariantFormGroup {
-    return this.fb.group({
+    return this.fb.group<VariantFormGroup['controls']>({
       productVariantId: this.fb.control<number | null>(null),
       newVariant: this.fb.group({
         description: this.fb.control('', { nonNullable: true }),
@@ -175,18 +190,27 @@ export default class ReceptionItem implements OnInit {
         color: this.fb.control('', { nonNullable: true }),
         price: this.fb.control<number | null>(null),
       }),
-      quantityReceived: this.fb.control<number | null>(null, [
-        Validators.required,
-        Validators.min(1),
-      ]),
-      unitCost: this.fb.control<number | null>(null, [
-        Validators.required,
-        Validators.min(0.01),
-      ]),
-    }) as VariantFormGroup;
+
+      quantityReceived: this.fb.control<number | null>(null, {
+        validators: [Validators.required, Validators.min(1)]
+      }),
+      unitCost: this.fb.control<number | null>(null, {
+        validators: [Validators.required, Validators.min(0.01)]
+      }),
+    });
   }
 
   // ── Helpers UI ────────────────────────────────────────────────────────────
+  get summaryLabel(): string {
+    if (this.isNewProduct()) {
+      const name = this.form().controls.newProduct.get('name')?.value;
+      return name || 'Producto nuevo';
+    }
+    return this.productSearch() || 'Seleccioná un producto';
+  }
+  toggleCollapse(): void {
+    this.collapsed.set(!this.collapsed());
+  }
   onRemove(): void {
     this.remove.emit();
   }
