@@ -26,9 +26,14 @@ export default class ReceptionVariant  implements OnInit {
   variantSearch = signal('');
 
   ngOnInit(): void {
-    if (this.forceNew()) {
-      this.isNewVariant.set(true);
-      //this.activateNewVariantMode();
+    // 1. Detectamos el modo actual basado en los validadores
+    this.restoreModeFromValidators();
+
+    // 2. Restauramos el label visual si hay una variante seleccionada
+    const selectedId = this.productVariantIdCtrl.value;
+    if (selectedId) {
+      const found = this.availableVariants().find(v => v.id === selectedId);
+      if (found) this.variantSearch.set(this.formatVariantLabel(found));
     }
   }
   filteredVariants = computed(() => {
@@ -112,7 +117,7 @@ export default class ReceptionVariant  implements OnInit {
     // Activar validadores de nueva variante
     const nv = this.newVariantGroup;
     nv.get('description')?.setValidators([Validators.required]);
-    nv.get('price')?.setValidators([Validators.required, Validators.min(0.01)]);
+    nv.get('price')?.setValidators([Validators.required, Validators.min(0.5)]);
     nv.get('description')?.updateValueAndValidity();
     nv.get('price')?.updateValueAndValidity();
   }
@@ -130,6 +135,25 @@ export default class ReceptionVariant  implements OnInit {
     nv.get('price')?.updateValueAndValidity();
   }
 //UI
+  private restoreModeFromValidators(): void {
+    // Si forceNew es true, siempre a New
+    if (this.forceNew()) {
+      this.isNewVariant.set(true);
+      return;
+    }
+
+    // Verificamos si el control de descripción tiene el validador 'required'
+    const descriptionCtrl = this.newVariantGroup.get('description');
+
+    // .hasValidator es la forma moderna (Angular 12+) de checkear esto
+    const isRequired = descriptionCtrl?.hasValidator(Validators.required);
+
+    if (isRequired) {
+      this.isNewVariant.set(true);
+    } else {
+      this.isNewVariant.set(false);
+    }
+  }
   showDropdown = signal(false);
   openDropdown(): void {
     this.showDropdown.set(true);
