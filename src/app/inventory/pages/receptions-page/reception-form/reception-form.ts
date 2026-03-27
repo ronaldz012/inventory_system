@@ -1,4 +1,4 @@
-import {Component, inject, input, output, signal} from '@angular/core';
+import {Component, inject, input, OnInit, output, signal, DestroyRef} from '@angular/core';
 import {FormArray, FormBuilder, FormControl, ReactiveFormsModule, Validators} from '@angular/forms';
 import {ReceptionService} from '../../../services/reception-service';
 import {ItemFormGroup, NewProductFormGroup, NewReceptionForm} from './common/item-form-group';
@@ -9,23 +9,27 @@ import createReceptionDto, {
   NewVariant
 } from '../../../interfaces/Dtos/Receptions/create-reception-dto';
 import ReceptionItem from './reception-item/reception-item';
+import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
+import {DecimalPipe} from '@angular/common';
 
 @Component({
   selector: 'app-reception-form',
   imports: [
     ReactiveFormsModule,
-    ReceptionItem
+    ReceptionItem,
+    DecimalPipe,
   ],
   templateUrl: './reception-form.html',
   styles: ``,
 })
-export default class ReceptionForm {
+export default class ReceptionForm implements OnInit {
   // ── Dependencies ──────────────────────────────────────────────────────────
   private fb = inject(FormBuilder);
   private receptionService = inject(ReceptionService);
+  private destroyRef = inject(DestroyRef);
 
   // ── Inputs ────────────────────────────────────────────────────────────────
-  branchId = input<number>(1); // TODO: recibir del padre cuando esté listo
+  branchId = input<number>(1);
 
   // ── Outputs ───────────────────────────────────────────────────────────────
   saved = output<void>();
@@ -34,13 +38,34 @@ export default class ReceptionForm {
   // ── Estado ────────────────────────────────────────────────────────────────
   isSubmitting = signal(false);
   submitError = signal<string | null>(null);
-
+  totalCost = signal<number>(0);
 
   // ── Form ──────────────────────────────────────────────────────────────────
   form: NewReceptionForm = this.fb.group<NewReceptionForm['controls']>({
     notes: this.fb.control('', { nonNullable: true }),
     items: this.fb.array<ItemFormGroup>([]),
   });
+
+  // ── Lifecycle ─────────────────────────────────────────────────────────────
+  ngOnInit(): void {
+    this.itemsArray.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.recalculateTotalCost());
+  }
+
+  // ── Totales ───────────────────────────────────────────────────────────────
+  private recalculateTotalCost(): void {
+    let total = 0;
+    for (const itemCtrl of this.itemsArray.controls) {
+      for (const varCtrl of itemCtrl.controls.variants.controls) {
+        const qty  = varCtrl.controls.quantityReceived.value ?? 0;
+        const cost = varCtrl.controls.unitCost.value ?? 0;
+        total += qty * cost;
+      }
+    }
+    this.totalCost.set(total);
+  }
+
   // ── Accessors ─────────────────────────────────────────────────────────────
   get notesCtrl(): FormControl {
     return this.form.controls.notes;
@@ -56,7 +81,7 @@ export default class ReceptionForm {
   }
 
   removeItem(i: number): void {
-    if (this.itemsArray.length === 1) return; // Al menos un item
+    if (this.itemsArray.length === 1) return;
     this.itemsArray.removeAt(i);
   }
 
@@ -68,7 +93,7 @@ export default class ReceptionForm {
         description: this.fb.control('', { nonNullable: true }),
         categoryId: this.fb.control<number | null>(null),
         brandId: this.fb.control<number | null>(null),
-        basePrice: this.fb.control<number>(0,{nonNullable: true}),
+        basePrice: this.fb.control<number>(0, { nonNullable: true }),
       }),
       variants: this.fb.array<VariantFormGroup>([
         this.buildVariantGroup()
@@ -104,32 +129,18 @@ export default class ReceptionForm {
       Object.keys(formGroup.controls).forEach(key => {
         const control = formGroup.get(key);
         if (control.invalid) {
-          // Si el control es un grupo o array, entramos recursivamente
-          if (control.controls) {
-            getFormErrors(control);
-          } else {
-            console.error(`Campo inválido: ${key}`, control.errors);
-          }
+          if (control.controls) getFormErrors(control);
+          else console.error(`Campo inválido: ${key}`, control.errors);
         }
       });
-
-      // Revisar si el error está en el objeto padre (Validador de grupo)
-      if (formGroup.errors) {
-        console.error(`Error en el objeto raíz/grupo:`, formGroup.errors);
-      }
+      if (formGroup.errors) console.error(`Error en el objeto raíz/grupo:`, formGroup.errors);
     };
 
     getFormErrors(this.form);
 
-    if (this.form.invalid || this.itemsArray.length === 0) {
-      console.log('Estado de itemsArray length:', this.itemsArray.length);
-      return;
-    }
-
+    if (this.form.invalid || this.itemsArray.length === 0) return;
 
     const payload = this.buildPayload();
-    console.log('Payload a enviar:', payload);
-
 
     this.isSubmitting.set(true);
     this.submitError.set(null);
@@ -140,7 +151,7 @@ export default class ReceptionForm {
       },
       error: (err) => {
         this.isSubmitting.set(false);
-        this.submitError.set('EGuardarrror al guardar la recepción. Intentá de nuevo.');
+        this.submitError.set('Error al guardar la recepción. Intentá de nuevo.');
         console.error(err);
       },
     });
@@ -194,4 +205,3 @@ export default class ReceptionForm {
     this.cancelled.emit();
   }
 }
-

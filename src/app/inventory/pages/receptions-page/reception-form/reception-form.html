@@ -1,97 +1,29 @@
-<div class="max-w-7xl mx-auto py-6 px-6 space-y-6">
+<div class="max-w-7xl mx-auto py-5 px-6">
 
-  <!-- Header -->
-  <div class="flex items-center justify-between">
-    <h2 class="text-xl font-semibold text-gray-900">Nueva recepción</h2>
+  <!-- ── TOOLBAR ──────────────────────────────────────────────────────────── -->
+  <div class="flex items-center justify-between mb-5">
 
-    <button
-      type="button"
-      (click)="onCancel()"
-      class="text-sm text-gray-500 hover:text-gray-700"
-    >
-      Cancelar
-    </button>
-  </div>
+    <div class="flex items-center gap-4">
+      <h2 class="text-base font-medium text-gray-900">Nueva recepción</h2>
 
-  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
-
-    <!-- Notas -->
-    <div>
       <input
         formControlName="notes"
-        placeholder="Notas..."
-        class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+        placeholder="Notas (proveedor, temporada...)"
+        class="w-72 px-3 py-1.5 border border-gray-300 rounded-md text-sm text-gray-900 placeholder-gray-400
+               focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
       />
     </div>
 
-    <!-- Productos -->
-    <div class="space-y-3">
-
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-gray-700">Productos</h3>
-
-        <button
-          type="button"
-          (click)="addItem()"
-          class="text-sm text-blue-600 hover:underline"
-        >
-          + Agregar producto
-        </button>
-      </div>
-
-      @if (itemsArray.length === 0) {
-        <div class="text-center text-sm text-gray-400 py-6 border rounded-lg">
-          No hay productos
-        </div>
-      }
-
-      <!-- 🔥 Aquí está el cambio importante -->
-      @for (itemForm of itemsArray.controls; track $index) {
-
-        <div class="border rounded-lg overflow-hidden">
-
-          <!-- Header compacto del producto -->
-          <div class="flex items-center justify-between bg-gray-100 px-3 py-2">
-
-            <div class="text-sm font-medium text-gray-800">
-              {{  'Producto sin seleccionar' }}
-            </div>
-
-            <button
-              type="button"
-              (click)="removeItem($index)"
-              class="text-red-500 hover:text-red-700 text-sm"
-            >
-              ✕
-            </button>
-
-          </div>
-
-          <!-- Contenido -->
-          <div class="p-3">
-
-            <!-- reutilizás TODO tu componente -->
-            <app-reception-item
-              [form]="itemForm"
-              [index]="$index"
-              (remove)="removeItem($index)"
-            />
-
-          </div>
-
-        </div>
-
-      }
-
-    </div>
-
-    <!-- Submit -->
-    <div class="flex justify-end gap-3 pt-2 border-t">
+    <div class="flex items-center gap-3">
+      <span class="text-xs text-gray-400">
+        <kbd class="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded text-[10px] font-mono">Tab</kbd>
+        para navegar entre celdas
+      </span>
 
       <button
         type="button"
         (click)="onCancel()"
-        class="px-4 py-2 text-sm text-gray-600"
+        class="px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
       >
         Cancelar
       </button>
@@ -99,12 +31,82 @@
       <button
         type="submit"
         [disabled]="isSubmitting()"
-        class="px-6 py-2 text-sm bg-blue-600 text-white rounded-md"
+        class="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
       >
         Guardar recepción
       </button>
+    </div>
+
+  </div>
+
+  <!-- ── FORM ─────────────────────────────────────────────────────────────── -->
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-3">
+
+    <!-- Error de submit -->
+    @if (submitError()) {
+      <div class="px-3 py-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+        {{ submitError() }}
+      </div>
+    }
+
+    <!-- Productos -->
+    @if (itemsArray.length === 0) {
+      <div class="text-center text-sm text-gray-400 py-10 border border-dashed border-gray-300 rounded-lg">
+        No hay productos. Hacé clic en "+ Agregar producto" para empezar.
+      </div>
+    }
+
+    @for (itemForm of itemsArray.controls; track $index) {
+      <app-reception-item
+        [form]="itemForm"
+        [index]="$index"
+        (remove)="removeItem($index)"
+      />
+    }
+
+    <!-- Agregar producto -->
+    <button
+      type="button"
+      (click)="addItem()"
+      class="text-sm text-blue-600 hover:text-blue-800 hover:underline py-1"
+    >
+      + Agregar producto
+    </button>
+
+    <!-- ── BOTTOM BAR ────────────────────────────────────────────────────── -->
+    <div class="flex items-center justify-between pt-3 border-t border-gray-200 mt-2">
+
+      <div class="flex items-center gap-6 text-sm text-gray-500">
+        <span>
+          <span class="font-medium text-gray-800">{{ itemsArray.length }}</span>
+          {{ itemsArray.length === 1 ? 'producto' : 'productos' }}
+        </span>
+        <span>
+          Costo total:
+          <span class="font-medium text-gray-900">Bs {{ totalCost() | number:'1.0-0' }}</span>
+        </span>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          (click)="onCancel()"
+          class="px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+        >
+          Cancelar
+        </button>
+
+        <button
+          type="submit"
+          [disabled]="isSubmitting()"
+          class="px-5 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+        >
+          {{ isSubmitting() ? 'Guardando...' : 'Guardar recepción' }}
+        </button>
+      </div>
 
     </div>
 
   </form>
+
 </div>
