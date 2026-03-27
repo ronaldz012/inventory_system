@@ -2,73 +2,87 @@ import {Component, computed, inject, input, OnInit, output, signal} from '@angul
 import {AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators} from '@angular/forms';
 import {ProductVariantOption} from '../../../../../models/products/product-search-result';
 import {VariantFormGroup} from '../../common/variant-form-group';
+import {DecimalPipe} from '@angular/common';
 
 @Component({
   selector: 'app-reception-variant',
   imports: [
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    DecimalPipe,
   ],
   templateUrl: './reception-variant.html',
   styles: ``,
 })
-export default class ReceptionVariant  implements OnInit {
-//DEPENDENCIES
+export default class ReceptionVariant implements OnInit {
+  // DEPENDENCIES
   private fb = inject(FormBuilder);
-// INPUTS
+
+  // INPUTS
   form = input.required<VariantFormGroup>();
   availableVariants = input<ProductVariantOption[]>([]);
   index = input<number>(0);
   forceNew = input.required<boolean>();
-//OUTPUTS
+
+  // OUTPUTS
   remove = output<void>();
-//VARIABLES
+
+  // STATE
   isNewVariant = signal(false);
   variantSearch = signal('');
+  showDropdown = signal(false);
+
+  // ── Señales computadas para la variante seleccionada ──────────────────
+
+  /** Variante actualmente seleccionada (objeto completo). */
+  private selectedVariant = computed<ProductVariantOption | undefined>(() => {
+    const id = this.productVariantIdCtrl.value;
+    if (!id) return undefined;
+    return this.availableVariants().find(v => v.id === id);
+  });
+
+  selectedVariantSize = computed(() => this.selectedVariant()?.size ?? '');
+  selectedVariantColor = computed(() => this.selectedVariant()?.color ?? '');
+  selectedVariantPrice = computed(() => this.selectedVariant()?.price ?? null);
+
+  /** Subtotal = quantityReceived × unitCost. */
+  subtotal = computed(() => {
+    const qty = this.form().controls.quantityReceived.value ?? 0;
+    const cost = this.form().controls.unitCost.value ?? 0;
+    return qty * cost;
+  });
+
+  // ── Lifecycle ─────────────────────────────────────────────────────────
 
   ngOnInit(): void {
-    // 1. Detectamos el modo actual basado en los validadores
     this.restoreModeFromValidators();
 
-    // 2. Restauramos el label visual si hay una variante seleccionada
     const selectedId = this.productVariantIdCtrl.value;
     if (selectedId) {
       const found = this.availableVariants().find(v => v.id === selectedId);
       if (found) this.variantSearch.set(this.formatVariantLabel(found));
     }
   }
+
+  // ── Dropdown / búsqueda ───────────────────────────────────────────────
+
   filteredVariants = computed(() => {
     const q = this.variantSearch().toLowerCase().trim();
-
-    // 1. Accedemos al valor del signal disponible
     const variants = this.availableVariants();
-
     if (!q) return variants;
-
-    return variants.filter(
-      (v) =>
-        v.description.toLowerCase().includes(q) ||
-        // Usamos el operador ?. de TS (como en C#) por si vienen null/undefined
-        v.size?.toLowerCase().includes(q) ||
-        v.color?.toLowerCase().includes(q)
+    return variants.filter(v =>
+      v.description.toLowerCase().includes(q) ||
+      v.size?.toLowerCase().includes(q) ||
+      v.color?.toLowerCase().includes(q)
     );
   });
+
+  openDropdown(): void { this.showDropdown.set(true); }
+  closeDropdown(): void { setTimeout(() => this.showDropdown.set(false), 150); }
+
   selectVariant(variant: ProductVariantOption): void {
     this.productVariantIdCtrl.setValue(variant.id);
     this.productVariantIdCtrl.markAsTouched();
     this.variantSearch.set(this.formatVariantLabel(variant));
-  }
-  selectedVariantLabel(): string {
-    // 1. Obtenemos el ID del control (Typed Form)
-    const id = this.productVariantIdCtrl.value;
-
-    // 2. Si no hay ID o es null, devolvemos vacío
-    if (!id) return '';
-
-    // 3. Ejecutamos el Signal para obtener el Array y usamos find
-    // Usamos this.availableVariants() con paréntesis
-    const found = this.availableVariants().find((v) => v.id === id);
-
-    return found ? this.formatVariantLabel(found) : '';
   }
 
   formatVariantLabel(v: ProductVariantOption): string {
@@ -77,9 +91,9 @@ export default class ReceptionVariant  implements OnInit {
     if (v.color) parts.push(v.color);
     return parts.join(' · ');
   }
-  onRemove(): void {
-    this.remove.emit();
-  }
+
+  // ── Modo Ex / New ─────────────────────────────────────────────────────
+
   switchToNew(): void {
     this.isNewVariant.set(true);
     this.activateNewVariantMode();
@@ -92,7 +106,41 @@ export default class ReceptionVariant  implements OnInit {
     this.variantSearch.set('');
   }
 
-// ── Accesors del form ────────────────────────────────────────────────────
+  private activateNewVariantMode(): void {
+    this.productVariantIdCtrl.setValue(null);
+    this.productVariantIdCtrl.clearValidators();
+    this.productVariantIdCtrl.updateValueAndValidity();
+
+    const nv = this.newVariantGroup;
+    nv.get('description')?.setValidators([Validators.required]);
+    nv.get('price')?.setValidators([Validators.required, Validators.min(0.5)]);
+    nv.get('description')?.updateValueAndValidity();
+    nv.get('price')?.updateValueAndValidity();
+  }
+
+  private deactivateNewVariantMode(): void {
+    this.productVariantIdCtrl.setValidators([Validators.required]);
+    this.productVariantIdCtrl.updateValueAndValidity();
+
+    const nv = this.newVariantGroup;
+    nv.reset();
+    nv.get('description')?.clearValidators();
+    nv.get('price')?.clearValidators();
+    nv.get('description')?.updateValueAndValidity();
+    nv.get('price')?.updateValueAndValidity();
+  }
+
+  private restoreModeFromValidators(): void {
+    if (this.forceNew()) {
+      this.isNewVariant.set(true);
+      return;
+    }
+    const descriptionCtrl = this.newVariantGroup.get('description');
+    this.isNewVariant.set(descriptionCtrl?.hasValidator(Validators.required) ?? false);
+  }
+
+  // ── Accesors ──────────────────────────────────────────────────────────
+
   get productVariantIdCtrl(): FormControl<number | null> {
     return this.form().controls.productVariantId;
   }
@@ -101,67 +149,8 @@ export default class ReceptionVariant  implements OnInit {
     return this.form().controls.newVariant;
   }
 
-  get quantityCtrl(): FormControl {
-    return this.form().controls.quantityReceived;
-  }
+  onRemove(): void { this.remove.emit(); }
 
-  get unitCostCtrl(): FormControl {
-    return this.form().controls.unitCost as FormControl;
-  }
-  private activateNewVariantMode(): void {
-    // Limpiar selección existente
-    this.productVariantIdCtrl.setValue(null);
-    this.productVariantIdCtrl.clearValidators();
-    this.productVariantIdCtrl.updateValueAndValidity();
-
-    // Activar validadores de nueva variante
-    const nv = this.newVariantGroup;
-    nv.get('description')?.setValidators([Validators.required]);
-    nv.get('price')?.setValidators([Validators.required, Validators.min(0.5)]);
-    nv.get('description')?.updateValueAndValidity();
-    nv.get('price')?.updateValueAndValidity();
-  }
-  private deactivateNewVariantMode(): void {
-    // Requerir selección existente
-    this.productVariantIdCtrl.setValidators([Validators.required]);
-    this.productVariantIdCtrl.updateValueAndValidity();
-
-    // Limpiar y quitar validadores de nueva variante
-    const nv = this.newVariantGroup;
-    nv.reset();
-    nv.get('description')?.clearValidators();
-    nv.get('price')?.clearValidators();
-    nv.get('description')?.updateValueAndValidity();
-    nv.get('price')?.updateValueAndValidity();
-  }
-//UI
-  private restoreModeFromValidators(): void {
-    // Si forceNew es true, siempre a New
-    if (this.forceNew()) {
-      this.isNewVariant.set(true);
-      return;
-    }
-
-    // Verificamos si el control de descripción tiene el validador 'required'
-    const descriptionCtrl = this.newVariantGroup.get('description');
-
-    // .hasValidator es la forma moderna (Angular 12+) de checkear esto
-    const isRequired = descriptionCtrl?.hasValidator(Validators.required);
-
-    if (isRequired) {
-      this.isNewVariant.set(true);
-    } else {
-      this.isNewVariant.set(false);
-    }
-  }
-  showDropdown = signal(false);
-  openDropdown(): void {
-    this.showDropdown.set(true);
-  }
-  closeDropdown(): void {
-    // Pequeño delay para que el click en una opción se registre primero
-    setTimeout(() => this.showDropdown.set(false), 150);
-  }
   hasError(ctrl: AbstractControl | null, error: string = 'required'): boolean {
     if (!ctrl) return false;
     return ctrl.hasError(error) && ctrl.touched;

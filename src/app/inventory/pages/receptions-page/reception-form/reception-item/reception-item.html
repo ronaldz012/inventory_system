@@ -1,149 +1,211 @@
-<div [formGroup]="form()" class="border border-gray-300 rounded-xl bg-gray-50">
+<div [formGroup]="form()" class="border border-gray-200 rounded-lg overflow-hidden">
 
-  <!-- ── Header siempre visible ──────────────────────────────────────────── -->
-  <div class="flex items-center justify-between px-4 py-3 cursor-pointer select-none"
-       (click)="toggleCollapse()">
+  <!-- ── PRODUCT HEADER ────────────────────────────────────────────────── -->
+  <div class="grid grid-cols-[2fr_1fr_1fr_auto] gap-3 items-end px-3 py-2.5 bg-gray-50 border-b border-gray-200">
 
-    <div class="flex items-center gap-3">
-      <svg class="w-4 h-4 text-gray-400 transition-transform duration-200"
-           [class.rotate-180]="!collapsed()"
-           fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-      </svg>
-      <span class="text-sm font-semibold text-gray-700">{{ summaryLabel }}</span>
-      @if (collapsed()) {
-        <span class="text-xs text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full">
-          {{ variantsArray.length }} variante(s)
-        </span>
-      }
-    </div>
+    <!-- Búsqueda / nombre -->
+    <div>
+      <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">
+        Producto
+      </label>
 
-    <div class="flex items-center gap-2" (click)="$event.stopPropagation()">
-
-      @if (!collapsed()) {
-        <div class="flex gap-1 bg-gray-200 rounded-full p-1">
-          <button type="button" (click)="switchToExistingProduct()"
-                  [class]="!isNewProduct()
-          ? 'px-3 py-1 text-xs rounded-full bg-white text-gray-800 font-medium shadow-sm transition-all'
-          : 'px-3 py-1 text-xs rounded-full text-gray-500 hover:text-gray-700 transition-all'">
-            Existente
-          </button>
-          <button type="button" (click)="switchToNewProduct()"
-                  [class]="isNewProduct()
-          ? 'px-3 py-1 text-xs rounded-full bg-white text-gray-800 font-medium shadow-sm transition-all'
-          : 'px-3 py-1 text-xs rounded-full text-gray-500 hover:text-gray-700 transition-all'">
-            Nuevo
-          </button>
-        </div>
-      }
-
-      <button type="button" (click)="onRemove()"
-              class="text-gray-400 hover:text-red-500 transition-colors p-1 rounded">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-      </button>
-
-    </div>
-  </div>
-
-  <!-- ── Contenido colapsable ────────────────────────────────────────────── -->
-  @if (!collapsed()) {
-    <div class="px-4 pb-4 border-t border-gray-200 space-y-4">
-
-      <!-- Producto existente -->
       @if (!isNewProduct()) {
-        <div class="relative mt-3">
-          <div class="relative">
-            <input
-              type="text"
-              [value]="productSearch()"
-              (input)="onSearchInput($any($event.target).value)"
-              (focus)="openDropdown()"
-              (blur)="closeDropdown()"
-              placeholder="Buscar producto por nombre..."
-              class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
-              [class.border-red-400]="hasError(productIdCtrl)"
-              [class.border-gray-300]="!hasError(productIdCtrl)"
-            />
-            @if (isSearching()) {
-              <div class="absolute right-2 top-1/2 -translate-y-1/2">
-                <svg class="animate-spin w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                </svg>
-              </div>
-            }
-          </div>
+        <div class="relative">
+          <input
+            type="text"
+            [value]="productSearch()"
+            (input)="onSearchInput($any($event.target).value)"
+            (focus)="openDropdown()"
+            (blur)="closeDropdown()"
+            placeholder="Buscar producto existente..."
+            class="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          />
 
           @if (showDropdown() && (searchResults().length > 0 || isSearching())) {
             <div class="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-52 overflow-y-auto">
               @if (isSearching()) {
-                <div class="px-4 py-3 text-sm text-gray-400">Buscando...</div>
+                <div class="px-3 py-2 text-xs text-gray-400">Buscando...</div>
               }
               @for (product of searchResults(); track product.id) {
                 <button
                   type="button"
                   (mousedown)="$event.preventDefault()"
                   (click)="selectProduct(product)"
-                  class="w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between"
-                  [class.bg-blue-50]="productIdCtrl.value === product.id"
+                  class="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 flex items-center justify-between"
                 >
-                  <span class="font-medium text-gray-800">{{ product.name }}</span>
-                  <span class="text-xs text-gray-400">{{ product.productVariants && product.productVariants.length != null ? product.productVariants.length : 0 }}variantes</span>
+                  <span>{{ product.name }}</span>
+                  <span class="text-xs text-gray-400">{{ product.productVariants?.length || 0 }} variantes</span>
                 </button>
               }
             </div>
           }
-
-          @if (hasError(productIdCtrl)) {
-            <p class="mt-1 text-xs text-red-500">Seleccioná un producto</p>
-          }
         </div>
       }
 
-      <!-- Producto nuevo -->
       @if (isNewProduct()) {
-        <div class="mt-3">
-          <app-product-form
-            [externalForm]="newProductGroup"
-            [categories]="categories()"
-            [brands]="brands()"
-          />
+        <input
+          formControlName="name"
+          placeholder="Nombre del producto..."
+          class="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+        />
+      }
+    </div>
+
+    <!-- Categoría (nuevo) / resumen (existente) -->
+    <div>
+      @if (isNewProduct()) {
+        <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">Categoría</label>
+        <select
+          formControlName="categoryId"
+          class="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
+        >
+          <option [ngValue]="null">Sin categoría</option>
+          @for (cat of categories(); track cat.id) {
+            <option [ngValue]="cat.id">{{ cat.name }}</option>
+          }
+        </select>
+      } @else {
+        <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">&nbsp;</label>
+        <span class="text-sm text-gray-500">
+          {{ variantsArray.length }} variantes &nbsp;·&nbsp;
+          <span class="font-medium text-gray-800">Bs {{ itemTotalCost() | number:'1.0-0' }}</span>
+        </span>
+      }
+    </div>
+
+    <!-- Marca (nuevo) + toggle -->
+    <div class="flex items-end gap-3">
+      @if (isNewProduct()) {
+        <div class="flex-1">
+          <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">Marca</label>
+          <select
+            formControlName="brandId"
+            class="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
+          >
+            <option [ngValue]="null">Sin marca</option>
+            @for (brand of brands(); track brand.id) {
+              <option [ngValue]="brand.id">{{ brand.name }}</option>
+            }
+          </select>
         </div>
       }
 
-      <!-- Variantes -->
-      <div>
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Variantes</span>
-          <button type="button" (click)="addVariant()"
-                  class="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            Agregar variante
-          </button>
-        </div>
-
-        <div class="space-y-2">
-          @for (variantForm of variantsArray.controls; track $index) {
-            <app-reception-variant
-              [form]="variantForm"
-              [availableVariants]="availableVariants()"
-              [index]="$index"
-              [forceNew]="isNewProduct()"
-              (remove)="removeVariant($index)"
-            />
-          }
-        </div>
-
-        @if (variantsArray.length === 0) {
-          <p class="text-xs text-red-500 text-center py-2">Agregá al menos una variante</p>
-        }
+      <div class="flex border border-gray-300 rounded-md overflow-hidden text-xs shrink-0">
+        <button
+          type="button"
+          (click)="switchToExistingProduct()"
+          [class]="!isNewProduct()
+            ? 'px-2.5 py-1.5 bg-blue-600 text-white font-medium'
+            : 'px-2.5 py-1.5 text-gray-500 hover:bg-gray-100'"
+        >
+          Existente
+        </button>
+        <button
+          type="button"
+          (click)="switchToNewProduct()"
+          [class]="isNewProduct()
+            ? 'px-2.5 py-1.5 bg-blue-600 text-white font-medium'
+            : 'px-2.5 py-1.5 text-gray-500 hover:bg-gray-100'"
+        >
+          Nuevo
+        </button>
       </div>
-
     </div>
-  }
+
+    <!-- Eliminar producto -->
+    <button
+      type="button"
+      (click)="onRemove()"
+      class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md self-end"
+      title="Eliminar producto"
+    >
+      ✕
+    </button>
+
+  </div>
+
+  <!-- ── VARIANTS GRID ──────────────────────────────────────────────────── -->
+  <div>
+
+    <!--
+      Grid de columnas compartido entre el header y cada app-reception-variant.
+      La misma clase "variant-row-grid" se aplica tanto acá como en el componente hijo,
+      garantizando alineación perfecta sin depender del modelo de tabla del browser.
+
+      Columnas (producto existente):
+        toggle | variante | talle | color | p.venta | cantidad | costo | subtotal | del
+        80px   | 1fr      | 80px  | 96px  | 88px    | 88px     | 100px | 96px     | 32px
+
+      Cuando forceNew=true, la columna toggle desaparece y el componente hijo
+      usa la misma grilla sin esa primera columna.
+    -->
+
+    <!-- Header: producto EXISTENTE -->
+    @if (!isNewProduct()) {
+      <div class="grid gap-0 border-b border-gray-200 bg-white"
+           style="grid-template-columns: 80px 1fr 80px 96px 88px 88px 100px 96px 32px">
+        <div class="px-3 py-2"></div>
+        <div class="px-2 py-2 text-[11px] font-medium text-gray-500 uppercase tracking-wide">Variante</div>
+        <div class="px-2 py-2 text-[11px] font-medium text-gray-500 uppercase tracking-wide">Talle</div>
+        <div class="px-2 py-2 text-[11px] font-medium text-gray-500 uppercase tracking-wide">Color</div>
+        <div class="px-2 py-2 text-[11px] font-medium text-gray-500 uppercase tracking-wide text-right">P. venta</div>
+        <div class="px-2 py-2 text-[11px] font-medium text-gray-500 uppercase tracking-wide text-right">Cantidad</div>
+        <div class="px-2 py-2 text-[11px] font-medium text-gray-500 uppercase tracking-wide text-right">Costo unit.</div>
+        <div class="px-2 py-2 text-[11px] font-medium text-gray-500 uppercase tracking-wide text-right">Subtotal</div>
+        <div></div>
+      </div>
+    }
+
+    <!-- Header: producto NUEVO (sin columna toggle) -->
+    @if (isNewProduct()) {
+      <div class="grid gap-0 border-b border-gray-200 bg-white"
+           style="grid-template-columns: 1fr 80px 96px 88px 88px 100px 96px 32px">
+        <div class="px-2 py-2 text-[11px] font-medium text-gray-500 uppercase tracking-wide">Descripción</div>
+        <div class="px-2 py-2 text-[11px] font-medium text-gray-500 uppercase tracking-wide">Talle</div>
+        <div class="px-2 py-2 text-[11px] font-medium text-gray-500 uppercase tracking-wide">Color</div>
+        <div class="px-2 py-2 text-[11px] font-medium text-gray-500 uppercase tracking-wide text-right">P. venta</div>
+        <div class="px-2 py-2 text-[11px] font-medium text-gray-500 uppercase tracking-wide text-right">Cantidad</div>
+        <div class="px-2 py-2 text-[11px] font-medium text-gray-500 uppercase tracking-wide text-right">Costo unit.</div>
+        <div class="px-2 py-2 text-[11px] font-medium text-gray-500 uppercase tracking-wide text-right">Subtotal</div>
+        <div></div>
+      </div>
+    }
+
+    <!-- Filas de variantes -->
+    @for (variantForm of variantsArray.controls; track $index) {
+      <app-reception-variant
+        [form]="variantForm"
+        [availableVariants]="availableVariants()"
+        [index]="$index"
+        [forceNew]="isNewProduct()"
+        (remove)="removeVariant($index)"
+      />
+    }
+
+    @if (variantsArray.length === 0) {
+      <p class="text-xs text-red-500 text-center py-3 border-t border-gray-100">
+        Agregá al menos una variante
+      </p>
+    }
+
+  </div>
+
+  <!-- ── FOOTER ─────────────────────────────────────────────────────────── -->
+  <div class="flex items-center justify-between px-3 py-2 bg-gray-50 border-t border-gray-200">
+    <button
+      type="button"
+      (click)="addVariant()"
+      class="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+    >
+      + Agregar variante
+      <kbd class="ml-1 px-1 py-0.5 bg-gray-200 border border-gray-300 rounded text-[10px] font-mono text-gray-500">Enter</kbd>
+    </button>
+
+    <div class="text-xs text-gray-500">
+      {{ variantsArray.length }} variantes &nbsp;·&nbsp;
+      {{ totalUnits() }} unidades &nbsp;·&nbsp;
+      Costo total: <span class="font-medium text-gray-800">Bs {{ itemTotalCost() | number:'1.0-0' }}</span>
+    </div>
+  </div>
 
 </div>

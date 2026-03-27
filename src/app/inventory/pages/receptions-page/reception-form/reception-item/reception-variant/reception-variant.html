@@ -1,189 +1,220 @@
-<div [formGroup]="form()" class="bg-white border border-gray-200 rounded-lg p-3">
+<!--
+  Este componente renderiza UNA FILA del grid de variantes.
+  El host element (app-reception-variant) se comporta como display:contents
+  gracias al :host { display: contents } en el CSS del componente,
+  o usamos un div wrapper con el mismo grid-template-columns que el header.
 
-  <!-- ── Toggle modo (solo si no es forceNew) ───────────────────────────── -->
+  Producto EXISTENTE: grid-template-columns: 80px 1fr 80px 96px 88px 88px 100px 96px 32px
+  Producto NUEVO:     grid-template-columns: 1fr 80px 96px 88px 88px 100px 96px 32px
+-->
+
+<div
+  [formGroup]="form()"
+  class="grid gap-0 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 group"
+  [style]="forceNew()
+    ? 'grid-template-columns: 1fr 80px 96px 88px 88px 100px 96px 32px'
+    : 'grid-template-columns: 80px 1fr 80px 96px 88px 88px 100px 96px 32px'"
+>
+
+  <!-- ── Toggle Ex / New (solo producto existente) ──────────────────────── -->
   @if (!forceNew()) {
-    <div class="flex items-center gap-2 mb-3">
-      <span class="text-xs text-gray-400">Variante {{ index() + 1 }}:</span>
-      <button type="button" (click)="switchToExisting()"
-              [class]="!isNewVariant()
-          ? 'px-2.5 py-0.5 text-xs rounded-full bg-blue-600 text-white font-medium'
-          : 'px-2.5 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200'">
-        Existente
-      </button>
-      <button type="button" (click)="switchToNew()"
-              [class]="isNewVariant()
-          ? 'px-2.5 py-0.5 text-xs rounded-full bg-blue-600 text-white font-medium'
-          : 'px-2.5 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200'">
-        + Nueva
-      </button>
+    <div class="flex items-center px-2 py-1.5">
+      <div class="flex border border-gray-300 rounded overflow-hidden text-[10px]">
+        <button
+          type="button"
+          (click)="switchToExisting()"
+          [class]="!isNewVariant()
+            ? 'px-2 py-1 bg-blue-600 text-white font-medium'
+            : 'px-2 py-1 text-gray-400 hover:bg-gray-100'"
+        >
+          Ex
+        </button>
+        <button
+          type="button"
+          (click)="switchToNew()"
+          [class]="isNewVariant()
+            ? 'px-2 py-1 bg-blue-600 text-white font-medium'
+            : 'px-2 py-1 text-gray-400 hover:bg-gray-100'"
+        >
+          New
+        </button>
+      </div>
     </div>
-  } @else {
-    <span class="text-xs text-gray-400 block mb-3">Variante {{ index() + 1 }}</span>
   }
 
-  <!-- ── MODO EXISTENTE: fila horizontal ────────────────────────────────── -->
+  <!-- ══════════════════════════════════════════════════════════════════════
+       VARIANTE EXISTENTE
+  ══════════════════════════════════════════════════════════════════════ -->
   @if (!isNewVariant()) {
-    <div class="flex gap-2 items-start">
 
-      <!-- Búsqueda variante -->
-      <div class="relative flex-1">
-        <input
-          type="text"
-          [value]="variantSearch()"
-          (input)="variantSearch.set($any($event.target).value)"
-          (focus)="openDropdown()"
-          (blur)="closeDropdown()"
-          placeholder="Buscar variante..."
-          class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          [class.border-red-400]="hasError(productVariantIdCtrl)"
-          [class.border-gray-300]="!hasError(productVariantIdCtrl)"
-        />
-        @if (showDropdown()) {
-          <div class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-44 overflow-y-auto">
-            @if (filteredVariants().length === 0) {
-              <div class="px-4 py-3 text-sm text-gray-500 flex items-center justify-between">
-                <span>Sin resultados</span>
-                <button type="button"
-                        (mousedown)="$event.preventDefault()"
-                        (click)="switchToNew()"
-                        class="text-blue-600 hover:underline text-xs">
-                  Crear nueva →
-                </button>
-              </div>
-            }
-            @for (variant of filteredVariants(); track variant.id) {
-              <button type="button"
-                      (mousedown)="$event.preventDefault()"
-                      (click)="selectVariant(variant)"
-                      class="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between"
-                      [class.bg-blue-50]="productVariantIdCtrl.value === variant.id">
-                <span>{{ formatVariantLabel(variant) }}</span>
-                <span class="text-gray-400 text-xs">Bs {{ variant.price}}</span>
+    <!-- Buscador de variante -->
+    <div class="px-1 py-1 relative">
+      <input
+        type="text"
+        [value]="variantSearch()"
+        (input)="variantSearch.set($any($event.target).value)"
+        (focus)="openDropdown()"
+        (blur)="closeDropdown()"
+        placeholder="Buscar variante..."
+        class="w-full px-2 py-1.5 border border-transparent rounded text-sm text-gray-900 placeholder-gray-400
+               focus:outline-none focus:border-blue-400 focus:bg-white focus:ring-1 focus:ring-blue-400
+               group-hover:border-gray-200"
+      />
+
+      @if (showDropdown()) {
+        <div class="absolute z-10 left-1 right-1 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-44 overflow-y-auto">
+          @if (filteredVariants().length === 0) {
+            <div class="flex items-center justify-between px-3 py-2 text-xs text-gray-500">
+              <span>Sin resultados</span>
+              <button
+                type="button"
+                (mousedown)="$event.preventDefault()"
+                (click)="switchToNew()"
+                class="text-blue-600 hover:underline"
+              >
+                Crear nueva →
               </button>
-            }
-          </div>
-        }
-        @if (hasError(productVariantIdCtrl)) {
-          <p class="mt-1 text-xs text-red-500">Seleccioná una variante</p>
-        }
-      </div>
-
-      <!-- Cantidad -->
-      <div class="w-24 shrink-0">
-        <input
-          type="number"
-          formControlName="quantityReceived"
-          placeholder="Cant."
-          min="1"
-          class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
-          [class.border-red-400]="hasError(quantityCtrl)"
-          [class.border-gray-300]="!hasError(quantityCtrl)"
-        />
-        @if (hasError(quantityCtrl, 'required') || hasError(quantityCtrl, 'min')) {
-          <p class="mt-1 text-xs text-red-500 text-center">Min. 1</p>
-        }
-      </div>
-
-      <!-- Costo -->
-      <div class="w-32 shrink-0 relative">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">Bs</span>
-        <input
-          type="number"
-          formControlName="unitCost"
-          placeholder="0.00"
-          min="0.01"
-          step="0.01"
-          class="w-full pl-8 pr-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          [class.border-red-400]="hasError(unitCostCtrl)"
-          [class.border-gray-300]="!hasError(unitCostCtrl)"
-        />
-        @if (hasError(unitCostCtrl, 'required') || hasError(unitCostCtrl, 'min')) {
-          <p class="mt-1 text-xs text-red-500">Requerido</p>
-        }
-      </div>
-
-      <!-- Eliminar -->
-      <button type="button" (click)="onRemove()"
-              class="mt-1 shrink-0 text-gray-400 hover:text-red-500 transition-colors p-1">
-        <svg class="w-4 h-4"  stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-      </button>
-
-    </div>
-  }
-
-  <!-- ── MODO NUEVA VARIANTE: grid compacto ─────────────────────────────── -->
-  @if (isNewVariant()) {
-    <!-- Campos del newVariant -->
-    <div formGroupName="newVariant">
-      <div class="mb-2">
-        <input
-          type="text"
-          formControlName="description"
-          placeholder="Descripción *"
-          class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          [class.border-red-400]="hasError(newVariantGroup.get('description'))"
-          [class.border-gray-300]="!hasError(newVariantGroup.get('description'))"
-        />
-        @if (hasError(newVariantGroup.get('description'))) {
-          <p class="mt-1 text-xs text-red-500">Requerido</p>
-        }
-      </div>
-
-      <div class="flex gap-2 mb-2">
-        <input type="text" formControlName="size" placeholder="Talle"
-               class="w-20 shrink-0 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-
-        <input type="text" formControlName="color" placeholder="Color"
-               class="w-24 shrink-0 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-
-        <div class="relative w-28 shrink-0">
-          <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">Bs</span>
-          <input type="number" formControlName="price" placeholder="Precio" min="0.01" step="0.01"
-                 class="w-full pl-7 pr-2 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 [class.border-red-400]="hasError(newVariantGroup.get('price'))"
-                 [class.border-gray-300]="!hasError(newVariantGroup.get('price'))"/>
+            </div>
+          }
+          @for (variant of filteredVariants(); track variant.id) {
+            <button
+              type="button"
+              (mousedown)="$event.preventDefault()"
+              (click)="selectVariant(variant)"
+              class="w-full text-left px-3 py-1.5 text-sm hover:bg-blue-50 flex items-center justify-between"
+            >
+              <span>{{ formatVariantLabel(variant) }}</span>
+              <span class="text-xs text-gray-400">Bs {{ variant.price }}</span>
+            </button>
+          }
         </div>
-      </div>
+      }
     </div>
 
-    <!-- Separador -->
-    <div class="w-full h-px bg-gray-100 my-2"></div>
-
-    <!-- quantity y unitCost fuera del formGroupName -->
-    <div class="flex gap-2 items-start">
-      <input type="number" formControlName="quantityReceived" placeholder="Cant." min="1"
-             class="w-20 shrink-0 px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
-             [class.border-red-400]="hasError(quantityCtrl)"
-             [class.border-gray-300]="!hasError(quantityCtrl)"/>
-
-      <div class="relative flex-1">
-        <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">Bs</span>
-        <input type="number" formControlName="unitCost" placeholder="Costo" min="0.01" step="0.01"
-               class="w-full pl-7 pr-2 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-               [class.border-red-400]="hasError(unitCostCtrl)"
-               [class.border-gray-300]="!hasError(unitCostCtrl)"/>
-      </div>
-
-      <button type="button" (click)="onRemove()"
-              class="mt-1 shrink-0 text-gray-400 hover:text-red-500 transition-colors p-1">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-      </button>
+    <!-- Talle (readonly) -->
+    <div class="px-1 py-1 flex items-center">
+      <span class="w-full px-2 text-sm text-gray-400 truncate">{{ selectedVariantSize() || '—' }}</span>
     </div>
 
-    <!-- Errores -->
-    @if (hasError(newVariantGroup.get('price'), 'required') || hasError(newVariantGroup.get('price'), 'min')) {
-      <p class="mt-1 text-xs text-red-500">Precio requerido (mayor a 0)</p>
-    }
-    @if (hasError(quantityCtrl, 'required') || hasError(quantityCtrl, 'min')) {
-      <p class="mt-1 text-xs text-red-500">Cantidad mínima: 1</p>
-    }
-    @if (hasError(unitCostCtrl, 'required') || hasError(unitCostCtrl, 'min')) {
-      <p class="mt-1 text-xs text-red-500">Costo requerido (mayor a 0)</p>
-    }
+    <!-- Color (readonly) -->
+    <div class="px-1 py-1 flex items-center">
+      <span class="w-full px-2 text-sm text-gray-400 truncate">{{ selectedVariantColor() || '—' }}</span>
+    </div>
+
+    <!-- Precio de venta (readonly) -->
+    <div class="px-1 py-1 flex items-center justify-end">
+      <span class="px-2 text-sm text-gray-400">
+        {{ selectedVariantPrice() != null ? selectedVariantPrice() : '—' }}
+      </span>
+    </div>
+
   }
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       VARIANTE NUEVA
+  ══════════════════════════════════════════════════════════════════════ -->
+  @if (isNewVariant()) {
+
+    <!-- Descripción -->
+    <div class="px-1 py-1" formGroupName="newVariant">
+      <input
+        type="text"
+        formControlName="description"
+        placeholder="Descripción..."
+        class="w-full px-2 py-1.5 border border-transparent rounded text-sm text-gray-900 placeholder-gray-400
+               focus:outline-none focus:border-blue-400 focus:bg-white focus:ring-1 focus:ring-blue-400
+               group-hover:border-gray-200"
+        [class.border-red-300]="hasError(newVariantGroup.get('description'))"
+      />
+    </div>
+
+    <!-- Talle -->
+    <div class="px-1 py-1" formGroupName="newVariant">
+      <input
+        type="text"
+        formControlName="size"
+        placeholder="S/M/L"
+        class="w-full px-2 py-1.5 border border-transparent rounded text-sm text-gray-900 placeholder-gray-400
+               focus:outline-none focus:border-blue-400 focus:bg-white focus:ring-1 focus:ring-blue-400
+               group-hover:border-gray-200"
+      />
+    </div>
+
+    <!-- Color -->
+    <div class="px-1 py-1" formGroupName="newVariant">
+      <input
+        type="text"
+        formControlName="color"
+        placeholder="Color"
+        class="w-full px-2 py-1.5 border border-transparent rounded text-sm text-gray-900 placeholder-gray-400
+               focus:outline-none focus:border-blue-400 focus:bg-white focus:ring-1 focus:ring-blue-400
+               group-hover:border-gray-200"
+      />
+    </div>
+
+    <!-- Precio de venta -->
+    <div class="px-1 py-1" formGroupName="newVariant">
+      <input
+        type="number"
+        formControlName="price"
+        placeholder="0"
+        min="0"
+        class="w-full px-2 py-1.5 border border-transparent rounded text-sm text-gray-900 text-right placeholder-gray-400
+               focus:outline-none focus:border-blue-400 focus:bg-white focus:ring-1 focus:ring-blue-400
+               group-hover:border-gray-200"
+        [class.border-red-300]="hasError(newVariantGroup.get('price'))"
+      />
+    </div>
+
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       CAMPOS COMUNES (cantidad, costo, subtotal, eliminar)
+  ══════════════════════════════════════════════════════════════════════ -->
+
+  <!-- Cantidad -->
+  <div class="px-1 py-1">
+    <input
+      type="number"
+      formControlName="quantityReceived"
+      placeholder="0"
+      min="1"
+      class="w-full px-2 py-1.5 border border-transparent rounded text-sm text-gray-900 text-right placeholder-gray-400
+             focus:outline-none focus:border-blue-400 focus:bg-white focus:ring-1 focus:ring-blue-400
+             group-hover:border-gray-200"
+    />
+  </div>
+
+  <!-- Costo unitario -->
+  <div class="px-1 py-1">
+    <input
+      type="number"
+      formControlName="unitCost"
+      placeholder="0"
+      min="0"
+      class="w-full px-2 py-1.5 border border-transparent rounded text-sm text-gray-900 text-right placeholder-gray-400
+             focus:outline-none focus:border-blue-400 focus:bg-white focus:ring-1 focus:ring-blue-400
+             group-hover:border-gray-200"
+    />
+  </div>
+
+  <!-- Subtotal calculado -->
+  <div class="px-2 py-1.5 flex items-center justify-end">
+    <span class="text-sm" [class]="subtotal() > 0 ? 'font-medium text-gray-800' : 'text-gray-300'">
+      {{ subtotal() > 0 ? 'Bs ' + (subtotal() | number:'1.0-0') : '—' }}
+    </span>
+  </div>
+
+  <!-- Eliminar -->
+  <div class="flex items-center justify-center">
+    <button
+      type="button"
+      (click)="onRemove()"
+      class="text-gray-300 hover:text-red-500 hover:bg-red-50 rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+      title="Eliminar variante"
+    >
+      ✕
+    </button>
+  </div>
 
 </div>

@@ -1,0 +1,149 @@
+<div [formGroup]="form()" class="border border-gray-300 rounded-xl bg-gray-50">
+
+  <!-- ── Header siempre visible ──────────────────────────────────────────── -->
+  <div class="flex items-center justify-between px-4 py-3 cursor-pointer select-none"
+       (click)="toggleCollapse()">
+
+    <div class="flex items-center gap-3">
+      <svg class="w-4 h-4 text-gray-400 transition-transform duration-200"
+           [class.rotate-180]="!collapsed()"
+           fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+      </svg>
+      <span class="text-sm font-semibold text-gray-700">{{ summaryLabel }}</span>
+      @if (collapsed()) {
+        <span class="text-xs text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full">
+          {{ variantsArray.length }} variante(s)
+        </span>
+      }
+    </div>
+
+    <div class="flex items-center gap-2" (click)="$event.stopPropagation()">
+
+      @if (!collapsed()) {
+        <div class="flex gap-1 bg-gray-200 rounded-full p-1">
+          <button type="button" (click)="switchToExistingProduct()"
+                  [class]="!isNewProduct()
+          ? 'px-3 py-1 text-xs rounded-full bg-white text-gray-800 font-medium shadow-sm transition-all'
+          : 'px-3 py-1 text-xs rounded-full text-gray-500 hover:text-gray-700 transition-all'">
+            Existente
+          </button>
+          <button type="button" (click)="switchToNewProduct()"
+                  [class]="isNewProduct()
+          ? 'px-3 py-1 text-xs rounded-full bg-white text-gray-800 font-medium shadow-sm transition-all'
+          : 'px-3 py-1 text-xs rounded-full text-gray-500 hover:text-gray-700 transition-all'">
+            Nuevo
+          </button>
+        </div>
+      }
+
+      <button type="button" (click)="onRemove()"
+              class="text-gray-400 hover:text-red-500 transition-colors p-1 rounded">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ── Contenido colapsable ────────────────────────────────────────────── -->
+  @if (!collapsed()) {
+    <div class="px-4 pb-4 border-t border-gray-200 space-y-4">
+
+      <!-- Producto existente -->
+      @if (!isNewProduct()) {
+        <div class="relative mt-3">
+          <div class="relative">
+            <input
+              type="text"
+              [value]="productSearch()"
+              (input)="onSearchInput($any($event.target).value)"
+              (focus)="openDropdown()"
+              (blur)="closeDropdown()"
+              placeholder="Buscar producto por nombre..."
+              class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
+              [class.border-red-400]="hasError(productIdCtrl)"
+              [class.border-gray-300]="!hasError(productIdCtrl)"
+            />
+            @if (isSearching()) {
+              <div class="absolute right-2 top-1/2 -translate-y-1/2">
+                <svg class="animate-spin w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                </svg>
+              </div>
+            }
+          </div>
+
+          @if (showDropdown() && (searchResults().length > 0 || isSearching())) {
+            <div class="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-52 overflow-y-auto">
+              @if (isSearching()) {
+                <div class="px-4 py-3 text-sm text-gray-400">Buscando...</div>
+              }
+              @for (product of searchResults(); track product.id) {
+                <button
+                  type="button"
+                  (mousedown)="$event.preventDefault()"
+                  (click)="selectProduct(product)"
+                  class="w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between"
+                  [class.bg-blue-50]="productIdCtrl.value === product.id"
+                >
+                  <span class="font-medium text-gray-800">{{ product.name }}</span>
+                  <span class="text-xs text-gray-400">{{ product.productVariants && product.productVariants.length != null ? product.productVariants.length : 0 }}variantes</span>
+                </button>
+              }
+            </div>
+          }
+
+          @if (hasError(productIdCtrl)) {
+            <p class="mt-1 text-xs text-red-500">Seleccioná un producto</p>
+          }
+        </div>
+      }
+
+      <!-- Producto nuevo -->
+      @if (isNewProduct()) {
+        <div class="mt-3">
+          <app-product-form
+            [externalForm]="newProductGroup"
+            [categories]="categories()"
+            [brands]="brands()"
+          />
+        </div>
+      }
+
+      <!-- Variantes -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Variantes</span>
+          <button type="button" (click)="addVariant()"
+                  class="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Agregar variante
+          </button>
+        </div>
+
+        <div class="space-y-2">
+          @for (variantForm of variantsArray.controls; track $index) {
+            <app-reception-variant
+              [form]="variantForm"
+              [availableVariants]="availableVariants()"
+              [index]="$index"
+              [forceNew]="isNewProduct()"
+              (remove)="removeVariant($index)"
+            />
+          }
+        </div>
+
+        @if (variantsArray.length === 0) {
+          <p class="text-xs text-red-500 text-center py-2">Agregá al menos una variante</p>
+        }
+      </div>
+
+    </div>
+  }
+
+</div>
