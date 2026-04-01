@@ -95,9 +95,7 @@ export default class ReceptionForm implements OnInit {
         brandId: this.fb.control<number | null>(null),
         basePrice: this.fb.control<number>(0, { nonNullable: true }),
       }),
-      variants: this.fb.array<VariantFormGroup>([
-        this.buildVariantGroup()
-      ]),
+      variants: this.fb.array<VariantFormGroup>([]),
     });
   }
 

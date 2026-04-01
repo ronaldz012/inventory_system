@@ -154,6 +154,7 @@ export default class ReceptionItem implements OnInit {
     this.productSearch.set(product.name);
     this.availableVariants.set(product.productVariants ?? []);
     this.showDropdown.set(false);
+    this.resetVariants();
   }
 
   clearProductSelection(): void {
@@ -194,18 +195,20 @@ export default class ReceptionItem implements OnInit {
 
   // —— Gestión de variantes ——————————————————————————————————————————————
   addVariant(): void {
-    this.variantsArray().push(this.buildVariantGroup());
+    const control = this.form().controls.variants;
+    control.push(this.buildVariantGroup());
+    this.variantsValue.set([...control.value]);
   }
 
   removeVariant(i: number): void {
-    if (this.variantsArray().length === 1) return;
-    this.variantsArray().removeAt(i);
+    const control = this.form().controls.variants;
+    control.removeAt(i);
+    this.variantsValue.set([...control.value]);
   }
 
   private resetVariants(): void {
-    while (this.variantsArray().length > 0) {
-      this.variantsArray().removeAt(0);
-    }
+    const control = this.form().controls.variants;
+    control.clear();
     this.addVariant();
   }
 
