@@ -102,6 +102,7 @@ export default class ReceptionVariant implements OnInit {
     this.selectedVariantId.set(variant.id); // Notifica a los computed
     this.productVariantIdCtrl.markAsTouched();
     this.variantSearch.set(this.formatVariantLabel(variant));
+    this.showDropdown.set(false);
   }
 
   formatVariantLabel(v: ProductVariantOption): string {
