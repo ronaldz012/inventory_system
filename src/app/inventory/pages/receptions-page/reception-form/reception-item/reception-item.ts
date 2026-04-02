@@ -134,12 +134,17 @@ export default class ReceptionItem implements OnInit {
   get productIdCtrl(): FormControl<number | null> { return this.form().controls.productId; }
   get newProductGroup(): FormGroup { return this.form().controls.newProduct; }
 
-  onSearchInput(value: string): void {
+  onSearchInput(value: string) {
     this.productSearch.set(value);
-    if (!value) this.clearProductSelection();
-    this.searchInput$.next(value);
-  }
 
+    if (value.trim() === '') {
+      this.clearSelection();
+    } else {
+      this.showDropdown.set(true);
+      // IMPORTANTE: Notificar al buscador
+      this.searchInput$.next(value);
+    }
+  }
   selectProduct(product: ProductSearchResult): void {
     this.productIdCtrl.setValue(product.id);
     this.productIdCtrl.markAsTouched();
@@ -157,6 +162,33 @@ export default class ReceptionItem implements OnInit {
   openDropdown():   void { this.showDropdown.set(true); }
   closeDropdown():  void { setTimeout(() => this.showDropdown.set(false), 150); }
   toggleCollapse(): void { this.collapsed.set(!this.collapsed()); }
+  clearSelection() {
+    this.productIdCtrl.setValue(null);
+    this.productSearch.set('');
+    this.resetVariants()
+    this.showDropdown.set(false);
+  }
+
+  handleBlur() {
+    // Retrasamos un poco el cierre para permitir que el click del dropdown funcione
+    setTimeout(() => {
+      this.showDropdown.set(false);
+
+      // ESCENARIO: El usuario dejó texto pero no seleccionó nada del dropdown
+      // o borró parte del nombre de un producto ya seleccionado.
+      if (this.productIdCtrl.value === null) {
+        // Si no hay ID, no permitimos que quede texto "mentiroso"
+        this.clearSelection();
+      } else {
+        // ESCENARIO: Hay un ID seleccionado, pero el usuario alteró el texto del input
+        // Reestablecemos el nombre original del producto seleccionado
+        const selectedProduct = this.searchResults().find(p => p.id === this.productIdCtrl.value);
+        if (selectedProduct && this.productSearch() !== selectedProduct.name) {
+          this.productSearch.set(selectedProduct.name);
+        }
+      }
+    }, 200);
+  }
 
   switchToNewProduct(): void {
     console.log('--- MODO: NUEVO PRODUCTO ---');
