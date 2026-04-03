@@ -30,11 +30,12 @@ import { Brand } from '../../../../interfaces/Dtos/brand-dto';
 import VariantExistingRow from './variant-existing-row/variant-existing-row';
 import VariantNewRow from './variant-new-row/variant-new-row';
 import {ItemFormGroup} from '../common/item-form-group';
+import {ExistingProduct} from './existing-product/existing-product';
 
 @Component({
   selector: 'app-reception-item',
   standalone: true,
-  imports: [VariantExistingRow, VariantNewRow, ReactiveFormsModule, DecimalPipe],
+  imports: [VariantExistingRow, VariantNewRow, ReactiveFormsModule, DecimalPipe, ExistingProduct, ExistingProduct],
   templateUrl: './reception-item.html',
 })
 export default class ReceptionItem implements OnInit {
@@ -247,7 +248,7 @@ export default class ReceptionItem implements OnInit {
     );
   }
 
-  private resetVariants(): void {
+  public resetVariants(): void {
     console.log('Antes de clear - FormArray:', this.variantsArray().length, 'Signal:', this.variants().length);
 
     this.variantsArray().clear();

@@ -17,8 +17,11 @@ export type NewProductFormGroup = FormGroup<{
   description: FormControl<string>;
   categoryId: FormControl<number | null>;
   brandId: FormControl<number | null>;
+  gender: FormControl< gender | null>; // 0 unisex | 1
   basePrice: FormControl<number>;
   // unitMeasurementSin: FormControl<number | null>;
   // economicActivity: FormControl<string>;
   // productCodeSin: FormControl<number | null>;
 }>;
+
+enum gender  {unisex, men, woman }

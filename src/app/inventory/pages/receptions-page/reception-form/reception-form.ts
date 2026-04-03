@@ -94,6 +94,7 @@ export default class ReceptionForm implements OnInit {
         description: this.fb.control('', { nonNullable: true }),
         categoryId: this.fb.control<number | null>(null),
         brandId: this.fb.control<number | null>(null),
+        gender: this.fb.control<number  | null>(null),
         basePrice: this.fb.control<number>(0, { nonNullable: true }),
       }),
       variants: this.fb.array<VariantFormGroup>([]),
