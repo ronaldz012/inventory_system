@@ -31,11 +31,12 @@ import VariantExistingRow from './variant-existing-row/variant-existing-row';
 import VariantNewRow from './variant-new-row/variant-new-row';
 import {ItemFormGroup} from '../common/item-form-group';
 import {ExistingProduct} from './existing-product/existing-product';
+import NewProduct from './new-product/new-product';
 
 @Component({
   selector: 'app-reception-item',
   standalone: true,
-  imports: [VariantExistingRow, VariantNewRow, ReactiveFormsModule, DecimalPipe, ExistingProduct, ExistingProduct],
+  imports: [VariantExistingRow, VariantNewRow, ReactiveFormsModule, DecimalPipe, ExistingProduct, ExistingProduct, NewProduct],
   templateUrl: './reception-item.html',
 })
 export default class ReceptionItem implements OnInit {

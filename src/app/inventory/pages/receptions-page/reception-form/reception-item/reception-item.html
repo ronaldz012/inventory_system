@@ -8,17 +8,13 @@
         (remove)="onRemove()">
       </app-existing-product>
     } @else {
-      <div class="col-span-8 flex items-center px-4 bg-gray-50 text-xs text-gray-400 italic">
-        Modo: Producto Nuevo.
-        <button type="button" (click)="switchToExistingProduct()" class="ml-2 text-blue-600 underline">
-          Volver a búsqueda
-        </button>
-      </div>
-      <div class="flex items-center justify-center border-l border-gray-100">
-        <button type="button" (click)="onRemove()" class="p-1.5 text-gray-400 hover:text-red-500">
-          ✕
-        </button>
-      </div>
+      <app-new-product
+        [form]="newProductGroup"
+        [categories]="categories()"
+        [brands]="brands()"
+        (switchMode)="switchToExistingProduct()"
+        (remove)="onRemove()">
+      </app-new-product>
     }
   </div>
 

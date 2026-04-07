@@ -1,38 +1,111 @@
-<!--
-  display: contents en el host → los divs hijos se alinean directamente
-  con el CSS Grid del padre (mismo grid-template-columns que las variantes)
-
-  Columnas: 80px | 1fr | 80px | 96px | 88px | 88px | 100px | 96px | 32px
-            toggle | nombre | talle→categ | color→marca | p.venta→género | cant→precio | costo→descr | subtotal→... | del
--->
-
-<!-- Toggle Ex / New -->
-
 <div [formGroup]="form()" class="contents group">
 
-  <div class="h-full border-r border-gray-100 flex items-stretch">
-    <button
-      type="button"
-      (click)="switchMode.emit()"
-      class="w-full text-[10px] font-bold uppercase bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-      title="Cambiar a producto nuevo"
-    >
-      Exist.
-    </button>
-
+  <div class="px-2 py-1.5 flex items-center justify-center border-r border-gray-100">
+    <div class="flex border border-gray-300 rounded overflow-hidden text-[10px]">
+      <span class="px-2 py-1 bg-green-600 text-white font-medium">New</span>
+      <button type="button" (click)="switchMode.emit()"
+              class="px-2 py-1 text-gray-400 hover:bg-gray-100 transition-colors"
+              title="Cambiar a producto existente">
+        Ex
+      </button>
+    </div>
   </div>
 
-  <div class="px-2 py-1.5 relative">
+  <div class="px-1 py-1">
     <input
-    type="text"
-    formControlName="name"
-    placeholder="Nombre..."
-    class="w-full px-2 py-1.5 border border-transparent rounded text-sm text-gray-900 placeholder-gray-400
+      type="text"
+      formControlName="name"
+      placeholder="Nombre del producto..."
+      class="w-full px-2 py-1.5 border border-transparent rounded text-sm text-gray-900 placeholder-gray-400
              focus:outline-none focus:border-blue-400 focus:bg-white focus:ring-1 focus:ring-blue-400
              group-hover:border-gray-200"
     />
-
-    <div class="px-1 py-1 "></div>
-
   </div>
+
+  <div class="px-1 py-1">
+    <input
+      type="text"
+      list="categoryList"
+      formControlName="categoryName"
+      placeholder="Cat..."
+      (change)="onCategoryChange($event)"
+      class="w-full px-2 py-1.5 border border-transparent rounded text-[11px] focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 group-hover:border-gray-200"
+    />
+    <datalist id="categoryList">
+      @for (cat of categories(); track cat.id) {
+        <option [value]="cat.name"></option>
+      }
+    </datalist>
+  </div>
+
+  <div class="px-1 py-1 border-l border-gray-100">
+    <input
+      type="text"
+      list="brandList"
+      formControlName="brandName"
+      placeholder="Marca..."
+      (change)="onBrandChange($event)"
+      class="w-full px-2 py-1.5 border border-transparent rounded text-[11px] text-gray-900 placeholder-gray-400
+           focus:outline-none focus:border-blue-400 focus:bg-white focus:ring-1 focus:ring-blue-400
+           group-hover:border-gray-200"
+    />
+    <datalist id="brandList">
+      @for (brand of brands(); track brand.id) {
+        <option [value]="brand.name"></option>
+      }
+    </datalist>
+  </div>
+
+  <div class="px-1 py-1 border-l border-gray-100 flex items-center">
+    <select
+      formControlName="gender"
+      class="w-full px-1 py-1.5 border border-transparent rounded text-[11px] font-medium bg-transparent
+           focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400
+           group-hover:border-gray-200 cursor-pointer appearance-none text-center"
+      [class.text-blue-600]="form().get('gender')?.value === 0"
+      [class.text-indigo-600]="form().get('gender')?.value === 1"
+      [class.text-pink-600]="form().get('gender')?.value === 2"
+    >
+      @for (opt of genderOptions; track opt.value) {
+        <option [value]="opt.value">{{ opt.label }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="px-1 py-1">
+    <input
+      type="number"
+      formControlName="basePrice"
+      step="0.5"
+      min="0.5"
+      placeholder="0.00"
+      class="w-full px-2 py-1.5 border border-transparent rounded text-sm text-right font-medium text-blue-700
+             focus:outline-none focus:border-blue-400 focus:bg-white focus:ring-1 focus:ring-blue-400
+             group-hover:border-gray-200"
+    />
+  </div>
+
+  <div class="px-1 py-1 col-span-2">
+    <input
+      type="text"
+      formControlName="description"
+      placeholder="Descripción (material, temporada...)"
+      class="w-full px-2 py-1.5 border border-transparent rounded text-xs italic text-gray-500
+             focus:outline-none focus:border-blue-400 focus:bg-white focus:ring-1 focus:ring-blue-400
+             group-hover:border-gray-200"
+    />
+  </div>
+
+  <div class="flex items-center justify-center border-l border-gray-100">
+    <button
+      type="button"
+      (click)="remove.emit()"
+      class="p-1.5 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+    >
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+
 </div>

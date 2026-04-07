@@ -44,6 +44,7 @@ export class ExistingProduct implements OnInit {
   isSearching     = signal(false);
   searchResults   = signal<ProductSearchResult[]>([]);
   selectedProduct = signal<ProductSearchResult | null>(null);
+  activeStep = signal<number>(-1);
 
   private searchInput$ = new Subject<string>();
 
@@ -83,6 +84,7 @@ export class ExistingProduct implements OnInit {
     this.productIdCtrl().setValue(product.id);
     this.productSearch.set(product.name);
     this.showDropdown.set(false);
+    this.activeStep.set(-1);
     this.productSelected.emit(product);
   }
 
@@ -103,7 +105,30 @@ export class ExistingProduct implements OnInit {
       }
     }, 200);
   }
+  onKeyDown(event: KeyboardEvent): void {
+    const results = this.searchResults();
+    if (!this.showDropdown() || results.length === 0) return;
 
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.activeStep.set((this.activeStep() + 1) % results.length);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.activeStep.set((this.activeStep() - 1 + results.length) % results.length);
+        break;
+      case 'Enter':
+        event.preventDefault();
+        if (this.activeStep() >= 0) {
+          this.selectProduct(results[this.activeStep()]);
+        }
+        break;
+      case 'Escape':
+        this.showDropdown.set(false);
+        break;
+    }
+  }
   // ── Helpers ───────────────────────────────────────────────────────────
   getGenderLabel(gender: number | null): string {
     switch (gender) {
