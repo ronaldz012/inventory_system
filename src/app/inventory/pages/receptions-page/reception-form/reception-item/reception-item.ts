@@ -32,11 +32,13 @@ import VariantNewRow from './variant-new-row/variant-new-row';
 import {ItemFormGroup} from '../common/item-form-group';
 import {ExistingProduct} from './existing-product/existing-product';
 import NewProduct from './new-product/new-product';
+import {CreateCategory} from '../../../../components/create-category/create-category';
+import {CreateBrand} from '../../../../components/create-brand/create-brand';
 
 @Component({
   selector: 'app-reception-item',
   standalone: true,
-  imports: [VariantExistingRow, VariantNewRow, ReactiveFormsModule, DecimalPipe, ExistingProduct, ExistingProduct, NewProduct],
+  imports: [VariantExistingRow, VariantNewRow, ReactiveFormsModule, DecimalPipe, ExistingProduct, ExistingProduct, NewProduct, CreateCategory, CreateBrand],
   templateUrl: './reception-item.html',
 })
 export default class ReceptionItem implements OnInit {
@@ -60,6 +62,7 @@ export default class ReceptionItem implements OnInit {
   availableVariants = signal<ProductVariantOption[]>([]);
   categories        = signal<Category[]>([]);
   brands            = signal<Brand[]>([]);
+  activeModal = signal<{ type: 'category' | 'brand'; query: string } | null>(null);
 
   variants = signal<{ mode: 'new' | 'existing', form: VariantFormGroup }[]>([]);
   private variantsValue = signal<any[]>([]);
@@ -280,5 +283,9 @@ export default class ReceptionItem implements OnInit {
 
   hasError(ctrl: AbstractControl | null, error = 'required'): boolean {
     return !!(ctrl?.hasError(error) && ctrl.touched);
+  }
+
+  handleOpenCreation(event: { type: 'category' | 'brand'; query: string }) {
+    this.activeModal.set(event);
   }
 }

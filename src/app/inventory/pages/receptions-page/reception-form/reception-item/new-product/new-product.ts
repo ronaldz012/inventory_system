@@ -7,12 +7,11 @@ import { CategoryService } from '../../../../../services/category-service';
 import { BrandService } from '../../../../../services/brand-service';
 import {CreateCategory} from '../../../../../components/create-category/create-category';
 import {CreateBrand} from '../../../../../components/create-brand/create-brand';
-import {CreateCategoryDto} from '../../../../../dtos/create-category-dto';
-import {CreateBrandDto} from '../../../../../dtos/create-brand-dto';
+import {selectFromList} from '../../../../../../core/select-from-list/select-from-list';
 
 @Component({
   selector: 'app-new-product',
-  imports: [ReactiveFormsModule, CreateCategory, CreateBrand],
+  imports: [ReactiveFormsModule, selectFromList],
   templateUrl: './new-product.html',
   styles: [`:host { display: contents; }`],
 })
@@ -21,19 +20,18 @@ export default class NewProduct {
   private categoryService = inject(CategoryService);
   private brandService    = inject(BrandService);
 
+
   form       = input.required<NewProductFormGroup>();
   categories = input.required<Category[]>();
   brands     = input.required<Brand[]>();
 
   switchMode = output<void>();
   remove     = output<void>();
+  openCreation = output<{type: 'category' | 'brand', query: string}>();
 
-  // Notifica al padre solo para que actualice sus listas locales
-  categoryCreated = output<Category>();
-  brandCreatedshowModal    = output<Brand>();
-
-    showModal = signal<'category' | 'brand' | null>(null);
-
+// Guardamos el texto actual para cuando se dispare la creación
+  private currentCategoryQuery = '';
+  private currentBrandQuery = '';
   readonly genderOptions = [
     { label: 'Unisex', value: 0 },
     { label: 'Hombre', value: 1 },
@@ -44,53 +42,28 @@ export default class NewProduct {
   onBrandChange(event: Event) {
     const value = (event.target as HTMLInputElement).value;
     if (value === '+ CREAR NUEVA MARCA') {
-      this.showModal.set('brand');
-      //this.form().patchValue({ brandName: '' });
+
+         // this.openCreation.emit('brand', 'xd'); //this.form().patchValue({ brandName: '' });
       return;
     }
     const brand = this.brands().find(b => b.name.toLowerCase() === value.toLowerCase());
     this.form().patchValue({ brandId: brand?.id ?? null });
   }
 
-  onCategoryChange(event: Event) {
-    const value = (event.target as HTMLInputElement).value;
-    if (value === '+ CREAR NUEVA CATEGORÍA') {
-      console.log('category change:', value); // ← esto aparece?
-      this.showModal.set('category');
-      console.log(this.showModal());
-      //this.form().patchValue({ categoryName: '' });
-      return;
-    }
-    const category = this.categories().find(c => c.name === value);
-    if (category) {
-      this.form().patchValue({ categoryId: category.id });
-    } else {
-      this.form().get('categoryName')?.setErrors({ invalid: true });
-    }
+  onCategoryInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const value = input.value;
+    this.currentCategoryQuery = value;
+    const match = this.categories().find(c => c.name.toLowerCase() === value.toLowerCase());
+    this.form().patchValue({ categoryId: match ? match.id : null });
+  }
+  handleCreateCategory(text: string) {
+    console.log('creando'+text);
+    this.openCreation.emit({ type: 'category', query: text });
   }
 
-  onCategoryCreated(newCategory: CreateCategoryDto) {
-    this.categoryService.create(newCategory).subscribe({
-      next: (newCat) => {
-        this.form().patchValue({
-          categoryId : newCat.id,
-        });
-        this.categoryCreated.emit(newCat);
-        this.showModal.set(null);
-      }
-    });
+  handleCreateBrand(text: string) {
+    this.openCreation.emit({ type: 'brand', query: text });
   }
 
-  onBrandCreated(newCategory : CreateBrandDto) {
-    this.brandService.create(newCategory).subscribe({
-      next: (newBrand) => {
-        this.form().patchValue(
-          {
-            brandId : newBrand.id
-          })
-        this.brandCreated.emit(newBrand);
-        this.showModal.set(null);
-      }
-    });
-  }
 }

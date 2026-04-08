@@ -1,4 +1,4 @@
-<div [formGroup]="form()" class="border border-gray-200 rounded-lg bg-white mb-4">
+<div [formGroup]="form()" class="border border-gray-200 rounded-lg bg-white mb-4 relative">
 
   <div class="grid grid-cols-[80px_1.2fr_120px_110px_90px_100px_0.8fr_96px_32px] items-stretch border-b border-gray-200 bg-white">    @if (!isNewProduct()) {
       <app-existing-product
@@ -13,7 +13,9 @@
         [categories]="categories()"
         [brands]="brands()"
         (switchMode)="switchToExistingProduct()"
-        (remove)="onRemove()">
+        (remove)="onRemove()"
+        (openCreation)  = "handleOpenCreation($event)">
+
       </app-new-product>
     }
   </div>
@@ -79,4 +81,24 @@
       </div>
     </div>
   </div>
+  @if (activeModal(); as modal) {
+    <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+
+      <div class="bg-white rounded-xl shadow-2xl ring-1 ring-black/10 w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+
+        @if (modal.type === 'category') {
+          <app-create-category
+
+            (closed)="activeModal.set(null)"
+          />
+        } @else if (modal.type === 'brand') {
+          <app-create-brand
+
+            (closed)="activeModal.set(null)"
+          />
+        }
+
+      </div>
+    </div>
+  }
 </div>

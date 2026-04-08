@@ -23,28 +23,12 @@
   </div>
 
   <div class="px-1 py-1 relative">
-    <input
-      type="text"
-      list="categoryList"
-      formControlName="categoryId"
+    <app-select-from-list
+      [options]="categories()"
       placeholder="Cat..."
-      (change)="onCategoryChange($event)"
-      class="w-full px-2 py-1.5 border border-transparent rounded text-[11px] focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 group-hover:border-gray-200"
+      (selected)="form().get('categoryId')?.setValue($event.id)"
+      (createNew)="handleCreateCategory($event)"
     />
-    <datalist id="categoryList">
-      @for (brand of brands(); track brand.id) {
-        <option [value]="brand.name"></option>
-      }
-      <option value="+ CREAR NUEVA CATEGORÍA"></option>
-    </datalist>
-      @if (showModal() == 'category') {
-    <div class="absolute z-50 left-0 mt-1" style="top: 100%">
-      <app-create-category
-        (created)="onCategoryCreated($event)"
-        (closed)="showModal.set(null)"
-      />
-    </div>
-  }
 
   </div>
 
@@ -66,14 +50,7 @@
       <option value="+ CREAR NUEVA MARCA"></option>
 
     </datalist>
-    @if (showModal() === 'brand') {
-      <div class="absolute z-50 left-0 top-full mt-1">
-        <app-create-brand
-          (created)="onCategoryCreated($event)"
-          (closed)="showModal.set(null)"
-        />
-      </div>
-    }
+
   </div>
 
   <div class="px-1 py-1 border-l border-gray-100 flex items-center">
