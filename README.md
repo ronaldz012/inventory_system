@@ -3,7 +3,9 @@
 A high-performance, modern web application built with **Angular 21** to manage complex inventory workflows. This project serves as the interface for the Inventory System Backend, focusing on efficiency, modularity, and advanced keyboard navigation.
 
 ---
-
+<p align="center">
+  <img src="documentation/receptions.png" alt="Receptions Module" width="700"/>
+</p>
 ## 🚀 Key Features
 
 ### 🔐 Dynamic Role-Based Navigation
