@@ -25,8 +25,8 @@
   <div class="px-1 py-1 relative">
     <app-select-from-list
       [options]="categories()"
-      placeholder="Cat..."
-      (selected)="form().get('categoryId')?.setValue($event.id)"
+      [selectedId]="form().get('categoryId')?.value"
+      (selected)="onCategorySelected($event)"
       (createNew)="handleCreateCategory($event)"
     />
 

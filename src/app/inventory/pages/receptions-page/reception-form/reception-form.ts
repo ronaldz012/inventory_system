@@ -1,4 +1,15 @@
-import {Component, inject, input, OnInit, output, signal, DestroyRef} from '@angular/core';
+import {
+  Component,
+  inject,
+  input,
+  OnInit,
+  output,
+  signal,
+  DestroyRef,
+  ViewChild,
+  viewChild,
+  effect
+} from '@angular/core';
 import {FormArray, FormBuilder, FormControl, ReactiveFormsModule, Validators} from '@angular/forms';
 import {ReceptionService} from '../../../services/reception-service';
 import {ItemFormGroup, NewProductFormGroup, NewReceptionForm} from './common/item-form-group';
@@ -11,6 +22,14 @@ import createReceptionDto, {
 import ReceptionItem from './reception-item/reception-item';
 import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
 import {DecimalPipe} from '@angular/common';
+import {CategoryService} from '../../../services/category-service';
+import {BrandService} from '../../../services/brand-service';
+import {Category} from '../../../interfaces/Dtos/category-dto';
+import {Brand} from '../../../interfaces/Dtos/brand-dto';
+import {CreateCategory} from '../../../components/create-category/create-category';
+import {CreateBrand} from '../../../components/create-brand/create-brand';
+import {CreateEntityEvent} from '../../../interfaces/types/create-entity-event';
+
 
 @Component({
   selector: 'app-reception-form',
@@ -19,6 +38,7 @@ import {DecimalPipe} from '@angular/common';
     ReceptionItem,
     DecimalPipe,
     ReceptionItem,
+    CreateCategory,
   ],
   templateUrl: './reception-form.html',
   styles: ``,
@@ -28,6 +48,8 @@ export default class ReceptionForm implements OnInit {
   private fb = inject(FormBuilder);
   private receptionService = inject(ReceptionService);
   private destroyRef = inject(DestroyRef);
+  private categoryService = inject(CategoryService);
+  private brandService = inject(BrandService);
 
   // ── Inputs ────────────────────────────────────────────────────────────────
   branchId = input<number>(1);
@@ -40,7 +62,11 @@ export default class ReceptionForm implements OnInit {
   isSubmitting = signal(false);
   submitError = signal<string | null>(null);
   totalCost = signal<number>(0);
-
+  activeModal = signal<CreateEntityEvent | null>(null);
+  categories = signal<Category[]>([])
+  brands = signal<Brand[]>([])
+  categoryModal = viewChild(CreateCategory);
+  lastFocusedElement: HTMLElement | null = null;
   // ── Form ──────────────────────────────────────────────────────────────────
   form: NewReceptionForm = this.fb.group<NewReceptionForm['controls']>({
     notes: this.fb.control('', { nonNullable: true }),
@@ -48,10 +74,31 @@ export default class ReceptionForm implements OnInit {
   });
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
+  constructor() {
+    effect(() => {
+      const modal = this.activeModal();
+      const modalRef = this.categoryModal();
+
+      if (modal?.type === 'category' && modalRef) {
+        setTimeout(() => {
+          modalRef.focus(); // 🔥 foco automático
+        });
+      }
+    });
+  }
   ngOnInit(): void {
+    this.loadCatalogs();
     this.itemsArray.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.recalculateTotalCost());
+  }
+  private loadCatalogs(): void {
+    this.categoryService.getAll()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(x => this.categories.set(x));
+    this.brandService.GetAll()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(x => this.brands.set(x));
   }
 
   // ── Totales ───────────────────────────────────────────────────────────────
@@ -204,5 +251,45 @@ export default class ReceptionForm implements OnInit {
 
   onCancel(): void {
     this.cancelled.emit();
+  }
+  handleOpenCreation(event: CreateEntityEvent) {
+    this.lastFocusedElement = document.activeElement as HTMLElement; // 🔥 guardas foco
+    this.activeModal.set(event);
+  }
+  onCategoryCreated(newCategory: Category)
+  {
+    const modal = this.activeModal();
+    if (!modal) return;
+
+    this.categories.update(list => [...list, newCategory]);
+
+    const item = this.itemsArray.at(modal.itemIndex);
+    item.get('newProduct.categoryId')?.setValue(newCategory.id);
+
+    this.activeModal.set(null);
+    setTimeout(() => {
+      this.focusNextElement(this.lastFocusedElement);
+    });
+  }
+
+  handleModalKeyDown(event: KeyboardEvent) {
+    if (event.key === 'Tab' && event.shiftKey) {
+      event.preventDefault(); // 🔥 bloquea Shift+Tab
+    }
+  }
+  focusNextElement(current: HTMLElement | null) {
+    if (!current) return;
+
+    const xd = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        'input, button, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter(el => !el.hasAttribute('disabled'));
+
+    const index = xd.indexOf(current);
+
+    if (index >= 0 && index < xd.length - 1) {
+      xd[index + 1].focus();
+    }
   }
 }
