@@ -1,9 +1,9 @@
 import {Component, inject, signal} from '@angular/core';
-import { environment } from '../../../../environments/environment.development';
+import { environment } from '../../../../../environments/environment.development';
 import {RouterLink} from '@angular/router';
 import SideMenuOption from './side-menu-option/side-menu-option';
-import {AuthService} from '../../../core/auth/auth.service';
-import {Module} from '../../../core/auth/interfaces/Respones/LoginResponse';
+import {AuthService} from '../../../auth/auth.service';
+import {Module} from '../../../auth/interfaces/Respones/LoginResponse';
 
 @Component({
   selector: 'app-sidebar',

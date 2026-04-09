@@ -5,16 +5,8 @@ export const routes: Routes = [
     {
         path:'dashboard',
         // canActivate:[authGuard],
-      loadComponent: () => import('./gifs/pages/dashboard/dashboard'),
+      loadComponent: () => import('./core/Dashboard/pages/dashboard/dashboard'),
         children:[
-                {
-                    path:'trending',
-                    loadComponent:() => import('./gifs/pages/trending/trending')
-                },
-                {
-                    path:'search',
-                    loadComponent:() => import('./gifs/pages/search/search')
-                },
                 {
                   path:'products',
                   loadComponent: () => import('./inventory/pages/products-page/products-page')
@@ -22,12 +14,7 @@ export const routes: Routes = [
                 {
                   path:'receptions',
                   loadComponent: () => import('./inventory/pages/receptions-page/receptions-page')
-                },
-                {
-                  path:'**',
-                  redirectTo: 'trending',
                 }
-
         ]
     },
     {
