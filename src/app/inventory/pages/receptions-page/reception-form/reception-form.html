@@ -54,8 +54,12 @@
 
     @for (itemForm of itemsArray.controls; track $index) {
       <app-reception-item
+        [categories]="categories()"
+        [brands]="brands()"
         [form]="itemForm"
         (remove)="removeItem($index)"
+        (create)="handleOpenCreation($event)"
+        [index]="$index"
       />
     }
 
@@ -105,3 +109,26 @@
   </div>
 
 </form>
+@if (activeModal()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/20"
+  tabindex="0"
+  (keydown)="handleModalKeyDown($event)">
+
+    @if (activeModal()?.type === 'category') {
+      <app-create-category
+        [initialName]="activeModal()!.query"
+        (created)="onCategoryCreated($event)"
+        (closed)="activeModal.set(null)"
+      />
+    }
+
+<!--    @if (activeModal()?.type === 'brand') {-->
+<!--      <app-create-brand-->
+<!--        [initialName]="activeModal()!.query"-->
+<!--        (created)="onBrandCreated($event)"-->
+<!--        (closed)="activeModal.set(null)"-->
+<!--      />-->
+<!--    }-->
+
+  </div>
+}

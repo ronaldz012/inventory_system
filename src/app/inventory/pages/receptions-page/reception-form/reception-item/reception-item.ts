@@ -32,25 +32,25 @@ import VariantNewRow from './variant-new-row/variant-new-row';
 import {ItemFormGroup} from '../common/item-form-group';
 import {ExistingProduct} from './existing-product/existing-product';
 import NewProduct from './new-product/new-product';
-import {CreateCategory} from '../../../../components/create-category/create-category';
-import {CreateBrand} from '../../../../components/create-brand/create-brand';
+import {CreateEntityEvent} from '../../../../interfaces/types/create-entity-event';
+
 
 @Component({
   selector: 'app-reception-item',
   standalone: true,
-  imports: [VariantExistingRow, VariantNewRow, ReactiveFormsModule, DecimalPipe, ExistingProduct, ExistingProduct, NewProduct, CreateCategory, CreateBrand],
+  imports: [VariantExistingRow, VariantNewRow, ReactiveFormsModule, DecimalPipe, ExistingProduct, ExistingProduct, NewProduct],
   templateUrl: './reception-item.html',
 })
 export default class ReceptionItem implements OnInit {
   private fb              = inject(FormBuilder);
   private destroyRef      = inject(DestroyRef);
   private productService  = inject(ProductService);
-  private categoryService = inject(CategoryService);
-  private brandService    = inject(BrandService);
+
 
   form   = input.required<ItemFormGroup>();
   index  = input<number>(0);
   remove = output<void>();
+  create = output<CreateEntityEvent>();
 
   isNewProduct  = signal(false);
   productSearch = signal('');
@@ -60,10 +60,8 @@ export default class ReceptionItem implements OnInit {
 
   searchResults     = signal<ProductSearchResult[]>([]);
   availableVariants = signal<ProductVariantOption[]>([]);
-  categories        = signal<Category[]>([]);
-  brands            = signal<Brand[]>([]);
-  activeModal = signal<{ type: 'category' | 'brand'; query: string } | null>(null);
-
+  categories        = input.required<Category[]>();
+  brands            = input.required<Brand[]>();
   variants = signal<{ mode: 'new' | 'existing', form: VariantFormGroup }[]>([]);
   private variantsValue = signal<any[]>([]);
 
@@ -93,19 +91,10 @@ export default class ReceptionItem implements OnInit {
   private searchInput$ = new Subject<string>();
 
   ngOnInit(): void {
-    this.loadCatalogs();
     this.syncVariantsSignal();
     this.setupProductSearch();
   }
 
-  private loadCatalogs(): void {
-    this.categoryService.getAll()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(x => this.categories.set(x));
-    this.brandService.GetAll()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(x => this.brands.set(x));
-  }
 
   private syncVariantsSignal(): void {
     this.variantsValue.set(this.variantsArray().value);
@@ -285,7 +274,7 @@ export default class ReceptionItem implements OnInit {
     return !!(ctrl?.hasError(error) && ctrl.touched);
   }
 
-  handleOpenCreation(event: { type: 'category' | 'brand'; query: string }) {
-    this.activeModal.set(event);
+  handleOpenCreation(event: CreateEntityEvent) {
+   this.create.emit(event)
   }
 }
