@@ -102,8 +102,7 @@ src/app/
 
 ## 🔗 Backend Reference
 
-https://github.com/ronaldz012/inventory_system
-
+](https://github.com/ronaldz012/DriveCore.System.Monolith)
 ---
 
 ## ⚙️ Receptions Workflow
