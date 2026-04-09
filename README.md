@@ -1,59 +1,113 @@
-# GifsApp
+# 📦 Inventory System Frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.1.4.
+A high-performance, modern web application built with **Angular 21** to manage complex inventory workflows. This project serves as the interface for the Inventory System Backend, focusing on efficiency, modularity, and advanced keyboard navigation.
 
-## Development server
+---
 
-To start a local development server, run:
+## 🚀 Key Features
+
+### 🔐 Dynamic Role-Based Navigation
+- Sidebar menu is dynamically fetched and rendered based on the authenticated user's permissions.
+
+### 🏢 Multi-Branch Management
+- Supports branch-specific contexts.
+- Users can toggle between authorized locations during a session.
+
+### ⚡ Advanced Receptions Module
+- **Keyboard-Optimized Workflow**: Designed for fast data entry with minimal mouse usage.
+- **Complex Variant Handling**:
+  - Size
+  - Color
+  - Price
+  - Description
+- **Intelligent Creation Flow**:
+  - Add new products with variants
+  - Append variants to existing products
+
+### 📊 Comprehensive Product Tracking
+- Real-time stock visibility per branch
+- Full transaction history (stock in/out)
+- Category-based filtering and management
+
+---
+
+## 🛠 Tech Stack
+
+- **Framework:** Angular 21  
+- **State Management:** Angular Signals  
+- **Forms:** Reactive Forms  
+- **Security:** JWT (JSON Web Tokens)  
+- **Architecture:** Component-based with separation of concerns  
+
+---
+
+## 📦 Installation & Setup
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/ronaldz012/inventory_system.git
+cd inventory_system
+```
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Environment Configuration
+
+Edit:
+
+`src/environments/environment.development.ts`
+
+```ts
+export const environment = {
+  BACKEND_URL: "http://localhost:5253"
+};
+```
+
+> Make sure this URL matches your backend API.
+
+---
+
+### 4. Run the application
 
 ```bash
 ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Open: http://localhost:4200/
 
-## Code scaffolding
+---
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## 📂 Project Structure
 
-```bash
-ng generate component component-name
+```
+src/app/
+│
+├── core/                # Auth services, JWT interceptors, route guards
+│   ├── dashboard/
+│   └── login/
+│
+├── shared/              # Reusable UI components and utilities
+│
+└── features/            # Main modules
+    ├── receptions/      # Product & variant entry engine
+    └── products/        # Product listing & tracking
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+---
 
-```bash
-ng generate --help
-```
+## 🔗 Backend Reference
 
-## Building
+https://github.com/ronaldz012/inventory_system
 
-To build the project run:
+---
 
-```bash
-ng build
-```
+## ⚙️ Receptions Workflow
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+When adding products, the system checks for existing variants:
 
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- ➕ Add **New Product + New Variants**
+- 🔄 Select **Existing Product + New Variants**
+- 📦 Select **Existing Product + Existing Variants** (stock update)
