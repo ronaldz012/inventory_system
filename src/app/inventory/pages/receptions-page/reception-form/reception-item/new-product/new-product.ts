@@ -27,27 +27,26 @@ export default class NewProduct {
   openCreation = output<CreateEntityEvent>();
 
   readonly genderOptions = [
-    { label: 'Unisex', value: 0 },
-    { label: 'Hombre', value: 1 },
-    { label: 'Mujer', value: 2 }
+    { label: 'UNISEX', value: 0 },
+    { label: 'HOMBRE', value: 1 },
+    { label: 'MUJER', value: 2 }
   ];
 
   onCategorySelected(category: Category | null) {
     this.form().patchValue({ categoryId: category?.id ?? null });
   }
+  onBrandSelected(brand: Brand | null) {
+    this.form().patchValue({ brandId: brand?.id ?? null});
+  }
 
-  // 🔥 Nueva función para mover el foco
   focusBrand() {
     setTimeout(() => {
       this.brandInput.nativeElement.focus();
     }, 10);
   }
 
-  onBrandChange(event: Event) {
-    const value = (event.target as HTMLInputElement).value;
-    if (value === '+ CREAR NUEVA MARCA') return;
-    const brand = this.brands().find(b => b.name.toLowerCase() === value.toLowerCase());
-    this.form().patchValue({ brandId: brand?.id ?? null });
+  handleCreateBrand(text: string) {
+    this.openCreation.emit({ type: 'brand', query: text, itemIndex: this.index() });
   }
 
   handleCreateCategory(text: string) {

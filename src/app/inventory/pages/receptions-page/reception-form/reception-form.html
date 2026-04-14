@@ -122,13 +122,13 @@
       />
     }
 
-<!--    @if (activeModal()?.type === 'brand') {-->
-<!--      <app-create-brand-->
-<!--        [initialName]="activeModal()!.query"-->
-<!--        (created)="onBrandCreated($event)"-->
-<!--        (closed)="activeModal.set(null)"-->
-<!--      />-->
-<!--    }-->
+    @if (activeModal()?.type === 'brand') {
+      <app-create-brand
+        [initialName]="activeModal()!.query"
+        (created)="onBrandCreated($event)"
+        (closed)="activeModal.set(null)"
+      />
+    }
 
   </div>
 }

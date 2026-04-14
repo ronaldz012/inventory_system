@@ -6,7 +6,7 @@ import {Observable} from 'rxjs';
 import {ProductQuery} from '../interfaces/Dtos/product-dto';
 import {PagedResult} from '../interfaces/Dtos/paged-result';
 import {ListProduct} from '../interfaces/listProduct';
-import {ProductSearchResult} from '../models/products/product-search-result';
+import {ProductSearchResult} from '../components/product-search/product-search-result';
 
 @Injectable({
   providedIn: 'root',

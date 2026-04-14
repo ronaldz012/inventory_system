@@ -39,6 +39,7 @@ import {CreateEntityEvent} from '../../../interfaces/types/create-entity-event';
     DecimalPipe,
     ReceptionItem,
     CreateCategory,
+    CreateBrand,
   ],
   templateUrl: './reception-form.html',
   styles: ``,
@@ -141,7 +142,7 @@ export default class ReceptionForm implements OnInit {
         description: this.fb.control('', { nonNullable: true }),
         categoryId: this.fb.control<number | null>(null),
         brandId: this.fb.control<number | null>(null),
-        gender: this.fb.control<number  | null>(null),
+        gender: this.fb.control<number>(0),
         basePrice: this.fb.control<number>(0, { nonNullable: true }),
       }),
       variants: this.fb.array<VariantFormGroup>([]),
@@ -223,6 +224,9 @@ export default class ReceptionForm implements OnInit {
               description: item.newProduct.description,
               categoryId: item.newProduct.categoryId,
               brandId: item.newProduct.brandId,
+              basePrice:item.newProduct.basePrice,
+              gender : item.newProduct.gender,
+
             } as NewProduct)
             : null,
           variants: itemCtrl.controls.variants.controls.map((varCtrl) => {
@@ -265,6 +269,21 @@ export default class ReceptionForm implements OnInit {
 
     const item = this.itemsArray.at(modal.itemIndex);
     item.get('newProduct.categoryId')?.setValue(newCategory.id);
+
+    this.activeModal.set(null);
+    setTimeout(() => {
+      this.focusNextElement(this.lastFocusedElement);
+    });
+  }
+  onBrandCreated(newBrand: Brand)
+  {
+    const modal = this.activeModal();
+    if (!modal) return;
+
+    this.brands.update(list => [...list, newBrand]);
+
+    const item = this.itemsArray.at(modal.itemIndex);
+    item.get('newProduct.brandId')?.setValue(newBrand.id);
 
     this.activeModal.set(null);
     setTimeout(() => {

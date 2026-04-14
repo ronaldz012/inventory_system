@@ -11,13 +11,15 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DecimalPipe } from '@angular/common';
 import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap } from 'rxjs';
-import { ProductSearchResult } from '../../../../../models/products/product-search-result';
+import { ProductSearchResult } from '../../../../../components/product-search/product-search-result';
 import { ProductService } from '../../../../../services/product-service';
+import {ProductSearch} from '../../../../../components/product-search/product-search';
+import {form} from '@angular/forms/signals';
 
 @Component({
   selector: 'app-existing-product',
   standalone: true,
-  imports: [DecimalPipe, ReactiveFormsModule],
+  imports: [DecimalPipe, ReactiveFormsModule, ProductSearch],
   templateUrl: './existing-product.html',
   styles: [`
     :host {
@@ -33,7 +35,7 @@ export class ExistingProduct implements OnInit {
   // ── Inputs ────────────────────────────────────────────────────────────
   productIdCtrl = input.required<FormControl<number | null>>();
 
-  // ── Outputs ───────────────────────────────────────────────────────────
+  // ── Outputs ──────────────────────────────────────────productIdCtrl─────────────────
   productSelected = output<ProductSearchResult>();
   switchMode      = output<void>(); // → cambiar a nuevo producto
   remove          = output<void>(); // → eliminar el item completo
@@ -137,5 +139,15 @@ export class ExistingProduct implements OnInit {
       case 2: return 'Mujer';
       default: return '—';
     }
+  }
+
+  handleSearchChanged(query: string) {
+    this.searchInput$.next(query);
+  }
+
+  handleProductSelected(product: ProductSearchResult | null) {
+    this.selectedProduct.set(product);
+    this.productIdCtrl().setValue(product?.id ?? null);
+    if (product) this.searchResults.set([]);
   }
 }

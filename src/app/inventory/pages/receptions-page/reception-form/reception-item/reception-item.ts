@@ -21,7 +21,7 @@ import { DecimalPipe } from '@angular/common';
 import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 
 import { VariantFormGroup } from '../common/variant-form-group';
-import { ProductSearchResult, ProductVariantOption } from '../../../../models/products/product-search-result';
+import { ProductSearchResult, ProductVariantOption } from '../../../../components/product-search/product-search-result';
 import { ProductService } from '../../../../services/product-service';
 import { CategoryService } from '../../../../services/category-service';
 import { BrandService } from '../../../../services/brand-service';
@@ -198,6 +198,7 @@ export default class ReceptionItem implements OnInit {
     np.get('categoryId')?.setValidators([Validators.required]);
     np.get('brandId')?.setValidators([Validators.required]);
     np.get('basePrice')?.setValidators([Validators.required]);
+    np.get('gender')?.setValidators([Validators.required]);
     np.updateValueAndValidity();
     this.resetVariants();
   }

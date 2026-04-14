@@ -15,6 +15,8 @@ export interface NewProduct {
    description: string;
    categoryId: number;
    brandId: number;
+   basePrice: number;
+   gender : number;
    unitMeasurementSin?: number;
    economicActivity?: string;
    productCodeSin?: number;

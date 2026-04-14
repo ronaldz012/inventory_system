@@ -11,7 +11,7 @@ import {
 import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DecimalPipe } from '@angular/common';
-import { ProductVariantOption } from '../../../../../models/products/product-search-result';
+import { ProductVariantOption } from '../../../../../components/product-search/product-search-result';
 import { VariantFormGroup } from '../../common/variant-form-group';
 
 @Component({

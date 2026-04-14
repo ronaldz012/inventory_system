@@ -33,40 +33,32 @@
   </div>
 
   <div class="px-1 py-1 relative">
-    <input
-      type="text"
-      list="brandList"
-      formControlName="brandId"
-      placeholder="Marca..."
-      (change)="onBrandChange($event)"
-      class="w-full px-2 py-1.5 border border-transparent rounded text-[11px] text-gray-900 placeholder-gray-400
-           focus:outline-none focus:border-blue-400 focus:bg-white focus:ring-1 focus:ring-blue-400
-           group-hover:border-gray-200"
+    <app-select-from-list
+      [options]="brands()"
+      [selectedId]="form().get('brandId')?.value"
+      (selected)="onBrandSelected($event)"
+      (createNew)="handleCreateBrand($event)"
     />
-    <datalist id="brandList">
-      @for (brand of brands(); track brand.id) {
-        <option [value]="brand.name"></option>
-      }
-      <option value="+ CREAR NUEVA MARCA"></option>
-
-    </datalist>
 
   </div>
 
-  <div class="px-1 py-1 border-l border-gray-100 flex items-center">
+  <div class="px-1 py-1 border-l border-gray-100 flex items-center relative group">
     <select
       formControlName="gender"
-      class="w-full px-1 py-1.5 border border-transparent rounded text-[11px] font-medium bg-transparent
+      class="w-full px-1 py-1.5 border border-transparent rounded text-[11px] font-bold bg-transparent
            focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400
-           group-hover:border-gray-200 cursor-pointer appearance-none text-center"
-      [class.text-blue-600]="form().get('gender')?.value === 0"
-      [class.text-indigo-600]="form().get('gender')?.value === 1"
-      [class.text-pink-600]="form().get('gender')?.value === 2"
+           hover:border-gray-200 cursor-pointer appearance-none text-center transition-colors"
+      [class.text-blue-600]="form().controls.gender.value === 0"
+      [class.text-indigo-600]="form().controls.gender.value === 1"
+      [class.text-pink-600]="form().controls.gender.value === 2"
     >
       @for (opt of genderOptions; track opt.value) {
-        <option [value]="opt.value">{{ opt.label }}</option>
+        <option [ngValue]="opt.value" class="text-gray-700 bg-white">
+          {{ opt.label }}
+        </option>
       }
     </select>
+
   </div>
 
   <div class="px-1 py-1">
