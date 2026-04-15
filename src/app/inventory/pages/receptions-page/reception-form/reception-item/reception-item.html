@@ -1,12 +1,13 @@
 <div [formGroup]="form()" class="border border-gray-200 rounded-lg bg-white mb-4 relative">
 
   <div class="grid grid-cols-[80px_1.2fr_120px_110px_90px_100px_0.8fr_96px_32px] items-stretch border-b border-gray-200 bg-white">    @if (!isNewProduct()) {
-      <app-existing-product
-        [productIdCtrl]="productIdCtrl"
-        (productSelected)="selectProduct($event)"
-        (switchMode)="switchToNewProduct()"
-        (remove)="onRemove()">
-      </app-existing-product>
+    <app-existing-product
+      [productIdCtrl]="productIdCtrl"
+      [selectedProduct]="selectedProductSignal()"
+      (productSelected)="onProductSelected($event)"
+      (selectionCleared)="onSelectionCleared()"
+      (switchMode)="switchToNewProduct()"
+    />
     } @else {
       <app-new-product
         [form]="newProductGroup"

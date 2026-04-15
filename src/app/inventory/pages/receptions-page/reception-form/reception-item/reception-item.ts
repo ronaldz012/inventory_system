@@ -44,7 +44,6 @@ import {CreateEntityEvent} from '../../../../interfaces/types/create-entity-even
 export default class ReceptionItem implements OnInit {
   private fb              = inject(FormBuilder);
   private destroyRef      = inject(DestroyRef);
-  private productService  = inject(ProductService);
 
 
   form   = input.required<ItemFormGroup>();
@@ -55,15 +54,13 @@ export default class ReceptionItem implements OnInit {
   isNewProduct  = signal(false);
   productSearch = signal('');
   showDropdown  = signal(false);
-  isSearching   = signal(false);
-  collapsed     = signal(false);
 
-  searchResults     = signal<ProductSearchResult[]>([]);
   availableVariants = signal<ProductVariantOption[]>([]);
   categories        = input.required<Category[]>();
   brands            = input.required<Brand[]>();
   variants = signal<{ mode: 'new' | 'existing', form: VariantFormGroup }[]>([]);
   private variantsValue = signal<any[]>([]);
+  selectedProductSignal = signal<ProductSearchResult | null>(null);
 
   variantsArray = computed(() => this.form().controls.variants);
 
@@ -83,16 +80,9 @@ export default class ReceptionItem implements OnInit {
     )
   );
 
-  get summaryLabel(): string {
-    if (this.isNewProduct()) return this.newProductGroup.get('name')?.value || 'Producto nuevo';
-    return this.productSearch() || 'Seleccioná un producto';
-  }
-
-  private searchInput$ = new Subject<string>();
 
   ngOnInit(): void {
     this.syncVariantsSignal();
-    this.setupProductSearch();
   }
 
 
@@ -103,85 +93,19 @@ export default class ReceptionItem implements OnInit {
       .subscribe(val => this.variantsValue.set(val));
   }
 
-  private setupProductSearch(): void {
-    this.searchInput$
-      .pipe(
-        debounceTime(400),
-        distinctUntilChanged(),
-        switchMap(q => {
-          if (!q || q.length < 2) {
-            this.searchResults.set([]);
-            this.isSearching.set(false);
-            return [];
-          }
-          this.isSearching.set(true);
-          return this.productService.searchProduct(q);
-        }),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe({
-        next: results => { this.searchResults.set(results); this.isSearching.set(false); },
-        error: () => { this.searchResults.set([]); this.isSearching.set(false); },
-      });
-  }
 
   get productIdCtrl(): FormControl<number | null> { return this.form().controls.productId; }
   get newProductGroup(): FormGroup { return this.form().controls.newProduct; }
 
-  onSearchInput(value: string) {
-    this.productSearch.set(value);
-
-    if (value.trim() === '') {
-      this.clearSelection();
-    } else {
-      this.showDropdown.set(true);
-      // IMPORTANTE: Notificar al buscador
-      this.searchInput$.next(value);
-    }
-  }
-  selectProduct(product: ProductSearchResult): void {
+  selectProductFromChild(product: ProductSearchResult): void {
+    this.selectedProductSignal.set(product)
     this.productIdCtrl.setValue(product.id);
     this.productIdCtrl.markAsTouched();
     this.productSearch.set(product.name);
-    this.availableVariants.set(product.productVariants ?? []);
+    this.availableVariants.set(product.productVariants);
+    console.log('ESTO SON LAS VARIANTES'+this.availableVariants());
     this.showDropdown.set(false);
     this.resetVariants();
-  }
-
-  clearProductSelection(): void {
-    this.productIdCtrl.setValue(null);
-    this.availableVariants.set([]);
-  }
-
-  openDropdown():   void { this.showDropdown.set(true); }
-  closeDropdown():  void { setTimeout(() => this.showDropdown.set(false), 150); }
-  toggleCollapse(): void { this.collapsed.set(!this.collapsed()); }
-  clearSelection() {
-    this.productIdCtrl.setValue(null);
-    this.productSearch.set('');
-    this.resetVariants()
-    this.showDropdown.set(false);
-  }
-
-  handleBlur() {
-    // Retrasamos un poco el cierre para permitir que el click del dropdown funcione
-    setTimeout(() => {
-      this.showDropdown.set(false);
-
-      // ESCENARIO: El usuario dejó texto pero no seleccionó nada del dropdown
-      // o borró parte del nombre de un producto ya seleccionado.
-      if (this.productIdCtrl.value === null) {
-        // Si no hay ID, no permitimos que quede texto "mentiroso"
-        this.clearSelection();
-      } else {
-        // ESCENARIO: Hay un ID seleccionado, pero el usuario alteró el texto del input
-        // Reestablecemos el nombre original del producto seleccionado
-        const selectedProduct = this.searchResults().find(p => p.id === this.productIdCtrl.value);
-        if (selectedProduct && this.productSearch() !== selectedProduct.name) {
-          this.productSearch.set(selectedProduct.name);
-        }
-      }
-    }, 200);
   }
 
   switchToNewProduct(): void {
@@ -269,11 +193,23 @@ export default class ReceptionItem implements OnInit {
     }) as unknown as VariantFormGroup;
   }
 
-  onRemove(): void { this.remove.emit(); }
+  onProductSelected(product: ProductSearchResult): void {
+    // Guardamos el objeto para que el hijo sepa qué hay seleccionado (input)
+    this.selectedProductSignal.set(product);
 
-  hasError(ctrl: AbstractControl | null, error = 'required'): boolean {
-    return !!(ctrl?.hasError(error) && ctrl.touched);
+    // Cargamos las variantes disponibles
+    this.availableVariants.set(product.productVariants);
+
+    // Reiniciamos los formularios de variantes
+    this.resetVariants();
   }
+
+  onSelectionCleared(): void {
+    this.selectedProductSignal.set(null);
+    this.availableVariants.set([]);
+    this.resetVariants();
+  }
+ onRemove (): void { this.remove.emit(); }
 
   handleOpenCreation(event: CreateEntityEvent) {
    this.create.emit(event)

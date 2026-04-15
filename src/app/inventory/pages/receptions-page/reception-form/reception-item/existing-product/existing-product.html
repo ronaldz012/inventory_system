@@ -17,14 +17,14 @@
 
 <!-- Buscador de producto -->
 <div class="px-2 py-1.5 relative">
-    <app-product-search
-      [searchResults]="searchResults()"
-      [isSearching]="isSearching()"
-      [selectedId]="productIdCtrl().value"
-      [selectedProduct]="selectedProduct()"
-      (searchChanged)="handleSearchChanged($event)"
-      (productSelected)="handleProductSelected($event)"
-    />
+  <app-product-search
+    [searchResults]="searchResults()"
+    [isSearching]="isSearching()"
+    [selectedProduct]="selectedProduct()"
+    [selectedId]="productIdCtrl().value"
+    (searchChanged)="handleSearchChanged($event)"
+    (productSelected)="handleProductSelected($event)"
+  />
 </div>
 
 <!-- Categoría -->
@@ -44,7 +44,7 @@
 <!-- Género -->
 <div class="px-2 py-1.5 flex items-center justify-end border-l border-gray-100">
   <span class="text-xs text-gray-500">
-    {{getGenderLabel(selectedProduct()?.gender ?? null)}}
+    {{selectedProduct()?.gender != null ? Gender[selectedProduct()!.gender] : '—'}}
   </span>
 </div>
 

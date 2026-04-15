@@ -5,6 +5,7 @@ import { Category } from '../../../../../interfaces/Dtos/category-dto';
 import { Brand } from '../../../../../interfaces/Dtos/brand-dto';
 import { SelectFromList } from '../../../../../../core/select-from-list/select-from-list';
 import { CreateEntityEvent } from '../../../../../interfaces/types/create-entity-event';
+import {ProductSearchResult} from '../../../../../components/product-search/product-search-result';
 
 @Component({
   selector: 'app-new-product',

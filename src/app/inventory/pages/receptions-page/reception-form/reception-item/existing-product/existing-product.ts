@@ -14,7 +14,7 @@ import { Subject, debounceTime, distinctUntilChanged, finalize, switchMap } from
 import { ProductSearchResult } from '../../../../../components/product-search/product-search-result';
 import { ProductService } from '../../../../../services/product-service';
 import {ProductSearch} from '../../../../../components/product-search/product-search';
-import {form} from '@angular/forms/signals';
+import {Gender} from '../../../../../interfaces/gender';
 
 @Component({
   selector: 'app-existing-product',
