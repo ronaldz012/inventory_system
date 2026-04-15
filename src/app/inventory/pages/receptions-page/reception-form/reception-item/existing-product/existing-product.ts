@@ -1,9 +1,9 @@
 import {
   Component,
-  DestroyRef,
+  DestroyRef, EventEmitter,
   inject,
-  input,
-  OnInit,
+  input, model,
+  OnInit, Output,
   output,
   signal,
 } from '@angular/core';
@@ -28,29 +28,24 @@ import {Gender} from '../../../../../interfaces/gender';
   `],
 })
 export class ExistingProduct implements OnInit {
-  // ── Dependencies ──────────────────────────────────────────────────────
   private productService = inject(ProductService);
   private destroyRef     = inject(DestroyRef);
 
   // ── Inputs ────────────────────────────────────────────────────────────
   productIdCtrl = input.required<FormControl<number | null>>();
+  selectedProduct = input.required<ProductSearchResult | null>();
 
-  // ── Outputs ──────────────────────────────────────────productIdCtrl─────────────────
-  productSelected = output<ProductSearchResult>();
-  switchMode      = output<void>(); // → cambiar a nuevo producto
-  remove          = output<void>(); // → eliminar el item completo
+  // ── Outputs ───────────────────────────────────────────────────────────
+  productSelected  = output<ProductSearchResult>();
+  selectionCleared = output<void>();
+  switchMode       = output<void>();
+  remove           = output<void>();
 
   // ── Estado UI ─────────────────────────────────────────────────────────
-  productSearch   = signal('');
-  showDropdown    = signal(false);
   isSearching     = signal(false);
   searchResults   = signal<ProductSearchResult[]>([]);
-  selectedProduct = signal<ProductSearchResult | null>(null);
-  activeStep = signal<number>(-1);
-
   private searchInput$ = new Subject<string>();
 
-  // ── Lifecycle ─────────────────────────────────────────────────────────
   ngOnInit(): void {
     this.searchInput$.pipe(
       debounceTime(400),
@@ -70,84 +65,30 @@ export class ExistingProduct implements OnInit {
     ).subscribe(results => this.searchResults.set(results));
   }
 
-  // ── Búsqueda ──────────────────────────────────────────────────────────
-  onSearchInput(value: string): void {
-    this.productSearch.set(value);
-    if (!value.trim()) {
-      this.clearSelection();
-    } else {
-      this.showDropdown.set(true);
-      this.searchInput$.next(value);
-    }
-  }
-
-  selectProduct(product: ProductSearchResult): void {
-    this.selectedProduct.set(product);
-    this.productIdCtrl().setValue(product.id);
-    this.productSearch.set(product.name);
-    this.showDropdown.set(false);
-    this.activeStep.set(-1);
-    this.productSelected.emit(product);
-  }
-
-  clearSelection(): void {
-    this.selectedProduct.set(null);
-    this.productIdCtrl().setValue(null);
-    this.productSearch.set('');
-    this.searchResults.set([]);
-  }
-
-  handleBlur(): void {
-    setTimeout(() => {
-      this.showDropdown.set(false);
-      if (!this.productIdCtrl().value) {
-        this.productSearch.set('');
-      } else if (this.selectedProduct() && this.productSearch() !== this.selectedProduct()!.name) {
-        this.productSearch.set(this.selectedProduct()!.name);
-      }
-    }, 200);
-  }
-  onKeyDown(event: KeyboardEvent): void {
-    const results = this.searchResults();
-    if (!this.showDropdown() || results.length === 0) return;
-
-    switch (event.key) {
-      case 'ArrowDown':
-        event.preventDefault();
-        this.activeStep.set((this.activeStep() + 1) % results.length);
-        break;
-      case 'ArrowUp':
-        event.preventDefault();
-        this.activeStep.set((this.activeStep() - 1 + results.length) % results.length);
-        break;
-      case 'Enter':
-        event.preventDefault();
-        if (this.activeStep() >= 0) {
-          this.selectProduct(results[this.activeStep()]);
-        }
-        break;
-      case 'Escape':
-        this.showDropdown.set(false);
-        break;
-    }
-  }
-  // ── Helpers ───────────────────────────────────────────────────────────
-  getGenderLabel(gender: number | null): string {
-    switch (gender) {
-      case 0: return 'Unisex';
-      case 1: return 'Hombre';
-      case 2: return 'Mujer';
-      default: return '—';
-    }
-  }
-
-  handleSearchChanged(query: string) {
+  // Se llama desde el HTML cuando el nieto (app-product-search) emite texto
+  handleSearchChanged(query: string): void {
     this.searchInput$.next(query);
   }
 
-  handleProductSelected(product: ProductSearchResult | null) {
-    this.selectedProduct.set(product);
-    this.productIdCtrl().setValue(product?.id ?? null);
-    if (product) this.searchResults.set([]);
+  // Se llama cuando se hace click en un producto de la lista
+  handleProductSelected(product: ProductSearchResult | null): void {
+    if (product) {
+      // 1. Actualizamos el control de formulario (referencia)
+      this.productIdCtrl().setValue(product.id);
+      // 2. Emitimos el objeto completo para que el padre gestione variantes
+      this.productSelected.emit(product);
+      // 3. Limpiamos la lista de resultados
+      this.searchResults.set([]);
+    } else {
+      this.clearSelection();
+    }
   }
+
+  clearSelection(): void {
+    this.productIdCtrl().setValue(null);
+    this.searchResults.set([]);
+    this.selectionCleared.emit();
+  }
+
+  protected readonly Gender = Gender;
 }

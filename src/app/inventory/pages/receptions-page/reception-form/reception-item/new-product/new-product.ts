@@ -26,6 +26,7 @@ export default class NewProduct {
   switchMode = output<void>();
   remove = output<void>();
   openCreation = output<CreateEntityEvent>();
+  productSelected = output<ProductSearchResult>()
 
   readonly genderOptions = [
     { label: 'UNISEX', value: 0 },
