@@ -130,6 +130,8 @@ export default class ReceptionItem implements OnInit {
   switchToExistingProduct(): void {
     this.isNewProduct.set(false);
     this.newProductGroup.reset();
+    this.newProductGroup.markAsPristine();
+    this.newProductGroup.markAsUntouched();
     this.productIdCtrl.setValidators([Validators.required]);
     this.productIdCtrl.updateValueAndValidity();
     this.resetVariants();

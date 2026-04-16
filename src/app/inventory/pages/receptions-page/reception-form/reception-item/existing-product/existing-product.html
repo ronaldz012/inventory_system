@@ -13,12 +13,10 @@
   <label class="text-[9px] text-blue-600 font-bold uppercase mb-1.5">Producto</label>
   <div class="relative">
     <app-product-search
+      [formControl]="productIdCtrl()"
       [searchResults]="searchResults()"
       [isSearching]="isSearching()"
-      [selectedProduct]="selectedProduct()"
-      [selectedId]="productIdCtrl().value"
       (searchChanged)="handleSearchChanged($event)"
-      (productSelected)="handleProductSelected($event)"
     />
     @if (productIdCtrl().invalid && productIdCtrl().touched) {
       <span class="text-[8px] text-red-500 font-medium absolute -bottom-3 left-0 leading-none">Requerido</span>

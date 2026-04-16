@@ -1,37 +1,51 @@
-import {Component, effect, input, output, signal, untracked} from '@angular/core';
-import {FormsModule} from '@angular/forms';
-import {ProductSearchResult} from './product-search-result';
-import {CurrencyPipe, NgClass} from '@angular/common';
-import {Gender} from '../../interfaces/gender';
+import {
+  Component,
+  input,
+  output,
+  signal,
+  untracked,
+  forwardRef
+} from '@angular/core';
+import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { ProductSearchResult } from './product-search-result';
+import { CurrencyPipe, NgClass } from '@angular/common';
+import { Gender } from '../../interfaces/gender';
 
 @Component({
   selector: 'app-product-search',
-  imports: [
-    FormsModule,
-    CurrencyPipe,
-    NgClass
+  standalone: true,
+  imports: [CurrencyPipe, NgClass],
+  providers: [
+    {
+      provide: NG_VALUE_ACCESSOR,
+      useExisting: forwardRef(() => ProductSearch),
+      multi: true,
+    },
   ],
   template: `
     <div class="relative w-full" (focusout)="handleFocusOut($event)">
       <input
-        #inputRef
         type="text"
-        [ngModel]="productSearch()"
-        (ngModelChange)="onSearchInput($event)"
+        [value]="productSearch()"
+        (input)="onSearchInput($event)"
         (focus)="onFocus()"
         (keydown)="onKeyDown($event)"
         placeholder="Buscar producto..."
-        class="w-full px-2 py-1.5 border border-transparent rounded text-[11px] text-gray-900
+        class="w-full px-2 py-1.5 border border-gray-300 rounded text-[11px] text-gray-900
                focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400
-               hover:border-gray-200 transition-colors"
-        [class.bg-blue-50]="selectedId()"
+               transition-colors"
+        [class.bg-blue-50]="value"
       />
 
       @if (showDropdown() && (searchResults().length > 0 || isSearching())) {
         <div class="absolute z-[100] left-0 right-0 mt-1 bg-white border border-gray-200 rounded shadow-lg max-h-52 overflow-y-auto">
+
           @if (isSearching()) {
-            <div class="px-3 py-2 text-[10px] text-gray-400 animate-pulse">Buscando productos...</div>
+            <div class="px-3 py-2 text-[10px] text-gray-400 animate-pulse">
+              Buscando productos...
+            </div>
           }
+
           @for (product of searchResults(); track product.id; let i = $index) {
             <button
               type="button"
@@ -39,7 +53,7 @@ import {Gender} from '../../interfaces/gender';
               (click)="selectProduct(product)"
               (mouseenter)="activeIndex.set(i)"
               class="w-full text-left px-4 py-3 border-b border-gray-100 last:border-0
-           flex items-center justify-between gap-4 transition-all"
+                     flex items-center justify-between gap-4 transition-all"
               [class.bg-blue-600]="activeIndex() === i"
               [class.text-white]="activeIndex() === i"
               [class.bg-white]="activeIndex() !== i"
@@ -48,23 +62,22 @@ import {Gender} from '../../interfaces/gender';
               <!-- LEFT -->
               <div class="flex flex-col min-w-0 flex-1">
 
-                <!-- NOMBRE + CODIGO -->
                 <div class="flex items-center gap-2 min-w-0">
 
                   <!-- código -->
                   <span
                     class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 shrink-0"
                     [ngClass]="{
-                    'bg-white/20 text-white': activeIndex() === i
-                  }"
-                                  >
-                  {{ product.internalCode }}
-                </span>
+                      'bg-white/20 text-white': activeIndex() === i
+                    }"
+                  >
+                    {{ product.internalCode }}
+                  </span>
 
                   <!-- nombre -->
                   <span class="font-semibold text-[13px] truncate">
-          {{ product.name }}
-        </span>
+                    {{ product.name }}
+                  </span>
 
                   <!-- genero -->
                   <span
@@ -72,30 +85,29 @@ import {Gender} from '../../interfaces/gender';
                     [class.border-white]="activeIndex() === i"
                     [class.border-gray-200]="activeIndex() !== i"
                   >
-          {{ Gender[product.gender] }}
-        </span>
+                    {{ Gender[product.gender] }}
+                  </span>
                 </div>
 
-                <!-- META -->
                 <div class="flex items-center gap-2 mt-1">
-        <span class="text-[10px] opacity-80 uppercase tracking-wider font-medium">
-          {{ product.brandName }}
-        </span>
+                  <span class="text-[10px] opacity-80 uppercase tracking-wider font-medium">
+                    {{ product.brandName }}
+                  </span>
                   <span class="text-[10px] opacity-50">•</span>
                   <span class="text-[10px] opacity-80 italic">
-          {{ product.categoryName }}
-        </span>
+                    {{ product.categoryName }}
+                  </span>
                 </div>
               </div>
 
               <!-- RIGHT -->
               <div class="flex flex-col items-end shrink-0">
-      <span class="text-[14px] font-bold">
-        {{ product.basePrice | currency:'Bs' }}
-      </span>
+                <span class="text-[14px] font-bold">
+                  {{ product.basePrice | currency:'Bs' }}
+                </span>
                 <span class="text-[9px] opacity-70">
-        {{ product.productVariants.length }} vars.
-      </span>
+                  {{ product.productVariants.length }} vars.
+                </span>
               </div>
 
             </button>
@@ -107,23 +119,19 @@ import {Gender} from '../../interfaces/gender';
             </div>
           }
 
-
-
         </div>
       }
     </div>
   `,
-  styles: ``,
 })
-export class ProductSearch {
+export class ProductSearch implements ControlValueAccessor {
+
+  // Inputs
   searchResults = input.required<ProductSearchResult[]>();
   isSearching = input<boolean>(false);
-  selectedId = input<number | null>(null);
-  selectedProduct = input<ProductSearchResult | null>(null);
 
-  // Outputs
+  // Outputs opcionales
   searchChanged = output<string>();
-  productSelected = output<ProductSearchResult | null>();
 
   // Estado interno
   productSearch = signal('');
@@ -131,20 +139,41 @@ export class ProductSearch {
   activeIndex = signal(0);
   protected readonly Gender = Gender;
 
+  // CVA
+  value: number | null = null;
 
-  constructor() {
-    // Sincroniza el texto del input con el producto seleccionado externamente
-    effect(() => {
-      const selected = this.selectedProduct();
-      untracked(() => {
-        if (selected) {
-          this.productSearch.set(selected.name);
-        } else if (!this.selectedId()) {
-          this.productSearch.set('');
-        }
-      });
+  private onChange = (value: number | null) => {};
+  private onTouched = () => {};
+
+  // ========================
+  // CVA METHODS
+  // ========================
+
+  writeValue(value: number | null): void {
+    this.value = value;
+
+    const match = this.searchResults().find(p => p.id === value);
+
+    untracked(() => {
+      if (match) {
+        this.productSearch.set(match.name);
+      } else if (!value) {
+        this.productSearch.set('');
+      }
     });
   }
+
+  registerOnChange(fn: any): void {
+    this.onChange = fn;
+  }
+
+  registerOnTouched(fn: any): void {
+    this.onTouched = fn;
+  }
+
+  // ========================
+  // UI EVENTS
+  // ========================
 
   onFocus() {
     this.showDropdown.set(true);
@@ -158,36 +187,42 @@ export class ProductSearch {
     if (next && (event.currentTarget as HTMLElement).contains(next)) return;
 
     this.showDropdown.set(false);
+    this.onTouched(); // 🔥 importante
 
-    // Lógica de "rollback": Si el usuario sale sin seleccionar nada nuevo,
-    // restauramos el nombre del producto que ya estaba seleccionado.
-    const current = this.selectedProduct();
-    if (current) {
-      this.productSearch.set(current.name);
-    } else if (!this.selectedId()) {
+    if (!this.value) {
       this.productSearch.set('');
     }
   }
 
-  onSearchInput(value: string) {
+  onSearchInput(event: Event) {
+    const value = (event.target as HTMLInputElement).value;
+
     this.productSearch.set(value);
     this.activeIndex.set(0);
     this.showDropdown.set(true);
+
     this.searchChanged.emit(value);
 
     if (!value.trim()) {
-      this.productSelected.emit(null);
+      this.value = null;
+      this.onChange(null);
     }
   }
 
   selectProduct(product: ProductSearchResult) {
     this.productSearch.set(product.name);
-    this.productSelected.emit(product);
+
+    this.value = product.id;
+
+    this.onChange(product.id); // 🔥 conecta con form
+    this.onTouched();          // 🔥 marca touched
+
     this.showDropdown.set(false);
   }
 
   onKeyDown(event: KeyboardEvent) {
     const results = this.searchResults();
+
     if (!this.showDropdown()) {
       if (event.key === 'ArrowDown') this.showDropdown.set(true);
       return;
@@ -198,21 +233,23 @@ export class ProductSearch {
         event.preventDefault();
         this.activeIndex.update(i => (i < results.length - 1 ? i + 1 : 0));
         break;
+
       case 'ArrowUp':
         event.preventDefault();
         this.activeIndex.update(i => (i > 0 ? i - 1 : results.length - 1));
         break;
+
       case 'Enter':
         event.preventDefault();
         if (results[this.activeIndex()]) {
           this.selectProduct(results[this.activeIndex()]);
         }
         break;
+
       case 'Escape':
       case 'Tab':
         this.showDropdown.set(false);
         break;
     }
   }
-
 }
