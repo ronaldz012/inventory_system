@@ -131,9 +131,10 @@ export default class VariantExistingRow implements OnInit {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────
-  formatVariantLabel(v: ProductVariantOption):  string { return v.description; }
+  formatVariantLabel(v: ProductVariantOption):  string { return v.sku+' '+v.description; }
   formatDropdownLabel(v: ProductVariantOption): string {
-    const parts = [v.description];
+    const parts = [v.sku];
+    if(v.description) parts.push(v.description);
     if (v.size)  parts.push(`Talle ${v.size}`);
     if (v.color) parts.push(v.color);
     return parts.join(' · ');

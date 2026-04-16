@@ -1,14 +1,15 @@
 import {Component, effect, input, output, signal, untracked} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {ProductSearchResult} from './product-search-result';
-import {CurrencyPipe} from '@angular/common';
+import {CurrencyPipe, NgClass} from '@angular/common';
 import {Gender} from '../../interfaces/gender';
 
 @Component({
   selector: 'app-product-search',
   imports: [
     FormsModule,
-    CurrencyPipe
+    CurrencyPipe,
+    NgClass
   ],
   template: `
     <div class="relative w-full" (focusout)="handleFocusOut($event)">
@@ -31,7 +32,6 @@ import {Gender} from '../../interfaces/gender';
           @if (isSearching()) {
             <div class="px-3 py-2 text-[10px] text-gray-400 animate-pulse">Buscando productos...</div>
           }
-
           @for (product of searchResults(); track product.id; let i = $index) {
             <button
               type="button"
@@ -44,18 +44,39 @@ import {Gender} from '../../interfaces/gender';
               [class.text-white]="activeIndex() === i"
               [class.bg-white]="activeIndex() !== i"
             >
+
+              <!-- LEFT -->
               <div class="flex flex-col min-w-0 flex-1">
-                <div class="flex items-center gap-2">
-        <span class="font-semibold text-[13px] truncate">
+
+                <!-- NOMBRE + CODIGO -->
+                <div class="flex items-center gap-2 min-w-0">
+
+                  <!-- código -->
+                  <span
+                    class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 shrink-0"
+                    [ngClass]="{
+                    'bg-white/20 text-white': activeIndex() === i
+                  }"
+                                  >
+                  {{ product.internalCode }}
+                </span>
+
+                  <!-- nombre -->
+                  <span class="font-semibold text-[13px] truncate">
           {{ product.name }}
         </span>
-                  <span class="px-1.5 py-0.5 rounded text-[9px] uppercase font-bold border"
-                        [class.border-white]="activeIndex() === i"
-                        [class.border-gray-200]="activeIndex() !== i">
+
+                  <!-- genero -->
+                  <span
+                    class="px-1.5 py-0.5 rounded text-[9px] uppercase font-bold border shrink-0"
+                    [class.border-white]="activeIndex() === i"
+                    [class.border-gray-200]="activeIndex() !== i"
+                  >
           {{ Gender[product.gender] }}
         </span>
                 </div>
 
+                <!-- META -->
                 <div class="flex items-center gap-2 mt-1">
         <span class="text-[10px] opacity-80 uppercase tracking-wider font-medium">
           {{ product.brandName }}
@@ -67,6 +88,7 @@ import {Gender} from '../../interfaces/gender';
                 </div>
               </div>
 
+              <!-- RIGHT -->
               <div class="flex flex-col items-end shrink-0">
       <span class="text-[14px] font-bold">
         {{ product.basePrice | currency:'Bs' }}
@@ -75,12 +97,18 @@ import {Gender} from '../../interfaces/gender';
         {{ product.productVariants.length }} vars.
       </span>
               </div>
+
             </button>
           }
 
           @if (!isSearching() && searchResults().length === 0 && productSearch().length > 2) {
-            <div class="px-3 py-2 text-[10px] text-gray-500 italic">No se encontraron resultados</div>
+            <div class="px-3 py-2 text-[10px] text-gray-500 italic">
+              No se encontraron resultados
+            </div>
           }
+
+
+
         </div>
       }
     </div>
