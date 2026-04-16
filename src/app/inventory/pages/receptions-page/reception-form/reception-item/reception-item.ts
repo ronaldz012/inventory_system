@@ -18,13 +18,8 @@ import {
 } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DecimalPipe } from '@angular/common';
-import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
-
 import { VariantFormGroup } from '../common/variant-form-group';
 import { ProductSearchResult, ProductVariantOption } from '../../../../components/product-search/product-search-result';
-import { ProductService } from '../../../../services/product-service';
-import { CategoryService } from '../../../../services/category-service';
-import { BrandService } from '../../../../services/brand-service';
 import { Category } from '../../../../interfaces/Dtos/category-dto';
 import { Brand } from '../../../../interfaces/Dtos/brand-dto';
 import VariantExistingRow from './variant-existing-row/variant-existing-row';
@@ -114,6 +109,8 @@ export default class ReceptionItem implements OnInit {
     this.productIdCtrl.setValue(null);
     this.productIdCtrl.clearValidators();
     this.productIdCtrl.updateValueAndValidity();
+    this.productIdCtrl.markAsPristine();
+    this.productIdCtrl.markAsUntouched();
     this.productSearch.set('');
     this.availableVariants.set([]);
 
@@ -129,9 +126,19 @@ export default class ReceptionItem implements OnInit {
 
   switchToExistingProduct(): void {
     this.isNewProduct.set(false);
-    this.newProductGroup.reset();
-    this.newProductGroup.markAsPristine();
-    this.newProductGroup.markAsUntouched();
+
+    const  np= this.newProductGroup;
+
+    // 2. Limpiar validadores de los campos específicos de "New Product"
+    // Si no los quitas, el Form sigue pidiéndolos internamente.
+    np.get('name')?.clearValidators();
+    np.get('categoryId')?.clearValidators();
+    np.get('brandId')?.clearValidators();
+    np.get('basePrice')?.clearValidators();
+    np.get('gender')?.clearValidators();
+    np.reset();
+    np.markAsPristine();
+    np.markAsUntouched();
     this.productIdCtrl.setValidators([Validators.required]);
     this.productIdCtrl.updateValueAndValidity();
     this.resetVariants();

@@ -91,4 +91,9 @@ export class ExistingProduct implements OnInit {
   }
 
   protected readonly Gender = Gender;
+
+   switchToNewProductMode() {
+     this.clearSelection()
+    this.switchMode.emit()
+  }
 }

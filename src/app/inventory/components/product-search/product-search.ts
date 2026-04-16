@@ -132,6 +132,7 @@ export class ProductSearch implements ControlValueAccessor {
 
   // Outputs opcionales
   searchChanged = output<string>();
+  productSelected = output<ProductSearchResult | null>();
 
   // Estado interno
   productSearch = signal('');
@@ -206,6 +207,7 @@ export class ProductSearch implements ControlValueAccessor {
     if (!value.trim()) {
       this.value = null;
       this.onChange(null);
+      this.productSelected.emit(null); // 🔥 importante
     }
   }
 
@@ -214,8 +216,10 @@ export class ProductSearch implements ControlValueAccessor {
 
     this.value = product.id;
 
-    this.onChange(product.id); // 🔥 conecta con form
-    this.onTouched();          // 🔥 marca touched
+    this.onChange(product.id);   // 🔥 form
+    this.onTouched();            // 🔥 touched
+
+    this.productSelected.emit(product); // 🔥 negocio
 
     this.showDropdown.set(false);
   }

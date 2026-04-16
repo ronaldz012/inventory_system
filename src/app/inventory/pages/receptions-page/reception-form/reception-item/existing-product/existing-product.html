@@ -1,78 +1,105 @@
-<div class="h-full border-r border-gray-100 flex flex-col">
-  <span class="text-[9px] text-gray-400 font-bold uppercase px-1 mb-1.5 text-center bg-gray-50 py-0.5">Modo</span>
-  <button
-    type="button"
-    (click)="switchMode.emit()"
-    class="flex-1 w-full text-[10px] font-bold uppercase bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-  >
-    Exist.
-  </button>
-</div>
+<div class="contents group">
 
-<div class="px-2 py-1.5 flex flex-col border-r border-gray-100 min-h-[52px]">
-  <label class="text-[9px] text-blue-600 font-bold uppercase mb-1.5">Producto</label>
-  <div class="relative">
+  <div class="border-r border-gray-100 flex flex-col min-h-[60px]">
+    <span class="text-[9px] text-gray-400 font-bold uppercase text-center bg-gray-50 py-0.5">
+      Modo
+    </span>
+
+    <div class="p-1">
+      <div class="flex border border-gray-200 rounded overflow-hidden text-[9px] h-[26px]">
+        <button
+          type="button"
+          (click)="switchToNewProductMode()"
+          class="flex-1 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors font-bold"
+        >
+          NEW
+        </button>
+        <span class="flex-1 flex items-center justify-center bg-blue-600 text-white font-bold">
+          EX
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="px-2 pt-1.5 pb-1 flex flex-col border-r border-gray-100 min-h-[60px]">
+    <label class="text-[9px] text-blue-600 font-bold uppercase mb-1">
+      Producto
+    </label>
+
     <app-product-search
       [formControl]="productIdCtrl()"
       [searchResults]="searchResults()"
       [isSearching]="isSearching()"
       (searchChanged)="handleSearchChanged($event)"
+      (productSelected)="handleProductSelected($event)"
     />
+
     @if (productIdCtrl().invalid && productIdCtrl().touched) {
-      <span class="text-[8px] text-red-500 font-medium absolute -bottom-3 left-0 leading-none">Requerido</span>
+      <span class="text-[9px] text-red-500 font-semibold mt-1">
+        * Requerido
+      </span>
     }
   </div>
-</div>
 
-<div class="px-2 py-1.5 flex flex-col border-r border-gray-100 min-h-[52px]">
-  <span class="text-[9px] text-gray-400 font-bold uppercase mb-1.5">Categoría</span>
-  <span class="text-xs text-gray-600 truncate font-medium mt-1">
-    {{ selectedProduct()?.categoryName || '—' }}
-  </span>
-</div>
-
-<div class="px-2 py-1.5 flex flex-col border-r border-gray-100 min-h-[52px]">
-  <span class="text-[9px] text-gray-400 font-bold uppercase mb-1.5">Marca</span>
-  <span class="text-xs text-gray-600 truncate font-medium mt-1">
-    {{ selectedProduct()?.brandName || '—' }}
-  </span>
-</div>
-
-<div class="px-2 py-1.5 flex flex-col items-end border-r border-gray-100 min-h-[52px]">
-  <span class="text-[9px] text-gray-400 font-bold uppercase mb-1.5">Género</span>
-  <span class="text-xs text-gray-600 font-medium mt-1">
-    {{selectedProduct()?.gender != null ? Gender[selectedProduct()!.gender] : '—'}}
-  </span>
-</div>
-
-<div class="px-2 py-1.5 flex flex-col items-end border-r border-gray-100 min-h-[52px] bg-blue-50/20">
-  <span class="text-[9px] text-blue-500 font-bold uppercase mb-1.5">Precio Base</span>
-  @if (selectedProduct()) {
-    <span class="text-xs font-bold text-blue-800 mt-1">
-      Bs {{ selectedProduct()!.basePrice | number:'1.0-0' }}
+  <div class="px-2 pt-1.5 pb-1 flex flex-col border-r border-gray-100 min-h-[60px]">
+    <span class="text-[9px] text-gray-400 font-bold uppercase mb-1">
+      Categoría
     </span>
-  } @else {
-    <span class="text-xs text-gray-300 mt-1">—</span>
-  }
-</div>
+    <span class="text-xs text-gray-600 truncate font-medium mt-1">
+      {{ selectedProduct()?.categoryName || '—' }}
+    </span>
+  </div>
 
-<div class="px-2 py-1.5 flex flex-col border-r border-gray-100 col-span-2 min-h-[52px]">
-  <span class="text-[9px] text-gray-400 font-bold uppercase mb-1.5">Descripción</span>
-  <span class="text-xs text-gray-400 italic truncate mt-1">
-    {{ selectedProduct()?.description || 'Sin descripción' }}
-  </span>
-</div>
+  <div class="px-2 pt-1.5 pb-1 flex flex-col border-r border-gray-100 min-h-[60px]">
+    <span class="text-[9px] text-gray-400 font-bold uppercase mb-1">
+      Marca
+    </span>
+    <span class="text-xs text-gray-600 truncate font-medium mt-1">
+      {{ selectedProduct()?.brandName || '—' }}
+    </span>
+  </div>
 
-<div class="flex items-center justify-center bg-gray-50/50">
-  <button
-    type="button"
-    (click)="remove.emit()"
-    class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded-full transition-all"
-    title="Eliminar fila"
-  >
-    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-    </svg>
-  </button>
+  <div class="px-2 pt-1.5 pb-1 flex flex-col items-end border-r border-gray-100 min-h-[60px]">
+    <span class="text-[9px] text-gray-400 font-bold uppercase mb-1">
+      Género
+    </span>
+    <span class="text-xs text-gray-600 font-medium mt-1">
+      {{selectedProduct()?.gender != null ? Gender[selectedProduct()!.gender] : '—'}}
+    </span>
+  </div>
+
+  <div class="px-2 pt-1.5 pb-1 flex flex-col items-end border-r border-gray-100 min-h-[60px] bg-blue-50/20">
+    <span class="text-[9px] text-blue-500 font-bold uppercase mb-1">
+      Precio Base
+    </span>
+    @if (selectedProduct()) {
+      <span class="text-xs font-bold text-blue-800 mt-1">
+        Bs {{ selectedProduct()!.basePrice | number:'1.0-0' }}
+      </span>
+    } @else {
+      <span class="text-xs text-gray-300 mt-1">—</span>
+    }
+  </div>
+
+  <div class="px-2 pt-1.5 pb-1 flex flex-col border-r border-gray-100 col-span-2 min-h-[60px]">
+    <span class="text-[9px] text-gray-400 font-bold uppercase mb-1">
+      Descripción
+    </span>
+    <span class="text-xs text-gray-400 italic truncate mt-1">
+      {{ selectedProduct()?.description || 'Sin descripción' }}
+    </span>
+  </div>
+
+  <div class="flex items-start justify-center pt-5 bg-gray-50/50 min-h-[60px] border-l border-gray-100">
+    <button
+      type="button"
+      (click)="remove.emit()"
+      class="p-1 text-gray-400 hover:text-red-500 transition-colors"
+    >
+      <svg class="h-4 w-4" viewBox="0 0 24 24"  stroke="currentColor" stroke-width="2">
+        <path d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+
 </div>
