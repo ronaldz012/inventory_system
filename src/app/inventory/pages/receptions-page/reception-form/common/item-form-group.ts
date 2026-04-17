@@ -24,4 +24,3 @@ export type NewProductFormGroup = FormGroup<{
   // productCodeSin: FormControl<number | null>;
 }>;
 
-enum gender  {unisex, men, woman }
