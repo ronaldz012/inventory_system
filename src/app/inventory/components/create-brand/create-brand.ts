@@ -1,6 +1,6 @@
 import {Component, ElementRef, inject, input, OnInit, output, ViewChild} from '@angular/core';
 import {FormBuilder, ReactiveFormsModule, Validators} from '@angular/forms';
-import {Brand} from '../../interfaces/Dtos/brand-dto';
+import {Brand} from '../../dtos/brands/brand-dto';
 import {BrandService} from '../../services/brand-service';
 
 

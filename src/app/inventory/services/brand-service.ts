@@ -1,11 +1,11 @@
 import {inject, Injectable} from '@angular/core';
-import {CategoryQuery} from '../interfaces/Dtos/category-dto';
-import {PagedResult} from '../interfaces/Dtos/paged-result';
-import {Brand, BrandQuery} from '../interfaces/Dtos/brand-dto';
+import {CategoryQuery} from '../dtos/categories/category-dto';
+import {PagedResult} from '../dtos/paged-result';
+import {Brand, BrandQuery} from '../dtos/brands/brand-dto';
 import {map, Observable} from 'rxjs';
 import {HttpClient, HttpParams} from '@angular/common/http';
 import {environment} from '../../../environments/environment';
-import {CreateBrandDto} from '../dtos/create-brand-dto';
+import {CreateBrandDto} from '../dtos/brands/create-brand-dto';
 
 @Injectable({
   providedIn: 'root',

@@ -24,8 +24,8 @@ import {
   ProductSearchResult,
   ProductVariantOption,
 } from '../../../../components/product-search/product-search-result';
-import { Category } from '../../../../interfaces/Dtos/category-dto';
-import { Brand } from '../../../../interfaces/Dtos/brand-dto';
+import { Category } from '../../../../dtos/categories/category-dto';
+import { Brand } from '../../../../dtos/brands/brand-dto';
 import { CreateEntityEvent } from '../../../../interfaces/types/create-entity-event';
 
 import VariantExistingRow from './variant-existing-row/variant-existing-row';

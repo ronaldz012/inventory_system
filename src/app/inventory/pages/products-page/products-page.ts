@@ -4,10 +4,10 @@ import ProductItem from './product-list/product-item/product-item';
 import {ProductList} from './product-list/product-list';
 import {ProductForm} from './product-form/product-form';
 import {CategoryService} from '../../services/category-service';
-import {Category} from '../../interfaces/Dtos/category-dto';
-import {Brand} from '../../interfaces/Dtos/brand-dto';
+import {Category} from '../../dtos/categories/category-dto';
+import {Brand} from '../../dtos/brands/brand-dto';
 import {ProductService} from '../../services/product-service';
-import {ProductQuery} from '../../interfaces/Dtos/product-dto';
+import {ProductQuery} from '../../dtos/products/product-dto';
 import ProductFilters from './product-filters/product-filters';
 import {BrandService} from '../../services/brand-service';
 

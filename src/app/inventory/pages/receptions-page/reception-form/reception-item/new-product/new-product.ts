@@ -1,8 +1,8 @@
 import {Component, DestroyRef, inject, input, output, ViewChild, ElementRef, OnInit, OnDestroy} from '@angular/core';
 import {ReactiveFormsModule, Validators} from '@angular/forms';
 import { NewProductFormGroup } from '../../common/item-form-group';
-import { Category } from '../../../../../interfaces/Dtos/category-dto';
-import { Brand } from '../../../../../interfaces/Dtos/brand-dto';
+import { Category } from '../../../../../dtos/categories/category-dto';
+import { Brand } from '../../../../../dtos/brands/brand-dto';
 import { SelectFromList } from '../../../../../../core/select-from-list/select-from-list';
 import { CreateEntityEvent } from '../../../../../interfaces/types/create-entity-event';
 import {ProductSearchResult} from '../../../../../components/product-search/product-search-result';

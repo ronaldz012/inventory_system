@@ -1,3 +1,5 @@
+import {BaseQueryDto} from '../base-query-dto';
+
 export interface StockReceptionListDto {
   id: number;
   branchId: number;
@@ -7,4 +9,7 @@ export interface StockReceptionListDto {
   totalItems: number;
   totalCost: number;
   types: Record<string, string[]>;
+}
+export interface queryReceptions extends BaseQueryDto {
+
 }

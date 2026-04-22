@@ -1,6 +1,6 @@
 import {Component, input, output} from '@angular/core';
 import {CurrencyPipe, DatePipe, KeyValuePipe} from '@angular/common';
-import {StockReceptionListDto} from '../../../dtos/stock-reception-list-dto';
+import {StockReceptionListDto} from '../../../dtos/Receptions/stock-reception-list-dto';
 
 @Component({
   selector: 'app-reception-list',

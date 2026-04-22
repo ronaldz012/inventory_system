@@ -1,10 +1,10 @@
 import {inject, Injectable} from '@angular/core';
 import {HttpClient, HttpParams} from '@angular/common/http';
 import {environment} from '../../../environments/environment';
-import {Category, CategoryQuery} from '../interfaces/Dtos/category-dto';
+import {Category, CategoryQuery} from '../dtos/categories/category-dto';
 import {map, Observable} from 'rxjs';
-import {PagedResult} from '../interfaces/Dtos/paged-result';
-import {CreateCategoryDto} from '../dtos/create-category-dto';
+import {PagedResult} from '../dtos/paged-result';
+import {CreateCategoryDto} from '../dtos/categories/create-category-dto';
 
 @Injectable({
   providedIn: 'root',

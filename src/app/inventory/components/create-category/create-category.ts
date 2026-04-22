@@ -1,7 +1,7 @@
 import {Component, ElementRef, inject, input, OnInit, output, signal, ViewChild} from '@angular/core';
 import {FormBuilder, ReactiveFormsModule, Validators} from '@angular/forms';
 import {CategoryService} from '../../services/category-service';
-import {Category} from '../../interfaces/Dtos/category-dto';
+import {Category} from '../../dtos/categories/category-dto';
 
 @Component({
   selector: 'app-create-category',

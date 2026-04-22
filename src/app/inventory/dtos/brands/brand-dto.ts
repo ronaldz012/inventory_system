@@ -1,4 +1,4 @@
-import {BaseQueryDto} from './base-query-dto';
+import {BaseQueryDto} from '../base-query-dto';
 
 export interface Brand {
   id: number;

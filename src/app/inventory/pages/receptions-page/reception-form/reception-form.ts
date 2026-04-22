@@ -18,14 +18,14 @@ import createReceptionDto, {
   Item,
   NewProduct,
   NewVariant
-} from '../../../interfaces/Dtos/Receptions/create-reception-dto';
+} from '../../../dtos/Receptions/create-reception-dto';
 import ReceptionItem from './reception-item/reception-item';
 import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
 import {DecimalPipe} from '@angular/common';
 import {CategoryService} from '../../../services/category-service';
 import {BrandService} from '../../../services/brand-service';
-import {Category} from '../../../interfaces/Dtos/category-dto';
-import {Brand} from '../../../interfaces/Dtos/brand-dto';
+import {Category} from '../../../dtos/categories/category-dto';
+import {Brand} from '../../../dtos/brands/brand-dto';
 import {CreateCategory} from '../../../components/create-category/create-category';
 import {CreateEntityEvent} from '../../../interfaces/types/create-entity-event';
 import CreateBrand from '../../../components/create-brand/create-brand';

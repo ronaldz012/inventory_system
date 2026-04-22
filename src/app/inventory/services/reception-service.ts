@@ -1,8 +1,10 @@
 import {inject, Injectable} from '@angular/core';
-import createReceptionDto from '../interfaces/Dtos/Receptions/create-reception-dto';
-import {HttpClient} from '@angular/common/http';
+import createReceptionDto from '../dtos/Receptions/create-reception-dto';
+import {HttpClient, HttpHeaders, HttpParams} from '@angular/common/http';
 import {Observable} from 'rxjs';
 import {environment} from '../../../environments/environment';
+import {queryReceptions, StockReceptionListDto} from '../dtos/Receptions/stock-reception-list-dto';
+import {PagedResult} from '../dtos/paged-result';
 
 @Injectable({
   providedIn: 'root',
@@ -13,5 +15,18 @@ export class ReceptionService {
   create(payload: createReceptionDto): Observable<boolean>
   {
     return this.http.post<boolean>(this.url, payload);
+  }
+
+  getReceptions(query: queryReceptions):Observable<PagedResult<StockReceptionListDto>>{
+
+      let params = new HttpParams();
+
+      Object.entries(query).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          params = params.set(key, value.toString());
+        }
+      });
+      const headers = new HttpHeaders().set('X-Branch-Id', '1');
+      return this.http.get<PagedResult<StockReceptionListDto>>(this.url, { params:params, headers:headers });
   }
 }

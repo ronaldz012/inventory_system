@@ -1,7 +1,7 @@
 import {Component, inject, input, OnInit, output} from '@angular/core';
-import {ProductQuery} from '../../../interfaces/Dtos/product-dto';
-import {Category} from '../../../interfaces/Dtos/category-dto';
-import {Brand} from '../../../interfaces/Dtos/brand-dto';
+import {ProductQuery} from '../../../dtos/products/product-dto';
+import {Category} from '../../../dtos/categories/category-dto';
+import {Brand} from '../../../dtos/brands/brand-dto';
 import {FormBuilder, ReactiveFormsModule, Validators} from '@angular/forms';
 import {debounceTime, distinctUntilChanged} from 'rxjs';
 
