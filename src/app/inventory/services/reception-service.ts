@@ -26,7 +26,6 @@ export class ReceptionService {
           params = params.set(key, value.toString());
         }
       });
-      const headers = new HttpHeaders().set('X-Branch-Id', '1');
-      return this.http.get<PagedResult<StockReceptionListDto>>(this.url, { params:params, headers:headers });
+      return this.http.get<PagedResult<StockReceptionListDto>>(this.url, { params:params });
   }
 }
