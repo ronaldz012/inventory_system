@@ -10,6 +10,8 @@ export class BranchContextService {
 
   readonly available = this._available.asReadonly();
   readonly active = this._active.asReadonly();
+  private ACTIVE_BRANCH_ID_KEY = 'active_branch_id'
+  private BRANCHES_KEY = 'branches'
 
   setAvailable(branches: Branch[]): void {
     this._available.set(branches);
@@ -17,7 +19,7 @@ export class BranchContextService {
 
   setActive(branch: Branch): void {
     this._active.set(branch);
-    localStorage.setItem('active_branch_id', String(branch.branchId));
+    localStorage.setItem(this.ACTIVE_BRANCH_ID_KEY, String(branch.branchId));
   }
 
   // para el interceptor
@@ -32,7 +34,7 @@ export class BranchContextService {
 
   // restaurar desde localStorage al arrancar la app
   restoreFromStorage(branches: Branch[]): void {
-    const savedId = localStorage.getItem('active_branch_id');
+    const savedId = localStorage.getItem(this.ACTIVE_BRANCH_ID_KEY);
     const saved = branches.find(b => b.branchId === Number(savedId));
     this._available.set(branches);
     this._active.set(saved ?? branches[0] ?? null);
@@ -41,20 +43,20 @@ export class BranchContextService {
 
   // Reemplaza setAvailable + setActive + localStorage suelto
   initialize(branches: Branch[]): void {
-    localStorage.setItem('branches', JSON.stringify(branches));
+    localStorage.setItem(this.BRANCHES_KEY, JSON.stringify(branches));
     this._available.set(branches);
 
-    const savedId = Number(localStorage.getItem('active_branch_id'));
+    const savedId = Number(localStorage.getItem(this.ACTIVE_BRANCH_ID_KEY));
     const saved = branches.find(b => b.branchId === savedId);
     this._active.set(saved ?? branches[0] ?? null);
 
     if (this._active()) {
-      localStorage.setItem('active_branch_id', String(this._active()!.branchId));
+      localStorage.setItem(this.ACTIVE_BRANCH_ID_KEY, String(this._active()!.branchId));
     }
   }
 
   clear(): void {
-    localStorage.removeItem('branches');
+    localStorage.removeItem(this.BRANCHES_KEY);
     //localStorage.removeItem('active_branch_id');
     this._available.set([]);
     this._active.set(null);
