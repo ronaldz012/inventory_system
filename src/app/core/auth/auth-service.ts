@@ -32,7 +32,7 @@ export class AuthService {
   }
 
   logout(): void {
-    this.cookieService.delete(this.TOKEN_KEY);
+    this.cookieService.delete(this.TOKEN_KEY, '/');
     this.currentUserService.clear();
     this.branchContext.clear();
   }
