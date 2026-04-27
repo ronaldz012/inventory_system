@@ -36,19 +36,17 @@ export interface Module {
   id: number;
   name: string;
   route: string;
+  icon : string;
+  features: Feature[];
+}
+
+export interface Feature {
+  id: number;
+  name: string;
+  route: string;
+  icon: string;
   canCreate: boolean;
   canRead: boolean;
   canUpdate: boolean;
   canDelete: boolean;
-  menus: Menu[];
-}
-
-export interface Menu {
-  id: number;
-  parentMenuId: number;
-  name: string;
-  route: string;
-  icon: string;
-  order: number;
-  moduleId: number;
 }

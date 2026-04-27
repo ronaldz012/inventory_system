@@ -30,7 +30,6 @@ export  default  class ProductFilters implements OnInit {
     ).subscribe(values => {
       this.filtersChanged.emit({
         filter:values.filter?? undefined,
-        brandId: values.brandId,
         categoryId:values.categoryId
       });
     });

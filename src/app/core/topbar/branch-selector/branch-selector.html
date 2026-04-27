@@ -2,7 +2,7 @@
 
   <button
     (click)="isOpen.set(!isOpen())"
-    [class.border-gray-300]="isOpen"
+    [class.border-gray-300]="isOpen()"
     [class.bg-white]="isOpen()"
     class="flex items-center gap-2 h-[34px] px-3 rounded-lg border border-gray-200
            bg-gray-50 hover:border-gray-300 hover:bg-white transition-all
@@ -13,7 +13,7 @@
     </span>
     <svg
       class="text-gray-400 flex-shrink-0 transition-transform duration-200"
-      [class.rotate-180]="isOpen"
+      [class.rotate-180]="isOpen()"
       width="14" height="14" viewBox="0 0 24 24"
       fill="none" stroke="currentColor" stroke-width="2"
       stroke-linecap="round" stroke-linejoin="round">
