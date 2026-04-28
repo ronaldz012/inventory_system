@@ -7,6 +7,8 @@ import {ProductQuery} from '../dtos/products/product-dto';
 import {PagedResult} from '../dtos/paged-result';
 import {ListProduct} from '../interfaces/listProduct';
 import {ProductSearchResult} from '../components/product-search/product-search-result';
+import ProductDetail from '../pages/products-page/product-detail/product-detail';
+import {ProductDetailDto} from '../dtos/products/product-detail-dto';
 
 @Injectable({
   providedIn: 'root',
@@ -33,5 +35,9 @@ export class ProductService {
     let params = new HttpParams();
     params = params.set('request', query);
     return this.http.get<ProductSearchResult[]>(this.url+ '/Search', {params});
+  }
+
+  getById(number: number) {
+    return this.http.get<ProductDetailDto>(this.url + '/' + number);
   }
 }

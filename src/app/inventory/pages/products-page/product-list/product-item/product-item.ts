@@ -1,4 +1,4 @@
-import {Component, input} from '@angular/core';
+import {Component, input, output} from '@angular/core';
 import {ListProduct} from '../../../../interfaces/listProduct';
 
 @Component({
@@ -8,5 +8,6 @@ import {ListProduct} from '../../../../interfaces/listProduct';
   styles: ``,
 })
 export default class ProductItem {
+  viewDetail = output<number>();
   product = input.required<ListProduct>();
 }

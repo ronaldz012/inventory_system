@@ -10,19 +10,21 @@ import {ProductService} from '../../services/product-service';
 import {ProductQuery} from '../../dtos/products/product-dto';
 import ProductFilters from './product-filters/product-filters';
 import {BrandService} from '../../services/brand-service';
+import ProductDetail from './product-detail/product-detail';
 
 
 
 @Component({
   selector: 'app-products-page',
   imports: [
-    ProductList, ProductForm, ProductFilters
+    ProductList, ProductFilters, ProductItem, ProductDetail
   ],
   templateUrl: './products-page.html',
   styles: ``,
 })
 export default class ProductsPage implements OnInit {
   categories = signal<Category[]>([]);
+  selectedProductId = signal<number | null>(null);
   brands = signal<Brand[]>([]);
   products = signal<ListProduct[]>([]);
   query = signal<ProductQuery>({
@@ -41,13 +43,6 @@ export default class ProductsPage implements OnInit {
     this.productService.getProducts(this.query()).subscribe(p => this.products.set(p.items))
   }
 
-
-  showForm = signal(false);
-  onProductSave()
-  {
-    this.productService.getProducts(this.query()).subscribe(p => this.products.set(p.items))
-    this.showForm.set(false)
-  }
 
   onFiltersChange(filters: Partial<ProductQuery>)
   {

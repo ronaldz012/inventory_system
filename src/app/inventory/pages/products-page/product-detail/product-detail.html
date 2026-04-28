@@ -1,0 +1,127 @@
+@if(loading()) {
+  <div class="flex items-center justify-center py-20 text-gray-400 text-sm">
+    Cargando...
+  </div>
+}
+
+@if(!loading() && product(); as p) {
+  <div class="flex flex-col gap-4">
+
+    <!-- Header -->
+    <div class="flex items-center gap-3">
+      <button
+        (click)="close()"
+        class="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+        <span class="material-icons text-base">arrow_back</span>
+        Volver
+      </button>
+      <div class="flex-1">
+        <span class="font-medium text-gray-900">{{ p.name }}</span>
+        <span class="ml-2 text-xs text-gray-400 font-mono">{{ p.internalCode }}</span>
+      </div>
+      <button class="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+        <span class="material-icons text-base">edit</span>
+        Editar
+      </button>
+      <button class="flex items-center gap-1 px-3 py-1.5 text-sm border border-red-200 text-red-500 rounded-lg hover:bg-red-50 transition-colors">
+        <span class="material-icons text-base">delete</span>
+        Eliminar
+      </button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex border-b border-gray-200">
+      @for(tab of tabs; track tab.key) {
+        <button
+          (click)="setTab(tab.key)"
+          class="px-4 py-2 text-sm transition-colors border-b-2 -mb-px"
+          [class.border-gray-900]="activeTab() === tab.key"
+          [class.text-gray-900]="activeTab() === tab.key"
+          [class.font-medium]="activeTab() === tab.key"
+          [class.border-transparent]="activeTab() !== tab.key"
+          [class.text-gray-400]="activeTab() !== tab.key">
+          {{ tab.label }}
+        </button>
+      }
+    </div>
+
+    <!-- Tab: Información -->
+    @if(activeTab() === 'info') {
+      <div class="grid grid-cols-2 gap-3">
+        @for(field of ([
+          {label: 'Categoría', value: p.categoryName},
+          {label: 'Marca', value: p.brandName},
+          {label: 'Género', value: p.gender},
+          {label: 'Precio base', value: 'Bs. ' + p.basePrice},
+          {label: 'Stock total', value: p.totalStockInBranches + ' u'}
+        ]); track field.label) {
+          <div class="bg-gray-50 rounded-lg px-3 py-2">
+            <p class="text-xs text-gray-400 mb-0.5">{{ field.label | uppercase }}</p>
+            <p class="text-sm font-medium text-gray-900">{{ field.value }}</p>
+          </div>
+        }
+      </div>
+      @if(p.description) {
+        <div class="bg-gray-50 rounded-lg px-3 py-2">
+          <p class="text-xs text-gray-400 mb-0.5">DESCRIPCIÓN</p>
+          <p class="text-sm text-gray-700">{{ p.description }}</p>
+        </div>
+      }
+    }
+
+    <!-- Tab: Variantes -->
+    @if(activeTab() === 'variants') {
+      <div class="flex justify-between items-center">
+        <span class="text-sm text-gray-500">{{ p.variants.length }} variantes</span>
+        <button class="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+          <span class="material-icons text-base">add</span>
+          Agregar
+        </button>
+      </div>
+      <div class="grid grid-cols-[1fr_60px_80px_80px_80px_auto] text-xs text-gray-400 px-3 py-2 bg-gray-50 rounded-lg">
+        <span>SKU</span>
+        <span>TALLA</span>
+        <span>COLOR</span>
+        <span>PRECIO</span>
+        <span>STOCK</span>
+        <span></span>
+      </div>
+      @for(v of p.variants; track v.id) {
+        <div class="grid grid-cols-[1fr_60px_80px_80px_80px_auto] items-center px-3 py-2.5 border border-gray-100 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+          <span class="font-mono text-xs text-gray-500">{{ v.sku }}</span>
+          <span>{{ v.size }}</span>
+          <span>{{ v.color }}</span>
+          <span>Bs. {{ v.price }}</span>
+          <span class="text-xs px-2 py-0.5 bg-green-50 text-green-700 rounded-full w-fit">{{ v.stockOfVariantInBranches }} u</span>
+          <div class="flex gap-1">
+            <button class="p-1 rounded-full hover:bg-gray-100 text-gray-400 transition-colors">
+              <span class="material-icons text-base">edit</span>
+            </button>
+            <button class="p-1 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
+              <span class="material-icons text-base">delete</span>
+            </button>
+          </div>
+        </div>
+      }
+    }
+
+    <!-- Tab: Stock -->
+    @if(activeTab() === 'stock') {
+      @for(v of p.variants; track v.id) {
+        <div class="border border-gray-100 rounded-lg overflow-hidden">
+          <div class="px-3 py-2 bg-gray-50 flex items-center justify-between">
+            <span class="font-mono text-xs text-gray-500">{{ v.sku }}</span>
+            <span class="text-xs text-gray-400">{{ v.size }} / {{ v.color }}</span>
+          </div>
+          @for(s of v.stock; track s.branchId) {
+            <div class="flex items-center justify-between px-3 py-2 border-t border-gray-100 text-sm">
+              <span class="text-gray-600">{{ s.branchName }}</span>
+              <span class="font-medium">{{ s.stock }} u</span>
+            </div>
+          }
+        </div>
+      }
+    }
+
+  </div>
+}
