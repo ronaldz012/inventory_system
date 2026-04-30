@@ -26,7 +26,7 @@ export class BranchSelector {
   @HostListener('document:click', ['$event.target'])
   onDocumentClick(target: EventTarget | null): void {
     if (!(target instanceof HTMLElement)) return;
-    if (!target.closest('app-branch-selector')) {
+    if (!target.closest('app-branch-selector-destination')) {
       this.isOpen.set(false)
     }
   }

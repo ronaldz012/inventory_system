@@ -1,0 +1,125 @@
+<!-- create-transfer.html -->
+<div class="min-h-screen bg-gray-50">
+
+  <!-- Header -->
+  <div class="bg-white border-b border-gray-100 sticky top-0 z-10">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+
+      <div class="flex items-center gap-3">
+        <button
+          (click)="cancel()"
+          class="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <span class="text-base leading-none">←</span>
+          Transferencias
+        </button>
+        <span class="text-gray-200">/</span>
+        <h1 class="text-base font-semibold text-gray-800">Nueva transferencia</h1>
+      </div>
+
+      <!-- Botón submit en desktop -->
+      <button
+        (click)="submit()"
+        [disabled]="!canSubmit()"
+        class="hidden sm:block px-5 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium
+               disabled:opacity-40 disabled:cursor-not-allowed
+               hover:bg-blue-700 transition-colors"
+      >
+        Crear transferencia
+      </button>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+    <div class="grid grid-cols-1 sm:grid-cols-[1fr_360px] gap-6 items-start">
+
+      <!-- Columna izquierda: scanner + lista -->
+      <div class="flex flex-col gap-4">
+
+        <!-- Scanner -->
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+          <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">
+            Agregar producto
+          </p>
+          <app-product-variant-search
+            placeholder="Escanear o ingresar SKU..."
+            (productFound)="onProductFound($event)"
+          />
+        </div>
+
+        <!-- Lista -->
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+          <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">
+            Items
+          </p>
+          <app-create-transfer-item-list
+            [items]="items()"
+            (itemsChange)="items.set($event)"
+          />
+        </div>
+
+      </div>
+
+      <!-- Columna derecha: configuración + acciones -->
+      <div class="flex flex-col gap-4">
+
+        <!-- Sucursal destino -->
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+          <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">
+            Destino
+          </p>
+          @if (loadingBranches()) {
+            <p class="text-sm text-gray-400">Cargando sucursales...</p>
+          } @else {
+            <app-branch-selector-destination
+              [branches]="branches()"
+              (branchSelected)="onBranchSelected($event)"
+            />
+          }
+        </div>
+
+        <!-- Notas -->
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+          <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">
+            Notas
+          </p>
+          <textarea
+            [value]="form().notes"
+            (input)="patchNotes($any($event.target).value)"
+            rows="3"
+            placeholder="Ej: urgente, para reposición..."
+            class="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300
+                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                   resize-none placeholder:text-gray-400"
+          ></textarea>
+        </div>
+
+        <!-- Resumen -->
+        @if (items().length > 0) {
+          <div class="bg-blue-50 rounded-xl border border-blue-100 p-4 flex justify-between text-sm">
+            <span class="text-blue-600">
+              {{ items().length }} {{ items().length === 1 ? 'producto' : 'productos' }}
+            </span>
+            <span class="font-medium text-blue-700">
+              {{ totalUnits() }} unidades
+            </span>
+          </div>
+        }
+
+        <!-- Botón submit móvil -->
+        <button
+          (click)="submit()"
+          [disabled]="!canSubmit()"
+          class="sm:hidden w-full py-3 rounded-lg bg-blue-600 text-white text-sm font-medium
+                 disabled:opacity-40 disabled:cursor-not-allowed
+                 hover:bg-blue-700 active:scale-95 transition-all"
+        >
+          Crear transferencia
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+</div>

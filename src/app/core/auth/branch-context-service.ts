@@ -1,5 +1,9 @@
-import {Injectable, signal} from '@angular/core';
+import {inject, Injectable, signal} from '@angular/core';
 import {Branch, Module} from './interfaces/Respones/LoginResponse';
+import {Observable} from 'rxjs';
+import {BranchDto} from '../dtos/branch-dto';
+import {HttpClient} from '@angular/common/http';
+import {environment} from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
@@ -12,6 +16,8 @@ export class BranchContextService {
   readonly active = this._active.asReadonly();
   private ACTIVE_BRANCH_ID_KEY = 'active_branch_id'
   private BRANCHES_KEY = 'branches'
+  private  http = inject(HttpClient)
+  private readonly URL = environment.BACKEND_URL+'/api/Branch';
 
   setAvailable(branches: Branch[]): void {
     this._available.set(branches);
@@ -64,5 +70,9 @@ export class BranchContextService {
 
   getActiveModules(): Module[] {
     return this._active()?.modules ?? [];
+  }
+
+  getBranches():Observable<BranchDto[]> {
+    return this.http.get<BranchDto[]>(this.URL);
   }
 }

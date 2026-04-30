@@ -17,7 +17,7 @@ import ProductDetail from './product-detail/product-detail';
 @Component({
   selector: 'app-products-page',
   imports: [
-    ProductList, ProductFilters, ProductItem, ProductDetail
+     ProductFilters, ProductItem, ProductDetail
   ],
   templateUrl: './products-page.html',
   styles: ``,

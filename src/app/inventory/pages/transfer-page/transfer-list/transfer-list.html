@@ -1,0 +1,200 @@
+<!-- transfer-list.html -->
+
+<!-- ── Estado vacío / loading ──────────────────────────────────────────────── -->
+@if (loading()) {
+  <div class="flex flex-col gap-3">
+    @for (_ of [1,2,3]; track $index) {
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 animate-pulse">
+        <div class="flex items-center gap-3">
+          <div class="w-16 h-5 bg-gray-100 rounded-full"></div>
+          <div class="flex-1 h-4 bg-gray-100 rounded"></div>
+          <div class="w-20 h-8 bg-gray-100 rounded-lg"></div>
+        </div>
+      </div>
+    }
+  </div>
+} @else if (transfers().length === 0) {
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-12
+              flex flex-col items-center gap-3">
+    <span class="text-3xl opacity-30">⇅</span>
+    <p class="text-sm text-gray-400">No hay transferencias registradas.</p>
+  </div>
+} @else {
+
+  <!-- ── Lista ─────────────────────────────────────────────────────────────── -->
+  <ul class="flex flex-col gap-2.5">
+    @for (t of transfers(); track t.id; let i = $index) {
+
+      <li
+        class="row-enter bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
+        [style.animation-delay]="i * 35 + 'ms'"
+      >
+        <!-- Fila principal ─────────────────────────────────────────────────── -->
+        <div class="flex items-center gap-3 px-4 py-3.5">
+
+          <!-- Dirección + contraparte -->
+          <div class="flex items-start flex-col min-w-0 flex-1">
+
+            <div class="flex items-center gap-2 mb-0.5">
+              <!-- Arrow + label dirección -->
+              <span
+                class="text-base font-semibold leading-none"
+                [class]="directionClasses(t.direction)"
+              >{{ directionArrow(t.direction) }}</span>
+              <span
+                class="text-xs font-medium"
+                [class]="directionClasses(t.direction)"
+              >{{ directionLabel(t.direction) }}</span>
+
+              <!-- Badge status -->
+              <span
+                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium leading-none"
+                [class]="statusClasses(t.status)"
+              >{{ statusLabel(t.status) }}</span>
+            </div>
+
+            <!-- Sucursal contraparte -->
+            <p class="text-sm font-semibold text-gray-800 truncate leading-tight">
+              {{ t.counterpartBranchName }}
+            </p>
+
+            <!-- Meta info -->
+            <p class="text-xs text-gray-400 mt-0.5">
+              {{ t.totalItem }} {{ t.totalItem === 1 ? 'ítem' : 'ítems' }}
+              · {{ t.totalQuantity }} uds
+              · <span class="text-gray-300">{{ t.createdAt | date: 'dd/MM/yy' }}</span>
+            </p>
+          </div>
+
+          <!-- Acciones (desktop: visible; mobile: solo ícono más) -->
+          <div class="flex items-center gap-2 shrink-0">
+
+            <!-- Ver detalles: siempre visible -->
+            <button
+              (click)="viewDetail.emit(t.id)"
+              title="Ver detalles"
+              class="w-8 h-8 rounded-lg border border-gray-200 text-gray-400
+                     flex items-center justify-center text-sm
+                     hover:border-gray-300 hover:text-gray-600 transition-colors"
+            >↗</button>
+
+            <!-- Resolver (solo Entrada Pendiente) -->
+            @if (canResolve(t)) {
+              <button
+                (click)="openResolveModal(t.id)"
+                class="hidden sm:flex items-center gap-1.5 px-3 h-8 rounded-lg
+                       bg-blue-600 text-white text-xs font-medium
+                       hover:bg-blue-700 transition-colors"
+              >
+                Resolver
+              </button>
+              <!-- Mobile: solo ícono -->
+              <button
+                (click)="openResolveModal(t.id)"
+                title="Resolver"
+                class="sm:hidden w-8 h-8 rounded-lg bg-blue-600 text-white text-sm
+                       flex items-center justify-center
+                       hover:bg-blue-700 transition-colors"
+              >✓</button>
+            }
+
+            <!-- Cancelar (solo Salida Pendiente) -->
+            @if (canCancel(t)) {
+              <button
+                (click)="requestCancel(t.id)"
+                class="hidden sm:flex items-center gap-1.5 px-3 h-8 rounded-lg
+                       border border-red-200 text-red-400 text-xs font-medium
+                       hover:bg-red-50 hover:text-red-500 transition-colors"
+              >
+                Cancelar
+              </button>
+              <!-- Mobile: solo ícono -->
+              <button
+                (click)="requestCancel(t.id)"
+                title="Cancelar"
+                class="sm:hidden w-8 h-8 rounded-lg border border-red-200 text-red-400 text-sm
+                       flex items-center justify-center
+                       hover:bg-red-50 transition-colors"
+              >✕</button>
+            }
+
+          </div>
+        </div>
+
+        <!-- Confirmación de cancelación inline ─────────────────────────────── -->
+        @if (cancelConfirmId() === t.id) {
+          <div class="confirm-enter border-t border-red-100 bg-red-50 px-4 py-3
+                      flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p class="text-sm text-red-600 font-medium">
+              ¿Cancelar esta transferencia?
+              <span class="font-normal text-red-400">Esta acción no se puede deshacer.</span>
+            </p>
+            <div class="flex items-center gap-2 shrink-0">
+              <button
+                (click)="dismissCancel()"
+                class="px-4 py-1.5 rounded-lg border border-red-200 text-red-400 text-xs font-medium
+                       hover:bg-red-100 transition-colors"
+              >No, volver</button>
+              <button
+                (click)="confirmCancel(t.id)"
+                class="px-4 py-1.5 rounded-lg bg-red-500 text-white text-xs font-medium
+                       hover:bg-red-600 transition-colors"
+              >Sí, cancelar</button>
+            </div>
+          </div>
+        }
+
+      </li>
+    }
+  </ul>
+
+}
+
+<!-- ── Modal Resolver ──────────────────────────────────────────────────────── -->
+@if (resolveModalId() !== null) {
+  <!-- Overlay -->
+  <div
+    class="fixed inset-0 bg-black/30 z-40 flex items-end sm:items-center justify-center
+           backdrop-blur-[2px]"
+    (click)="closeResolveModal()"
+  >
+    <!-- Sheet / Dialog — detiene propagación para no cerrarse al clickear dentro -->
+    <div
+      class="confirm-enter w-full sm:w-auto sm:min-w-80 bg-white
+             rounded-t-2xl sm:rounded-2xl shadow-xl z-50
+             px-5 pt-5 pb-7 sm:pb-5"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Handle (mobile) -->
+      <div class="sm:hidden w-10 h-1 rounded-full bg-gray-200 mx-auto mb-5"></div>
+
+      <p class="text-sm font-semibold text-gray-800 mb-1">Resolver transferencia</p>
+      <p class="text-xs text-gray-400 mb-5">
+        Seleccioná qué acción tomar sobre esta transferencia entrante.
+      </p>
+
+      <div class="flex flex-col sm:flex-row gap-3">
+        <button
+          (click)="confirmResolve('reject')"
+          class="flex-1 py-2.5 rounded-xl border-2 border-red-200 text-red-500
+                 text-sm font-medium hover:bg-red-50 transition-colors"
+        >
+          Rechazar
+        </button>
+        <button
+          (click)="confirmResolve('complete')"
+          class="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white
+                 text-sm font-medium hover:bg-emerald-700 transition-colors"
+        >
+          Completar
+        </button>
+      </div>
+
+      <button
+        (click)="closeResolveModal()"
+        class="w-full mt-3 py-2 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+      >Cancelar</button>
+
+    </div>
+  </div>
+}

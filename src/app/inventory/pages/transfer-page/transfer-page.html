@@ -1,0 +1,45 @@
+<!-- transfers-page.html -->
+@switch (view()) {
+
+  @case ('list') {
+    <div class="min-h-screen bg-gray-50">
+
+      <!-- Header -->
+      <div class="bg-white border-b border-gray-100 sticky top-0 z-10">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+          <h1 class="text-base font-semibold text-gray-800">Transferencias</h1>
+          <button
+            (click)="showCreate()"
+            class="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium
+                   hover:bg-blue-700 transition-colors"
+          >
+            <span class="hidden sm:inline">Nueva transferencia</span>
+            <span class="sm:hidden">+ Nueva</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Lista -->
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+        <app-transfer-list
+          [transfers]="transfers()"
+          [loading]="loadingTransfers()"
+          (viewDetail)="onViewDetail($event)"
+          (resolve)="onResolve($event)"
+          (cancel)="onCancel($event)"
+        />
+      </div>
+
+    </div>
+  }
+
+  @case ('create') {
+    <app-create-transfer
+      [branches]="branches()"
+      [loadingBranches]="loadingBranches()"
+      (transferCreated)="onTransferCreated($event)"
+      (cancelled)="showList()"
+    />
+  }
+
+}

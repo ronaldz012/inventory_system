@@ -9,6 +9,7 @@ import {ListProduct} from '../interfaces/listProduct';
 import {ProductSearchResult} from '../components/product-search/product-search-result';
 import ProductDetail from '../pages/products-page/product-detail/product-detail';
 import {ProductDetailDto} from '../dtos/products/product-detail-dto';
+import {ProductVariantBySkuDto} from '../dtos/products/product-variant-by-sku-dto';
 
 @Injectable({
   providedIn: 'root',
@@ -39,5 +40,10 @@ export class ProductService {
 
   getById(number: number) {
     return this.http.get<ProductDetailDto>(this.url + '/' + number);
+  }
+  getVariantBySku(code : string) : Observable<ProductVariantBySkuDto>{
+    let params = new HttpParams();
+    params = params.set('request', code);
+    return this.http.get<ProductVariantBySkuDto>(this.url + '/productVariant',{params});
   }
 }

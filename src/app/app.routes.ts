@@ -12,7 +12,7 @@ export const routes: Routes = [
         children: [
           { path: 'products', loadComponent: () => import('./inventory/pages/products-page/products-page') },
           { path: 'receptions', loadComponent: () => import('./inventory/pages/receptions-page/receptions-page') },
-          { path: 'transfers', loadComponent: () => import('./inventory/pages/transfers-page/transfers-page') },
+          { path: 'transfers', loadComponent: () => import('./inventory/pages/transfer-page/transfer-page') },
         ]
       },
       {
