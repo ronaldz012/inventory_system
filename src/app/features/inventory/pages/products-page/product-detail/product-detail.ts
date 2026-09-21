@@ -14,6 +14,9 @@ import { UpdateProductModal } from './update-product-modal';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 import { UpdateProductDto } from '../../../dtos/products/update-product-dto';
 import { UpdateProductVariantDto } from '../../../dtos/products/update-product-variant-dto';
+import { BulkUpdateVariantPriceItem } from '../../../dtos/products/bulk-update-variant-price-dto';
+import { BulkPriceModal } from './product-detail-variant/bulk-price-modal';
+import { ProductEditPanel } from './product-edit-panel/product-edit-panel';
 import { CreateProductVariantDto } from '../../../dtos/products/create-product-variant-dto';
 import { ToastService } from '@core/services/toast-service';
 import { PermissionService } from '@features/auth/services/permmision-service';
@@ -27,6 +30,8 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
     UpdateVariantModal,
     AdjustStockModal,
     AddVariantModal,
+    BulkPriceModal,
+    ProductEditPanel,
     ConfirmActionModal,
     SkeletonList,
   ],
@@ -74,7 +79,7 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
                       p.isActive ? 'Desactivar' : 'Activar'
                     }}</span>
                   </button>
-                  <button (click)="openUpdateProduct()" class="btn-primary" title="Editar">
+                  <button (click)="openFullEdit()" class="btn-primary" title="Editar">
                     <span class="material-icons text-base leading-none">edit</span>
                     <span class="hidden sm:inline">Editar</span>
                   </button>
@@ -128,10 +133,16 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
                 {{ p.variants.length === 1 ? 'talla/color' : 'tallas/colores' }}
               </p>
               @if (perm.canUpdate('inventory', 'products')) {
-                <button (click)="openAddVariant()" class="btn-secondary btn-sm">
-                  <span class="material-icons text-base leading-none">add</span>
-                  Agregar
-                </button>
+                <div class="flex items-center gap-2">
+                  <button (click)="openFullEdit()" class="btn-secondary btn-sm">
+                    <span class="material-icons text-base leading-none">sell</span>
+                    Precios
+                  </button>
+                  <button (click)="openAddVariant()" class="btn-secondary btn-sm">
+                    <span class="material-icons text-base leading-none">add</span>
+                    Agregar
+                  </button>
+                </div>
               }
             </div>
 
@@ -259,6 +270,26 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
       />
     }
 
+    <!-- Edición masiva de precios -->
+    @if (showBulkPrices() && product()) {
+      <app-bulk-price-modal
+        [variants]="product()!.variants"
+        [submitting]="submitting()"
+        (save)="onBulkPricesSave($event)"
+        (close)="closeModal()"
+      />
+    }
+
+    <!-- Edición completa (datos + precios) -->
+    @if (showFullEdit() && product()) {
+      <app-product-edit-panel
+        [product]="product()!"
+        [submitting]="submitting()"
+        (save)="onFullSave($event)"
+        (close)="closeModal()"
+      />
+    }
+
     <!-- Eliminar variante -->
     @if (deletingVariant()) {
       <app-confirm-action-modal
@@ -381,6 +412,10 @@ export default class ProductDetail implements OnInit {
   adjustingStockVariant = signal<ProductVariantDto | null>(null);
   /** Modal de agregar talla/color abierto o no */
   showAddVariant = signal(false);
+  /** Modal de edición masiva de precios abierto o no */
+  showBulkPrices = signal(false);
+  /** Panel de edición completa (datos + precios) abierto o no */
+  showFullEdit = signal(false);
   activeBranchStock = computed(() => {
     const v = this.adjustingStockVariant();
     if (!v) return 0;
@@ -406,6 +441,8 @@ export default class ProductDetail implements OnInit {
       this.showDeleteProduct.set(modal === 'delete-product');
       this.showToggleStatus.set(modal === 'toggle-status');
       this.showAddVariant.set(modal === 'add-variant');
+      this.showBulkPrices.set(modal === 'bulk-prices');
+      this.showFullEdit.set(modal === 'edit-full');
 
       const editId = getModalId(modal, 'edit');
       const deleteId = getModalId(modal, 'delete');
@@ -478,6 +515,14 @@ export default class ProductDetail implements OnInit {
     openModal(this.router, this.route, 'add-variant');
   }
 
+  openBulkPrices(): void {
+    openModal(this.router, this.route, 'bulk-prices');
+  }
+
+  openFullEdit(): void {
+    openModal(this.router, this.route, 'edit-full');
+  }
+
   onEditVariant(v: ProductVariantDto): void {
     openModal(this.router, this.route, `edit:${v.id}`);
   }
@@ -528,6 +573,23 @@ export default class ProductDetail implements OnInit {
   }
 
   // ── API calls ────────────────────────────────────────────────────────────
+  onFullSave(dto: UpdateProductDto): void {
+    this.submitting.set(true);
+    this.productService.update(this.productId, dto).subscribe({
+      next: () => {
+        this.submitting.set(false);
+        this.closeModal();
+        this.toastService.success('Producto actualizado');
+        this.loadProduct(this.productId);
+      },
+      error: (err: unknown) => {
+        this.submitting.set(false);
+        const e = err as { error?: { detail?: string; title?: string }; message?: string };
+        this.toastService.error(e?.error?.detail || e?.error?.title || e?.message || 'Error al actualizar el producto.');
+      },
+    });
+  }
+
   onUpdateProduct(dto: UpdateProductDto): void {
     this.submitting.set(true);
     this.productService.update(this.productId, dto).subscribe({
@@ -575,6 +637,25 @@ export default class ProductDetail implements OnInit {
         this.submitting.set(false);
         const e = err as { error?: { detail?: string; title?: string }; message?: string };
         this.toastService.error(e?.error?.detail || e?.error?.title || e?.message || 'Error al cambiar el estado del producto.');
+      },
+    });
+  }
+
+  onBulkPricesSave(items: BulkUpdateVariantPriceItem[]): void {
+    this.submitting.set(true);
+    this.productService.updateVariantPrices(this.productId, items).subscribe({
+      next: () => {
+        this.submitting.set(false);
+        this.closeModal();
+        this.toastService.success(
+          items.length === 1 ? 'Precio actualizado' : `Precios actualizados (${items.length})`,
+        );
+        this.loadProduct(this.productId);
+      },
+      error: (err: unknown) => {
+        this.submitting.set(false);
+        const e = err as { error?: { detail?: string; title?: string }; message?: string };
+        this.toastService.error(e?.error?.detail || e?.error?.title || e?.message || 'Error al actualizar los precios.');
       },
     });
   }

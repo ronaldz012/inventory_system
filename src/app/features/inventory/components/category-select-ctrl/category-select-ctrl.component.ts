@@ -26,6 +26,7 @@ import { CreateCategory } from '../create-category/create-category.component';
       >
         <input
           type="text"
+          [attr.id]="inputId() || null"
           [value]="query()"
           (focus)="isOpen.set(true)"
           (input)="onInput($event)"
@@ -107,6 +108,7 @@ export class CategorySelectCtrl {
   fieldId = input.required<FieldState<GUID>>();
   fieldName = input.required<FieldState<string>>();
   placeholder = input<string>('Categoría...');
+  inputId = input<string>('');
 
   categoryChange = output<Category>();
 

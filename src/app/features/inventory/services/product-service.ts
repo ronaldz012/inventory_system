@@ -11,6 +11,7 @@ import { ProductVariantBySkuDto } from '../dtos/products/product-variant-by-sku-
 import { UpdateProductDto } from '../dtos/products/update-product-dto';
 import { UpdateProductVariantDto } from '../dtos/products/update-product-variant-dto';
 import { UpdateProductVariantStockDto } from '../dtos/products/update-product-variant-stock-dto';
+import { BulkUpdateVariantPriceItem } from '../dtos/products/bulk-update-variant-price-dto';
 import { environment } from 'environments/environment';
 import {
   CreateProductVariantsRequest,
@@ -119,6 +120,14 @@ export class ProductService {
 
   updateVariant(productId: GUID, variantId: GUID, dto: UpdateProductVariantDto) {
     return this.http.put<void>(this.productVariant_url + '/' + variantId, dto);
+  }
+
+  /**
+   * Actualización masiva de precios. Endpoint bulk asumido (pendiente backend):
+   * PUT /api/Product/{productId}/variants/prices  { items: [{ variantId, price }] }
+   */
+  updateVariantPrices(productId: GUID, items: BulkUpdateVariantPriceItem[]) {
+    return this.http.put<void>(`${this.product_url}/${productId}/variants/prices`, { items });
   }
 
   adjustVariantStock(productId: GUID, variantId: GUID, dto: UpdateProductVariantStockDto) {
