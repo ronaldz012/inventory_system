@@ -26,6 +26,17 @@ interface CompactLayout {
   labelsPerSheet: number;
 }
 
+/** Dimensiones de etiqueta compacta (V1 oficial 23x38, V2 experimental 23x38.8). */
+interface CompactDims {
+  topMargin: number;
+  bottomMargin: number;
+  minSideMargin: number;
+  labelWidth: number;
+  labelHeight: number;
+  gap: number;
+  padding: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -41,19 +52,21 @@ export class LabelPrintService {
   };
 
   /**
-   * Etiqueta compacta oficial 23x38mm, formato vertical:
-   * QR (arriba, 19mm) -> SKU legible -> nombre (1-2 líneas) -> talla -> color
+   * Etiqueta compacta oficial 23x38.8mm, formato vertical:
+   * QR (arriba, 19mm) -> SKU legible -> nombre (1-2 líneas, 7→5) ->
+   * talla protagonista (13→9 bold) -> color (9→6.5 bold).
+   * Jerarquía por distancia de lectura: talla > color > nombre (convención retail).
    * Pensada para espacios reducidos donde el barcode ya no es viable (ver
    * cálculo de módulos CODE128 vs QR para SKUs tipo NIK12-011).
    * La grilla (columnas/filas) se resuelve dinámicamente según el formato
    * de hoja (ver resolveCompactLayout).
    */
-  private readonly COMPACT_LABEL = {
+  private readonly COMPACT_LABEL: CompactDims = {
     topMargin: 20,
     bottomMargin: 5,
     minSideMargin: 5,
     labelWidth: 23,
-    labelHeight: 38,
+    labelHeight: 38.8,
     gap: 0,
     padding: 1,
   };
@@ -64,9 +77,9 @@ export class LabelPrintService {
    * Etiquetas unidas (gap 0) con borde como guía de corte.
    * A4 → 8x7 = 56 · A5 → 6x4 = 24 · A6 → 4x3 = 12.
    */
-  private resolveCompactLayout(format: SheetFormat): CompactLayout {
+  private resolveCompactLayout(format: SheetFormat, dims: CompactDims = this.COMPACT_LABEL): CompactLayout {
     const { w: pageW, h: pageH } = SHEET_MM[format];
-    const { labelWidth: lw, labelHeight: lh, gap, topMargin, bottomMargin, minSideMargin } = this.COMPACT_LABEL;
+    const { labelWidth: lw, labelHeight: lh, gap, topMargin, bottomMargin, minSideMargin } = dims;
 
     const columns = Math.max(1, Math.floor((pageW - minSideMargin * 2 + gap) / (lw + gap)));
     const gridW = columns * lw + (columns - 1) * gap;
@@ -305,14 +318,15 @@ export class LabelPrintService {
     await this.drawCompactQr(doc, label.sku, x, y, w, pad);
     this.drawCompactSku(doc, label.sku, x, y, w, pad);
     this.drawCompactName(doc, label.productName, x, y, w, pad);
-    this.drawCompactTallaColor(doc, label, x, y, w, pad);
+    this.drawCompactSizeColor(doc, label, x, y, w, pad);
   }
 
   private calculateCompactPosition(
     globalIndex: number,
     layout: CompactLayout,
+    dims: CompactDims = this.COMPACT_LABEL,
   ): { x: number; y: number } {
-    const { labelWidth: lw, labelHeight: lh, gap } = this.COMPACT_LABEL;
+    const { labelWidth: lw, labelHeight: lh, gap } = dims;
     const indexOnSheet = globalIndex % layout.labelsPerSheet;
     const column = indexOnSheet % layout.columns;
     const row = Math.floor(indexOnSheet / layout.columns);
@@ -409,19 +423,17 @@ export class LabelPrintService {
     }
   }
 
-  private drawCompactTallaColor(doc: jsPDF, label: LabelData, x: number, y: number, w: number, pad: number): void {
+  private drawCompactSizeColor(doc: jsPDF, label: LabelData, x: number, y: number, w: number, pad: number): void {
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
-    const talla = `${label.size}`;
-    const tallaFit = this.fitSingleLine(doc, talla, w - pad * 2, 9, 6.5);
-    doc.setFontSize(tallaFit.fontSize);
-    doc.text(tallaFit.text, x + w / 2, y + 31.8, { align: 'center' });
+    const size = `${label.size}`;
+    const sizeFit = this.fitSingleLine(doc, size, w - pad * 2, 13, 9);
+    doc.setFontSize(sizeFit.fontSize);
+    doc.text(sizeFit.text, x + w / 2, y + 32.5, { align: 'center' });
 
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(51, 51, 51);
-    const colorFit = this.fitSingleLine(doc, label.color, w - pad * 2, 7, 5.5);
+    const colorFit = this.fitSingleLine(doc, label.color, w - pad * 2, 9, 6.5);
     doc.setFontSize(colorFit.fontSize);
-    doc.text(colorFit.text, x + w / 2, y + 35.5, { align: 'center' });
+    doc.text(colorFit.text, x + w / 2, y + 36.8, { align: 'center' });
   }
 
   /**
