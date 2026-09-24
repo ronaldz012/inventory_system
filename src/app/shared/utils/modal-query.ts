@@ -1,6 +1,15 @@
 import { ActivatedRoute, Router } from '@angular/router';
 
+
 export function openModal(router: Router, route: ActivatedRoute, modal: string): void {
+  router.navigate([], {
+    relativeTo: route,
+    queryParams: { modal },
+    queryParamsHandling: 'merge',
+  });
+}
+
+export function swapModal(router: Router, route: ActivatedRoute, modal: string): void {
   router.navigate([], {
     relativeTo: route,
     queryParams: { modal },
