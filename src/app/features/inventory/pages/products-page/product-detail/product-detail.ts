@@ -21,6 +21,7 @@ import { CreateProductVariantDto } from '../../../dtos/products/create-product-v
 import { ToastService } from '@core/services/toast-service';
 import { PermissionService } from '@features/auth/services/permmision-service';
 import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
+import { matchesVariant, sortBranchIds, tokenize } from './variant-filter';
 
 @Component({
   selector: 'app-product-detail',
@@ -127,7 +128,7 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
 
           <!-- ── Variantes ────────────────────────────────────────────────────── -->
           <div class="bg-bg-surface rounded-xl border border-border-strong shadow-sm p-5">
-            <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center justify-between mb-3">
               <p class="section-title mb-0">
                 Tallas/Colores · {{ p.variants.length }}
                 {{ p.variants.length === 1 ? 'talla/color' : 'tallas/colores' }}
@@ -146,6 +147,40 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
               }
             </div>
 
+            <div class="flex items-center gap-2 mb-3">
+              <div class="relative flex-1">
+                <span class="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-base text-text-soft">search</span>
+                <input
+                  [value]="variantQuery()"
+                  (input)="variantQuery.set($any($event.target).value)"
+                  placeholder="Buscar talla, color o SKU… (ej. azul 44)"
+                  aria-label="Buscar variantes por talla, color o SKU"
+                  class="w-full pl-9 pr-8 py-2 text-sm text-text-main bg-bg-surface border border-border rounded-lg placeholder:text-text-soft focus:outline-none focus:border-accent-ui focus:ring-1 focus:ring-accent-ui"
+                />
+                @if (variantQuery()) {
+                  <button
+                    type="button"
+                    (click)="variantQuery.set('')"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 text-text-soft hover:text-text-main"
+                    aria-label="Limpiar búsqueda"
+                  >
+                    <span class="material-icons text-base">close</span>
+                  </button>
+                }
+              </div>
+              @if (variantQuery().trim()) {
+                <span class="text-xs text-text-soft whitespace-nowrap">{{ filteredVariants().length }} de {{ p.variants.length }}</span>
+              }
+            </div>
+
+            @if (variantQuery().trim() && filteredVariants().length === 0) {
+              <div class="flex flex-col items-center gap-2 py-10 text-text-soft">
+                <span class="material-icons text-3xl">search_off</span>
+                <p class="text-sm font-medium text-text-main">Sin coincidencias</p>
+                <button type="button" (click)="variantQuery.set('')" class="text-xs font-bold text-accent-ui hover:underline">Limpiar búsqueda</button>
+              </div>
+            }
+
             <!-- ── Desktop ─────────────────────────────────────────────────────── -->
             <div class="hidden sm:block">
               <div
@@ -154,13 +189,8 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
                 [style.grid-template-columns]="gridColumnsStyle()"
               >
                 <span>SKU</span>
-                <span>TALLA</span>
                 <span>COLOR</span>
-                <span>PRECIO</span>
-                @if (perm.canUpdate('inventory', 'products')) {
-                  <span>COSTO</span>
-                  <span>MARGEN</span>
-                }
+                <span>TALLA</span>
                 @for (branchId of branchKeys(); track branchId) {
                   <span
                     class="truncate text-center"
@@ -174,11 +204,16 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
                   </span>
                 }
                 <span>TOTAL VISIBLE</span>
+                <span class="text-right">PRECIO</span>
+                @if (perm.canUpdate('inventory', 'products')) {
+                  <span class="text-right">COSTO</span>
+                  <span class="text-right">MARGEN</span>
+                }
                 <span></span>
               </div>
 
               <ul class="flex flex-col divide-y divide-border-ui">
-                @for (v of p.variants; track v.id) {
+                @for (v of filteredVariants(); track v.id) {
                   <app-product-detail-variant
                     [variant]="v"
                     [submitting]="submitting()"
@@ -186,6 +221,7 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
                     [branchKeys]="branchKeys()"
                     [activeBranchId]="activeBranchId()"
                     [gridColumnsStyle]="gridColumnsStyle()"
+                    [highlightTokens]="searchTokens()"
                     (editVariant)="onEditVariant($event)"
                     (deleteVariant)="onDeleteVariant($event)"
                     (adjustStock)="onAdjustStock($event)"
@@ -197,7 +233,7 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
 
             <!-- ── Mobile ──────────────────────────────────────────────────────── -->
             <ul class="flex flex-col divide-y divide-border-ui sm:hidden">
-              @for (v of p.variants; track v.id) {
+              @for (v of filteredVariants(); track v.id) {
                 <app-product-detail-variant
                   [variant]="v"
                   [submitting]="submitting()"
@@ -205,6 +241,7 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
                   [branchKeys]="branchKeys()"
                   [activeBranchId]="activeBranchId()"
                   [gridColumnsStyle]="gridColumnsStyle()"
+                  [highlightTokens]="searchTokens()"
                   (editVariant)="onEditVariant($event)"
                   (deleteVariant)="onDeleteVariant($event)"
                   (adjustStock)="onAdjustStock($event)"
@@ -352,7 +389,7 @@ export default class ProductDetail implements OnInit {
   private toastService = inject(ToastService);
   readonly perm = inject(PermissionService);
 
-  // ── Sucursales (derivadas del producto) ─────────────────────────────────
+  // ── Sucursales (derivadas del producto, siempre en alfabético) ──────────
   branchKeys = computed<string[]>(() => {
     const p = this.product();
     if (!p) return [];
@@ -366,7 +403,7 @@ export default class ProductDetail implements OnInit {
         }
       }
     }
-    return keys;
+    return sortBranchIds(keys, this.branchMap());
   });
 
   branchMap = computed<Record<string, string>>(() => {
@@ -382,13 +419,15 @@ export default class ProductDetail implements OnInit {
     return map;
   });
 
+  // Orden: Sku, Color, Talla, Sucursales, Total, Precio, [Costo, Margen], Acciones
   gridColumnsStyle = computed(() => {
     const showCost = this.perm.canUpdate('inventory', 'products');
-    const branchCols = this.branchKeys()
-      .map(() => '96px')
-      .join(' ');
-    const costCols = showCost ? '64px 64px ' : '';
-    return `7.5rem 56px 64px 72px ${costCols}${branchCols} 72px 128px`;
+    const cols = ['7.5rem', '84px', '56px'];
+    cols.push(...this.branchKeys().map(() => '96px'));
+    cols.push('72px', '72px');
+    if (showCost) cols.push('64px', '64px');
+    cols.push('128px');
+    return cols.join(' ');
   });
 
   /** Sucursal activa para resaltar su inventario */
@@ -398,6 +437,17 @@ export default class ProductDetail implements OnInit {
   product = signal<ProductDetailDto | null>(null);
   loading = signal(true);
   submitting = signal(false);
+
+  // ── Búsqueda de variantes (talla/color/SKU, multi-token sin orden) ───────
+  variantQuery = signal('');
+  searchTokens = computed(() => tokenize(this.variantQuery()));
+  filteredVariants = computed<ProductVariantDto[]>(() => {
+    const p = this.product();
+    if (!p) return [];
+    const q = this.variantQuery();
+    if (!q.trim()) return p.variants;
+    return p.variants.filter((v) => matchesVariant(q, v));
+  });
 
   // ── Modal visibility ────────────────────────────────────────────────────
   showUpdateProduct = signal(false);
