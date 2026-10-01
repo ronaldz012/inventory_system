@@ -119,19 +119,19 @@ const MIN_PRICE = 0.01;
               class="hidden md:grid grid-cols-[28px_8rem_1fr_6rem_8rem] bg-bg-muted border-b border-border"
             >
               <div class="px-2 py-2"></div>
-              <div class="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-text-soft">
+              <div class="px-3 py-2 table-header">
                 SKU
               </div>
-              <div class="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-text-soft">
+              <div class="px-3 py-2 table-header">
                 Talla / Color
               </div>
               <div
-                class="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-text-soft text-right"
+                class="px-3 py-2 table-header text-right"
               >
                 Actual
               </div>
               <div
-                class="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-text-soft text-right"
+                class="px-3 py-2 table-header text-right"
               >
                 Nuevo
               </div>

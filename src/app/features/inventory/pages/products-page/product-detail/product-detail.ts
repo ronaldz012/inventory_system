@@ -184,18 +184,18 @@ import { matchesVariant, sortBranchIds, tokenize } from './variant-filter';
             <!-- ── Desktop ─────────────────────────────────────────────────────── -->
             <div class="hidden sm:block">
               <div
-                class="grid gap-2 text-[10px] text-text-soft tracking-wide
-                        px-3 py-2 bg-bg-muted rounded-lg mb-1"
+                class="grid gap-2 px-3 py-2 bg-bg-muted rounded-lg mb-1"
                 [style.grid-template-columns]="gridColumnsStyle()"
               >
-                <span>SKU</span>
-                <span>COLOR</span>
-                <span>TALLA</span>
+                <span class="table-header">SKU</span>
+                <span class="table-header">COLOR</span>
+                <span class="table-header">TALLA</span>
                 @for (branchId of branchKeys(); track branchId) {
                   <span
-                    class="truncate text-center"
+                    class="text-[11px] font-semibold normal-case leading-tight line-clamp-2 text-center text-text-muted"
                     [class.text-accent-ui]="branchId === activeBranchId()"
                     [class.font-bold]="branchId === activeBranchId()"
+                    [title]="branchMap()[branchId]"
                   >
                     {{ branchMap()[branchId] }}
                     @if (branchId === activeBranchId()) {
@@ -203,11 +203,11 @@ import { matchesVariant, sortBranchIds, tokenize } from './variant-filter';
                     }
                   </span>
                 }
-                <span>TOTAL VISIBLE</span>
-                <span class="text-right">PRECIO</span>
+                <span class="table-header">TOTAL VISIBLE</span>
+                <span class="table-header text-right">PRECIO</span>
                 @if (perm.canUpdate('inventory', 'products')) {
-                  <span class="text-right">COSTO</span>
-                  <span class="text-right">MARGEN</span>
+                  <span class="table-header text-right">COSTO</span>
+                  <span class="table-header text-right">MARGEN</span>
                 }
                 <span></span>
               </div>
@@ -423,7 +423,7 @@ export default class ProductDetail implements OnInit {
   gridColumnsStyle = computed(() => {
     const showCost = this.perm.canUpdate('inventory', 'products');
     const cols = ['7.5rem', '84px', '56px'];
-    cols.push(...this.branchKeys().map(() => '96px'));
+    cols.push(...this.branchKeys().map(() => '104px'));
     cols.push('72px', '72px');
     if (showCost) cols.push('64px', '64px');
     cols.push('128px');

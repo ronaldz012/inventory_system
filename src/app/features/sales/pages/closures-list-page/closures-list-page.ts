@@ -43,7 +43,7 @@ import { BaseQueryDto } from '@features/inventory/dtos/base-query-dto';
       } @else {
         <div class="bg-bg-surface rounded-xl border border-border shadow-xs overflow-hidden">
           <div
-            class="hidden lg:grid lg:grid-cols-8 px-4 py-3 bg-bg-muted border-b border-border text-[10px] font-bold uppercase tracking-wider text-text-soft"
+            class="hidden lg:grid lg:grid-cols-8 px-4 py-3 bg-bg-muted border-b border-border table-header"
           >
             <span class="col-span-2">Apertura</span>
             <span class="text-right">Ventas</span>

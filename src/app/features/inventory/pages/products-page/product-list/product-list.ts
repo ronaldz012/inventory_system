@@ -91,7 +91,7 @@ import { PermissionService } from '@features/auth/services/permmision-service';
         >
           <!-- Header columnas — solo desktop -->
           <div
-            class="hidden px-4 py-3 border-b border-border bg-bg-muted lg:grid grid-cols-[9rem_1fr_12rem_8rem_6rem_7rem_6.5rem] text-xs font-semibold uppercase tracking-wider text-text-soft"
+            class="hidden px-4 py-3 border-b border-border bg-bg-muted lg:grid grid-cols-[9rem_1fr_12rem_8rem_6rem_7rem_6.5rem] table-header"
           >
             <span>Código</span>
             <span>Nombre</span>

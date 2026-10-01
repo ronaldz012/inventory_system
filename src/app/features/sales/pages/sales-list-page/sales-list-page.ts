@@ -68,7 +68,7 @@ import { SaleType, isReturnType } from '@features/sales/dtos/sale-detail-dto';
         </div>
       } @else {
         <div class="bg-bg-surface rounded-xl border border-border shadow-xs overflow-hidden">
-          <div class="hidden lg:grid lg:grid-cols-[10rem_1fr_6rem_6rem_7rem_8rem_7rem] px-4 py-3 bg-bg-muted border-b border-border text-[10px] font-bold uppercase tracking-wider text-text-soft">
+          <div class="hidden lg:grid lg:grid-cols-[10rem_1fr_6rem_6rem_7rem_8rem_7rem] px-4 py-3 bg-bg-muted border-b border-border table-header">
             <span>Fecha</span>
             <span>Producto</span>
             <span class="text-center">Tipo</span>

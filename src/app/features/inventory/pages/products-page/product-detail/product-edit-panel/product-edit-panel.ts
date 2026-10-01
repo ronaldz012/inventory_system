@@ -210,17 +210,17 @@ const toCents = (v: number): number => Math.round(v * 100);
               <div
                 class="hidden md:grid grid-cols-[8rem_1fr_1fr_8rem] bg-bg-muted border-b border-border"
               >
-                <div class="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-text-soft">
+                <div class="px-3 py-2 table-header">
                   SKU
                 </div>
-                <div class="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-text-soft">
+                <div class="px-3 py-2 table-header">
                   Talla
                 </div>
-                <div class="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-text-soft">
+                <div class="px-3 py-2 table-header">
                   Color
                 </div>
                 <div
-                  class="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-text-soft text-right"
+                  class="px-3 py-2 table-header text-right"
                 >
                   Precio
                 </div>

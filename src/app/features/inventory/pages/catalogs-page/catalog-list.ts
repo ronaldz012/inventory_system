@@ -19,7 +19,7 @@ import CatalogEmpty from './catalog-empty';
           [style.grid-template-columns]="cols()"
         >
           @for (h of headers(); track h) {
-            <span class="text-[10px] font-bold uppercase tracking-wider text-text-soft">{{
+            <span class="table-header">{{
               h
             }}</span>
           }

@@ -55,14 +55,20 @@
 }
 
 @utility field-label {
-  @apply text-[11px] text-text-soft mb-0.5;
+  @apply text-xs font-medium text-text-muted mb-0.5;
 }
 
 @utility field-value {
   @apply text-sm font-medium text-text-main;
 }
 @utility section-title {
-  @apply text-[11px] font-semibold text-text-soft uppercase tracking-wide mb-4;
+  @apply text-xs font-semibold text-text-muted uppercase tracking-wide mb-4;
+}
+
+/* Encabezados de columnas en tablas. Para nombres propios (ej. sucursales)
+   usar con normal-case + leading-tight + wrap a 2 líneas + title. */
+@utility table-header {
+  @apply text-[11px] font-bold uppercase tracking-wider text-text-muted;
 }
 
 
