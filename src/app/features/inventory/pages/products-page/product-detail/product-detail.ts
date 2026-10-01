@@ -172,6 +172,9 @@ import { matchesVariant, sortBranchIds, tokenize } from './variant-filter';
                 <span class="text-xs text-text-soft whitespace-nowrap">{{ filteredVariants().length }} de {{ p.variants.length }}</span>
               }
             </div>
+            @if (activeBranchId(); as activeId) {
+              <p class="text-[11px] text-text-soft -mt-2 mb-1">Stock en: <span class="font-semibold text-accent-ui">{{ branchMap()[activeId] }}</span></p>
+            }
 
             @if (variantQuery().trim() && filteredVariants().length === 0) {
               <div class="flex flex-col items-center gap-2 py-10 text-text-soft">
@@ -242,6 +245,8 @@ import { matchesVariant, sortBranchIds, tokenize } from './variant-filter';
                   [activeBranchId]="activeBranchId()"
                   [gridColumnsStyle]="gridColumnsStyle()"
                   [highlightTokens]="searchTokens()"
+                  [expanded]="expandedVariantId() === v.id"
+                  (toggleExpand)="toggleExpand(v.id)"
                   (editVariant)="onEditVariant($event)"
                   (deleteVariant)="onDeleteVariant($event)"
                   (adjustStock)="onAdjustStock($event)"
@@ -437,6 +442,13 @@ export default class ProductDetail implements OnInit {
   product = signal<ProductDetailDto | null>(null);
   loading = signal(true);
   submitting = signal(false);
+
+  // ── Card mobile expandida (una a la vez, vive en el padre) ─────────────
+  expandedVariantId = signal<GUID | null>(null);
+
+  toggleExpand(id: GUID): void {
+    this.expandedVariantId.update((cur) => (cur === id ? null : id));
+  }
 
   // ── Búsqueda de variantes (talla/color/SKU, multi-token sin orden) ───────
   variantQuery = signal('');
