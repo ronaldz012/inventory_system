@@ -50,78 +50,63 @@ import { matchesVariant, sortBranchIds, tokenize } from './variant-filter';
           </div>
 
           <!-- ── Información del Producto ─────────────────────────────────────── -->
-          <div class="bg-bg-surface rounded-xl border border-border-strong px-6 py-5">
-            <div class="flex items-start justify-between gap-3 mb-4">
-              <div class="min-w-0">
-                <div class="flex items-center gap-2">
-                  <p class="text-sm font-semibold text-text-main truncate">{{ p.name }}</p>
-                  <span
-                    class="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold shrink-0"
-                    [class]="
-                      p.isActive
-                        ? 'bg-feedback-success text-feedback-success-text'
-                        : 'bg-feedback-warning text-feedback-warning-text'
-                    "
-                  >
-                    {{ p.isActive ? 'Activo' : 'Inactivo' }}
-                  </span>
-                </div>
-                <p class="text-xs font-mono text-text-muted mt-0.5">{{ p.internalCode }}</p>
+          <div class="bg-bg-surface rounded-xl border border-border-strong px-4 py-3">
+            <div class="flex items-center gap-2">
+              <p class="text-sm font-semibold text-text-main break-words leading-snug">{{ p.name }}</p>
+              <span
+                class="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold shrink-0"
+                [class]="
+                  p.isActive
+                    ? 'bg-feedback-success text-feedback-success-text'
+                    : 'bg-feedback-warning text-feedback-warning-text'
+                "
+              >
+                {{ p.isActive ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+            <p class="text-[13px] font-mono font-semibold text-accent-ui mt-0.5">{{ p.internalCode }}</p>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+              <div>
+                <p class="table-header">Stock total</p>
+                <p class="text-xl font-black font-mono text-accent-ui">{{ p.totalAvailable }} <span class="text-xs font-bold">u</span></p>
               </div>
-              <div class="flex gap-2 shrink-0">
-                @if (perm.canUpdate('inventory', 'products')) {
-                  <button
-                    (click)="openToggleStatus()"
-                    class="btn-secondary"
-                    [title]="p.isActive ? 'Desactivar producto' : 'Activar producto'"
-                  >
-                    <span class="material-icons text-base leading-none">toggle_on</span>
-                    <span class="hidden sm:inline">{{
-                      p.isActive ? 'Desactivar' : 'Activar'
-                    }}</span>
-                  </button>
-                  <button (click)="openFullEdit()" class="btn-primary" title="Editar">
-                    <span class="material-icons text-base leading-none">edit</span>
-                    <span class="hidden sm:inline">Editar</span>
-                  </button>
-                }
-                @if (perm.canDelete('inventory', 'products')) {
-                  <button (click)="openDeleteProduct()" class="btn-danger" title="Eliminar">
-                    <span class="material-icons text-base leading-none">delete</span>
-                    <span class="hidden sm:inline">Eliminar</span>
-                  </button>
-                }
+              <div class="min-w-0">
+                <p class="table-header">Marca</p>
+                <p class="text-sm font-bold text-text-main truncate" [title]="p.brandName">{{ p.brandName || '—' }}</p>
+              </div>
+              <div class="min-w-0">
+                <p class="table-header">Categoría</p>
+                <p class="text-sm font-bold text-text-main truncate" [title]="p.categoryName">{{ p.categoryName || '—' }}</p>
+              </div>
+              <div class="min-w-0">
+                <p class="table-header">Género</p>
+                <p class="text-sm font-bold text-text-main truncate">{{ p.gender || '—' }}</p>
               </div>
             </div>
-
-            <p class="section-title">Información general</p>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-              <div>
-                <p class="field-label">Categoría</p>
-                <p class="field-value">{{ p.categoryName || '—' }}</p>
-              </div>
-              <div>
-                <p class="field-label">Marca</p>
-                <p class="field-value">{{ p.brandName || '—' }}</p>
-              </div>
-              <div>
-                <p class="field-label">Género</p>
-                <p class="field-value">{{ p.gender || '—' }}</p>
-              </div>
-              <div>
-                <p class="field-label">Stock total</p>
-                <p class="field-value">{{ p.totalAvailable }} unidades</p>
-              </div>
-              @if (p.description) {
-                <div class="sm:col-span-2">
-                  <p class="field-label">Descripción</p>
-                  <p
-                    class="text-sm text-text-muted bg-bg-muted rounded-lg px-3 py-2 leading-relaxed"
-                  >
-                    {{ p.description }}
-                  </p>
-                </div>
+            @if (p.description) {
+              <p class="text-[13px] text-text-muted leading-snug mt-1">{{ p.description }}</p>
+            }
+            <div class="flex flex-wrap items-center gap-2 border-t border-border mt-3 pt-3">
+              @if (perm.canUpdate('inventory', 'products')) {
+                <button (click)="openFullEdit()" class="btn-primary btn-sm" title="Editar">
+                  <span class="material-icons text-base leading-none">edit</span>
+                  <span>Editar</span>
+                </button>
+                <button
+                  (click)="openToggleStatus()"
+                  class="btn-secondary btn-sm"
+                  [title]="p.isActive ? 'Desactivar producto' : 'Activar producto'"
+                >
+                  <span class="material-icons text-base leading-none">toggle_on</span>
+                  <span>{{ p.isActive ? 'Desactivar' : 'Activar' }}</span>
+                </button>
+              }
+              @if (perm.canDelete('inventory', 'products')) {
+                <button (click)="openDeleteProduct()" class="btn-danger btn-sm" title="Eliminar">
+                  <span class="material-icons text-base leading-none">delete</span>
+                  <span>Eliminar</span>
+                </button>
               }
             </div>
           </div>
@@ -131,19 +116,12 @@ import { matchesVariant, sortBranchIds, tokenize } from './variant-filter';
             <div class="flex items-center justify-between mb-3">
               <p class="section-title mb-0">
                 Tallas/Colores · {{ p.variants.length }}
-                {{ p.variants.length === 1 ? 'talla/color' : 'tallas/colores' }}
               </p>
               @if (perm.canUpdate('inventory', 'products')) {
-                <div class="flex items-center gap-2">
-                  <button (click)="openFullEdit()" class="btn-secondary btn-sm">
-                    <span class="material-icons text-base leading-none">sell</span>
-                    Precios
-                  </button>
-                  <button (click)="openAddVariant()" class="btn-secondary btn-sm">
-                    <span class="material-icons text-base leading-none">add</span>
-                    Agregar
-                  </button>
-                </div>
+                <button (click)="openAddVariant()" class="btn-secondary btn-sm">
+                  <span class="material-icons text-base leading-none">add</span>
+                  Agregar
+                </button>
               }
             </div>
 
@@ -235,6 +213,13 @@ import { matchesVariant, sortBranchIds, tokenize } from './variant-filter';
             </div>
 
             <!-- ── Mobile ──────────────────────────────────────────────────────── -->
+            @if (filteredVariants().length > 0) {
+              <div class="sm:hidden flex items-center gap-2 px-3 pr-8 pb-1.5" aria-hidden="true">
+                <span class="flex-1 table-header">Talla · Color</span>
+                <span class="table-header">Stock</span>
+                <span class="table-header">Precio</span>
+              </div>
+            }
             <ul class="flex flex-col divide-y divide-border-ui sm:hidden">
               @for (v of filteredVariants(); track v.id) {
                 <app-product-detail-variant
