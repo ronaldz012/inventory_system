@@ -21,52 +21,49 @@
       </div>
 
       <!-- Información general -->
-      <div class="bg-bg-surface rounded-xl border border-border shadow-xs p-5">
-        <div class="flex items-center justify-between mb-4">
-          <p class="section-title">Información general</p>
+      <div class="bg-bg-surface rounded-xl border border-border shadow-xs p-4">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <p class="section-title mb-0">Información general</p>
           <span
-            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"
+            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium shrink-0"
             [class]="statusClasses(t.status)"
             >{{ statusLabel(t.status) }}</span
           >
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-          <div>
-            <p class="field-label">Origen</p>
-            <p class="field-value">{{ t.fromBranchName }}</p>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div class="min-w-0">
+            <p class="table-header">Origen</p>
+            <p class="text-sm font-bold text-text-main truncate" [title]="t.fromBranchName">{{ t.fromBranchName }}</p>
           </div>
-          <div>
-            <p class="field-label">Destino</p>
-            <p class="field-value">{{ t.toBranchName }}</p>
+          <div class="min-w-0">
+            <p class="table-header">Destino</p>
+            <p class="text-sm font-bold text-text-main truncate" [title]="t.toBranchName">{{ t.toBranchName }}</p>
           </div>
-          <div>
-            <p class="field-label">Solicitado por</p>
-            <p class="field-value">{{ t.requesterName }}</p>
+          <div class="min-w-0">
+            <p class="table-header">Solicitado por</p>
+            <p class="text-sm font-bold text-text-main truncate" [title]="t.requesterName">{{ t.requesterName }}</p>
           </div>
           @if (t.resolverName) {
-            <div>
-              <p class="field-label">Resuelto por</p>
-              <p class="field-value">{{ t.resolverName }}</p>
+            <div class="min-w-0">
+              <p class="table-header">Resuelto por</p>
+              <p class="text-sm font-bold text-text-main truncate" [title]="t.resolverName">{{ t.resolverName }}</p>
             </div>
           }
-          <div>
-            <p class="field-label">Creado</p>
-            <p class="text-sm text-text-main">{{ t.createdAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+          <div class="min-w-0">
+            <p class="table-header">Creado</p>
+            <p class="text-sm font-bold text-text-main">{{ t.createdAt | date: 'dd/MM/yyyy HH:mm' }}</p>
           </div>
           @if (t.resolvedAt) {
-            <div>
-              <p class="field-label">Resuelto</p>
-              <p class="text-sm text-text-main">{{ t.resolvedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
-            </div>
-          }
-          @if (t.notes) {
-            <div class="sm:col-span-2">
-              <p class="field-label">Notas</p>
-              <p class="text-sm text-text-muted bg-bg-muted rounded-lg px-3 py-2">{{ t.notes }}</p>
+            <div class="min-w-0">
+              <p class="table-header">Resuelto</p>
+              <p class="text-sm font-bold text-text-main">{{ t.resolvedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
             </div>
           }
         </div>
+        @if (t.notes) {
+          <p class="text-[13px] text-text-muted leading-snug mt-2">{{ t.notes }}</p>
+        }
       </div>
 
       <!-- Productos -->
