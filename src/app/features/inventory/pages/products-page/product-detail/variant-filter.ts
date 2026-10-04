@@ -35,6 +35,27 @@ export function sortBranchIds(ids: string[], names: Record<string, string>): str
   );
 }
 
+/** 'off' = orden del backend (color → talla); 'desc'/'asc' = por stock. */
+export type VariantSort = 'off' | 'desc' | 'asc';
+
+/**
+ * Ordena por stock sin perder el suborden del backend: el desempate es el
+ * índice original, así dos variantes con el mismo stock conservan el orden
+ * en que llegaron (color y luego talla).
+ */
+export function sortVariantsByStock<T>(
+  list: T[],
+  mode: VariantSort,
+  stockOf: (v: T) => number,
+): T[] {
+  if (mode === 'off') return list;
+  const dir = mode === 'desc' ? -1 : 1;
+  return list
+    .map((v, i) => ({ v, i, stock: stockOf(v) }))
+    .sort((a, b) => (a.stock - b.stock) * dir || a.i - b.i)
+    .map((x) => x.v);
+}
+
 export interface HighlightPart {
   part: string;
   hit: boolean;

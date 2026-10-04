@@ -1,5 +1,17 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import {
+  Component,
+  computed,
+  ElementRef,
+  HostListener,
+  inject,
+  OnInit,
+  signal,
+  viewChild,
+  viewChildren,
+} from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs';
 import { ProductService } from '../../../services/product-service';
 import { ProductDetailDto, ProductVariantDto } from '../../../dtos/products/product-detail-dto';
 import { BranchContextService } from '@core/services/branch-context-service';
@@ -21,7 +33,13 @@ import { CreateProductVariantDto } from '../../../dtos/products/create-product-v
 import { ToastService } from '@core/services/toast-service';
 import { PermissionService } from '@features/auth/services/permmision-service';
 import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
-import { matchesVariant, sortBranchIds, tokenize } from './variant-filter';
+import {
+  matchesVariant,
+  sortBranchIds,
+  sortVariantsByStock,
+  tokenize,
+  VariantSort,
+} from './variant-filter';
 
 @Component({
   selector: 'app-product-detail',
@@ -40,7 +58,7 @@ import { matchesVariant, sortBranchIds, tokenize } from './variant-filter';
     <div class="max-w-6xl mx-auto fade-up">
       @if (loading()) {
         <app-skeleton-list [rows]="3" [columns]="2" />
-      } @else if (!loading() && product(); as p) {
+      } @else if (product(); as p) {
         <div class="flex flex-col gap-4">
           <div class="flex items-center gap-3">
             <button type="button" (click)="goBack()" class="btn-icon">
@@ -125,15 +143,26 @@ import { matchesVariant, sortBranchIds, tokenize } from './variant-filter';
               }
             </div>
 
-            <div class="flex items-center gap-2 mb-3">
+            <div
+              #variantSearch
+              class="scroll-mt-16 flex items-center gap-2 mb-3"
+              (focusin)="onVariantSearchFocus()"
+            >
               <div class="relative flex-1">
-                <span class="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-base text-text-soft">search</span>
                 <input
                   [value]="variantQuery()"
                   (input)="variantQuery.set($any($event.target).value)"
+                  (keydown.enter)="onVariantSearchEnter($event)"
                   placeholder="Buscar talla, color o SKU… (ej. azul 44)"
                   aria-label="Buscar variantes por talla, color o SKU"
-                  class="w-full pl-9 pr-8 py-2 text-sm text-text-main bg-bg-surface border border-border rounded-lg placeholder:text-text-soft focus:outline-none focus:border-accent-ui focus:ring-1 focus:ring-accent-ui"
+                  enterkeyhint="search"
+                  autocomplete="off"
+                  autocapitalize="off"
+                  spellcheck="false"
+                  class="w-full py-2 text-sm text-text-main bg-bg-surface border border-border rounded-lg placeholder:text-text-soft focus:outline-none focus:border-accent-ui focus:ring-1 focus:ring-accent-ui"
+                  [class.pr-8]="variantQuery()"
+                  [class.pl-3]="!variantQuery()"
+                  [class.pl-2]="variantQuery()"
                 />
                 @if (variantQuery()) {
                   <button
@@ -149,17 +178,69 @@ import { matchesVariant, sortBranchIds, tokenize } from './variant-filter';
               @if (variantQuery().trim()) {
                 <span class="text-xs text-text-soft whitespace-nowrap">{{ filteredVariants().length }} de {{ p.variants.length }}</span>
               }
+              <div class="relative shrink-0" data-sort-menu>
+                <button
+                  #sortTrigger
+                  type="button"
+                  (click)="toggleSortMenu()"
+                  class="btn btn-sm gap-1 relative disabled:opacity-40 disabled:cursor-not-allowed"
+                  [class.btn-secondary]="sortMode() === 'off'"
+                  [class.border-accent-ui]="sortMode() !== 'off'"
+                  [class.bg-accent-ui]="sortMode() !== 'off'"
+                  [class.text-accent-ui]="sortMode() !== 'off'"
+                  [disabled]="!activeBranchId()"
+                  aria-haspopup="menu"
+                  [attr.aria-expanded]="sortMenuOpen()"
+                  [title]="sortLabel()"
+                  [attr.aria-label]="sortLabel()"
+                >
+                  <span class="material-icons text-base leading-none">{{ sortIcon() }}</span>
+                  @if (sortMode() !== 'off') {
+                    <span class="whitespace-nowrap">{{ sortText() }}</span>
+                  } @else {
+                    <span class="hidden sm:inline whitespace-nowrap">Ordenar</span>
+                  }
+                  @if (sortMode() !== 'off') {
+                    <span
+                      class="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-accent-ui"
+                      aria-hidden="true"
+                    ></span>
+                  }
+                </button>
+
+                @if (sortMenuOpen()) {
+                  <div
+                    role="menu"
+                    aria-label="Ordenar variantes"
+                    (keydown)="onSortMenuKeydown($event)"
+                    class="absolute top-[calc(100%+6px)] right-0 z-50 w-max min-w-[13rem] max-w-[calc(100vw-2rem)] rounded-[10px] border border-border bg-bg-surface p-1 shadow-lg"
+                  >
+                    @for (opt of sortOptions; track opt.mode) {
+                      <button
+                        #sortOption
+                        type="button"
+                        role="menuitemradio"
+                        [attr.aria-checked]="sortMode() === opt.mode"
+                        (click)="selectSort(opt.mode)"
+                        class="w-full flex items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-sm transition-colors hover:bg-bg-muted"
+                        [class.text-accent-ui]="sortMode() === opt.mode"
+                        [class.font-semibold]="sortMode() === opt.mode"
+                        [class.text-text-main]="sortMode() !== opt.mode"
+                      >
+                        <span class="material-icons text-sm w-4 shrink-0 text-center leading-none">
+                          @if (sortMode() === opt.mode) {
+                            check
+                          }
+                        </span>
+                        <span class="whitespace-nowrap">{{ opt.label }}</span>
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
             </div>
             @if (activeBranchId(); as activeId) {
               <p class="text-[11px] text-text-soft -mt-2 mb-1">Stock en: <span class="font-semibold text-accent-ui">{{ branchMap()[activeId] }}</span></p>
-            }
-
-            @if (variantQuery().trim() && filteredVariants().length === 0) {
-              <div class="flex flex-col items-center gap-2 py-10 text-text-soft">
-                <span class="material-icons text-3xl">search_off</span>
-                <p class="text-sm font-medium text-text-main">Sin coincidencias</p>
-                <button type="button" (click)="variantQuery.set('')" class="text-xs font-bold text-accent-ui hover:underline">Limpiar búsqueda</button>
-              </div>
             }
 
             <!-- ── Desktop ─────────────────────────────────────────────────────── -->
@@ -194,7 +275,7 @@ import { matchesVariant, sortBranchIds, tokenize } from './variant-filter';
               </div>
 
               <ul class="flex flex-col divide-y divide-border-ui">
-                @for (v of filteredVariants(); track v.id) {
+                @for (v of sortedVariants(); track v.id) {
                   <app-product-detail-variant
                     [variant]="v"
                     [submitting]="submitting()"
@@ -212,6 +293,22 @@ import { matchesVariant, sortBranchIds, tokenize } from './variant-filter';
               </ul>
             </div>
 
+            <!-- Sin resultados: debajo del cabezal en desktop (arriba en mobile,
+                 porque las dos listas anteriores quedan vacías) -->
+            @if (variantQuery().trim() && filteredVariants().length === 0) {
+              <div class="flex flex-col items-center gap-2 py-10 text-text-soft">
+                <span class="material-icons text-3xl">search_off</span>
+                <p class="text-sm font-medium text-text-main">Sin coincidencias</p>
+                <button
+                  type="button"
+                  (click)="variantQuery.set('')"
+                  class="text-xs font-bold text-accent-ui hover:underline"
+                >
+                  Limpiar búsqueda
+                </button>
+              </div>
+            }
+
             <!-- ── Mobile ──────────────────────────────────────────────────────── -->
             @if (filteredVariants().length > 0) {
               <div class="sm:hidden flex items-center gap-2 px-3 pr-8 pb-1.5" aria-hidden="true">
@@ -221,7 +318,7 @@ import { matchesVariant, sortBranchIds, tokenize } from './variant-filter';
               </div>
             }
             <ul class="flex flex-col divide-y divide-border-ui sm:hidden">
-              @for (v of filteredVariants(); track v.id) {
+              @for (v of sortedVariants(); track v.id) {
                 <app-product-detail-variant
                   [variant]="v"
                   [submitting]="submitting()"
@@ -251,7 +348,7 @@ import { matchesVariant, sortBranchIds, tokenize } from './variant-filter';
       <app-update-product-modal
         [product]="product()!"
         [submitting]="submitting()"
-        (save)="onUpdateProduct($event)"
+        (save)="onFullSave($event)"
         (close)="closeModal()"
       />
     }
@@ -328,7 +425,7 @@ import { matchesVariant, sortBranchIds, tokenize } from './variant-filter';
         submittingLabel="Eliminando..."
         confirmButtonClass="bg-red-500 hover:bg-red-600"
         [submitting]="submitting()"
-        (confirm)="DeleteVariant()"
+        (confirm)="onConfirmDeleteVariant()"
         (close)="closeModal()"
       />
     }
@@ -437,6 +534,24 @@ export default class ProductDetail implements OnInit {
 
   // ── Búsqueda de variantes (talla/color/SKU, multi-token sin orden) ───────
   variantQuery = signal('');
+  private variantSearchRow = viewChild<ElementRef<HTMLDivElement>>('variantSearch');
+
+  /**
+   * En mobile el teclado virtual tapa la lista: al enfocar subimos el buscador
+   * (scroll-mt-16 compensa el topbar sticky) para que los resultados queden
+   * a la vista. Se espera para que el teclado termine de abrir.
+   */
+  onVariantSearchFocus(): void {
+    setTimeout(() => {
+      const row = this.variantSearchRow();
+      row?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 300);
+  }
+
+  /** Enter = "listo": baja el teclado y deja la lista visible. */
+  onVariantSearchEnter(event: Event): void {
+    (event.target as HTMLInputElement).blur();
+  }
   searchTokens = computed(() => tokenize(this.variantQuery()));
   filteredVariants = computed<ProductVariantDto[]>(() => {
     const p = this.product();
@@ -446,23 +561,163 @@ export default class ProductDetail implements OnInit {
     return p.variants.filter((v) => matchesVariant(q, v));
   });
 
-  // ── Modal visibility ────────────────────────────────────────────────────
-  showUpdateProduct = signal(false);
-  showDeleteProduct = signal(false);
-  showToggleStatus = signal(false);
+  // ── Orden de variantes ──────────────────────────────────────────────────
+  // 'off' = orden del backend (color → talla); 'desc'/'asc' = stock en la
+  // sucursal activa. El desempate usa el índice original, así el suborden
+  // (color y luego talla) se preserva tal cual lo entrega el backend.
+  sortMode = signal<VariantSort>('off');
+
+  /** Opciones del menú de orden (explícitas: el usuario no adivina el ciclo). */
+  readonly sortOptions: readonly { mode: VariantSort; label: string }[] = [
+    { mode: 'off', label: 'Orden por defecto' },
+    { mode: 'desc', label: 'Stock: mayor a menor' },
+    { mode: 'asc', label: 'Stock: menor a mayor' },
+  ];
+
+  sortMenuOpen = signal(false);
+  private sortTrigger = viewChild<ElementRef<HTMLButtonElement>>('sortTrigger');
+  private sortOptionEls = viewChildren<ElementRef<HTMLButtonElement>>('sortOption');
+
+  toggleSortMenu(): void {
+    const next = !this.sortMenuOpen();
+    this.sortMenuOpen.set(next);
+    if (!next) return;
+    const current = this.sortOptions.findIndex((o) => o.mode === this.sortMode());
+    this.focusSortOption(current < 0 ? 0 : current);
+  }
+
+  selectSort(mode: VariantSort): void {
+    this.sortMode.set(mode);
+    this.sortMenuOpen.set(false);
+  }
+
+  /** Navegación del menú con teclado (patrón menu / menuitemradio). */
+  onSortMenuKeydown(event: KeyboardEvent): void {
+    const last = this.sortOptions.length - 1;
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.focusSortOption(this.nextIndex(1, last));
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.focusSortOption(this.nextIndex(-1, last));
+        break;
+      case 'Home':
+        event.preventDefault();
+        this.focusSortOption(0);
+        break;
+      case 'End':
+        event.preventDefault();
+        this.focusSortOption(last);
+        break;
+      case 'Escape':
+        event.preventDefault();
+        this.closeSortMenu();
+        break;
+    }
+  }
+
+  private currentSortIndex(): number {
+    const focused = this.sortOptionEls().findIndex(
+      (el) => el.nativeElement === document.activeElement,
+    );
+    return focused >= 0 ? focused : this.sortOptions.findIndex((o) => o.mode === this.sortMode());
+  }
+
+  private nextIndex(step: number, last: number): number {
+    const current = this.currentSortIndex();
+    return current < 0 ? 0 : (current + step + last + 1) % (last + 1);
+  }
+
+  private focusSortOption(index: number): void {
+    setTimeout(() => this.sortOptionEls()[index]?.nativeElement.focus());
+  }
+
+  closeSortMenu(): void {
+    if (!this.sortMenuOpen()) return;
+    this.sortMenuOpen.set(false);
+    this.sortTrigger()?.nativeElement.focus();
+  }
+
+  @HostListener('document:click', ['$event.target'])
+  onDocumentClick(target: EventTarget | null): void {
+    if (!this.sortMenuOpen()) return;
+    if (target instanceof HTMLElement && target.closest('[data-sort-menu]')) return;
+    this.sortMenuOpen.set(false);
+  }
+
+  sortIcon = computed(() => {
+    switch (this.sortMode()) {
+      case 'desc':
+        return 'arrow_downward';
+      case 'asc':
+        return 'arrow_upward';
+      default:
+        return 'sort';
+    }
+  });
+
+  /** Texto del chip con orden activo (sin orden el template escribe "Ordenar"). */
+  sortText = computed(() => (this.sortMode() === 'desc' ? 'Stock ↓' : 'Stock ↑'));
+
+  sortLabel = computed(() => {
+    const branch = this.branchMap()[this.activeBranchId() ?? ''];
+    const suffix = branch ? ` en ${branch}` : '';
+    switch (this.sortMode()) {
+      case 'desc':
+        return `Ordenado por stock: mayor a menor${suffix}`;
+      case 'asc':
+        return `Ordenado por stock: menor a mayor${suffix}`;
+      default:
+        return branch ? `Ordenar variantes (stock de ${branch})` : 'Ordenar variantes';
+    }
+  });
+
+  sortedVariants = computed<ProductVariantDto[]>(() => {
+    const mode = this.sortMode();
+    const branchId = this.activeBranchId();
+    if (!branchId) return this.filteredVariants();
+    return sortVariantsByStock(this.filteredVariants(), mode, (v) => this.stockAt(v, branchId));
+  });
+
+  // ── Modales por query param (?modal=...) ─────────────────────────────────
+  /** El query param `modal` como señal: toda la visibilidad se deriva de él. */
+  private readonly modalParam = toSignal(
+    this.route.queryParamMap.pipe(map((p) => p.get('modal'))),
+    { initialValue: null },
+  );
+
+  private readonly isModal = (name: string) => computed(() => this.modalParam() === name);
+
+  showUpdateProduct = this.isModal('product');
+  showDeleteProduct = this.isModal('delete-product');
+  showToggleStatus = this.isModal('toggle-status');
+  /** Modal de agregar talla/color abierto o no */
+  showAddVariant = this.isModal('add-variant');
+  /** Modal de edición masiva de precios abierto o no */
+  showBulkPrices = this.isModal('bulk-prices');
+  /** Panel de edición completa (datos + precios) abierto o no */
+  showFullEdit = this.isModal('edit-full');
+
+  /**
+   * Variante de ?modal=<prefix>:<id>. Se resuelve contra `product()`, así que
+   * también abre al recargar con el modal en la URL: el producto llega después
+   * del query param y el computed vuelve a evaluarse.
+   */
+  private readonly variantFor = (prefix: string) =>
+    computed(() => {
+      const id = getModalId(this.modalParam(), prefix);
+      return id ? this.findVariant(id) : null;
+    });
 
   /** Variante actualmente en edición — null = modal cerrado */
-  editingVariant = signal<ProductVariantDto | null>(null);
+  editingVariant = this.variantFor('edit');
   /** Variante pendiente de borrar — null = modal cerrado */
-  deletingVariant = signal<ProductVariantDto | null>(null);
+  deletingVariant = this.variantFor('delete');
   /** Variante cuyo stock se está ajustando — null = modal cerrado */
-  adjustingStockVariant = signal<ProductVariantDto | null>(null);
-  /** Modal de agregar talla/color abierto o no */
-  showAddVariant = signal(false);
-  /** Modal de edición masiva de precios abierto o no */
-  showBulkPrices = signal(false);
-  /** Panel de edición completa (datos + precios) abierto o no */
-  showFullEdit = signal(false);
+  adjustingStockVariant = this.variantFor('adjust');
+
   activeBranchStock = computed(() => {
     const v = this.adjustingStockVariant();
     if (!v) return 0;
@@ -479,41 +734,6 @@ export default class ProductDetail implements OnInit {
     if (!branchId) return null;
     return v.branchStocks.find((s) => s.branchId === branchId)?.branchName ?? null;
   });
-
-  // ── Lifecycle ───────────────────────────────────────────────────────────
-  constructor() {
-    this.route.queryParamMap.subscribe((params) => {
-      const modal = params.get('modal');
-      this.showUpdateProduct.set(modal === 'product');
-      this.showDeleteProduct.set(modal === 'delete-product');
-      this.showToggleStatus.set(modal === 'toggle-status');
-      this.showAddVariant.set(modal === 'add-variant');
-      this.showBulkPrices.set(modal === 'bulk-prices');
-      this.showFullEdit.set(modal === 'edit-full');
-
-      const editId = getModalId(modal, 'edit');
-      const deleteId = getModalId(modal, 'delete');
-      const adjustId = getModalId(modal, 'adjust');
-
-      if (editId) {
-        this.editingVariant.set(this.findVariant(editId));
-      } else {
-        this.editingVariant.set(null);
-      }
-
-      if (deleteId) {
-        this.deletingVariant.set(this.findVariant(deleteId));
-      } else {
-        this.deletingVariant.set(null);
-      }
-
-      if (adjustId) {
-        this.adjustingStockVariant.set(this.findVariant(adjustId));
-      } else {
-        this.adjustingStockVariant.set(null);
-      }
-    });
-  }
 
   private findVariant(id: GUID): ProductVariantDto | null {
     return this.product()?.variants.find((v) => v.id === id) ?? null;
@@ -545,11 +765,17 @@ export default class ProductDetail implements OnInit {
     return this.product()!.id;
   }
 
-  // ── Child output handlers ───────────────────────────────────────────────
-  openUpdateProduct(): void {
-    openModal(this.router, this.route, 'product');
+  /**
+   * Error de API: mensaje del backend (detail → title → message) o el texto de
+   * respaldo del llamador, y libera el estado de envío.
+   */
+  private handleApiError(err: unknown, fallback: string): void {
+    this.submitting.set(false);
+    const e = err as { error?: { detail?: string; title?: string }; message?: string };
+    this.toastService.error(e?.error?.detail || e?.error?.title || e?.message || fallback);
   }
 
+  // ── Child output handlers ───────────────────────────────────────────────
   openDeleteProduct(): void {
     openModal(this.router, this.route, 'delete-product');
   }
@@ -560,10 +786,6 @@ export default class ProductDetail implements OnInit {
 
   openAddVariant(): void {
     openModal(this.router, this.route, 'add-variant');
-  }
-
-  openBulkPrices(): void {
-    openModal(this.router, this.route, 'bulk-prices');
   }
 
   openFullEdit(): void {
@@ -612,14 +834,13 @@ export default class ProductDetail implements OnInit {
         this.loadProduct(this.productId);
       },
       error: (err: unknown) => {
-        this.submitting.set(false);
-        const e = err as { error?: { detail?: string; title?: string }; message?: string };
-        this.toastService.error(e?.error?.detail || e?.error?.title || e?.message || 'Error al agregar la talla/color.');
+        this.handleApiError(err, 'Error al agregar la talla/color.');
       },
     });
   }
 
   // ── API calls ────────────────────────────────────────────────────────────
+  /** Un único camino de guardado para el producto: ?modal=edit-full y ?modal=product. */
   onFullSave(dto: UpdateProductDto): void {
     this.submitting.set(true);
     this.productService.update(this.productId, dto).subscribe({
@@ -630,25 +851,7 @@ export default class ProductDetail implements OnInit {
         this.loadProduct(this.productId);
       },
       error: (err: unknown) => {
-        this.submitting.set(false);
-        const e = err as { error?: { detail?: string; title?: string }; message?: string };
-        this.toastService.error(e?.error?.detail || e?.error?.title || e?.message || 'Error al actualizar el producto.');
-      },
-    });
-  }
-
-  onUpdateProduct(dto: UpdateProductDto): void {
-    this.submitting.set(true);
-    this.productService.update(this.productId, dto).subscribe({
-      next: () => {
-        this.submitting.set(false);
-        this.closeModal();
-        this.loadProduct(this.productId);
-      },
-      error: (err: unknown) => {
-        this.submitting.set(false);
-        const e = err as { error?: { detail?: string; title?: string }; message?: string };
-        this.toastService.error(e?.error?.detail || e?.error?.title || e?.message || 'Error al actualizar el producto.');
+        this.handleApiError(err, 'Error al actualizar el producto.');
       },
     });
   }
@@ -662,9 +865,7 @@ export default class ProductDetail implements OnInit {
         this.router.navigate(['inventory', 'products']);
       },
       error: (err: unknown) => {
-        this.submitting.set(false);
-        const e = err as { error?: { detail?: string; title?: string }; message?: string };
-        this.toastService.error(e?.error?.detail || e?.error?.title || e?.message || 'Error al eliminar el producto.');
+        this.handleApiError(err, 'Error al eliminar el producto.');
       },
     });
   }
@@ -681,9 +882,7 @@ export default class ProductDetail implements OnInit {
         this.loadProduct(p.id);
       },
       error: (err: unknown) => {
-        this.submitting.set(false);
-        const e = err as { error?: { detail?: string; title?: string }; message?: string };
-        this.toastService.error(e?.error?.detail || e?.error?.title || e?.message || 'Error al cambiar el estado del producto.');
+        this.handleApiError(err, 'Error al cambiar el estado del producto.');
       },
     });
   }
@@ -700,9 +899,7 @@ export default class ProductDetail implements OnInit {
         this.loadProduct(this.productId);
       },
       error: (err: unknown) => {
-        this.submitting.set(false);
-        const e = err as { error?: { detail?: string; title?: string }; message?: string };
-        this.toastService.error(e?.error?.detail || e?.error?.title || e?.message || 'Error al actualizar los precios.');
+        this.handleApiError(err, 'Error al actualizar los precios.');
       },
     });
   }
@@ -717,14 +914,12 @@ export default class ProductDetail implements OnInit {
         this.loadProduct(this.productId);
       },
       error: (err: unknown) => {
-        this.submitting.set(false);
-        const e = err as { error?: { detail?: string; title?: string }; message?: string };
-        this.toastService.error(e?.error?.detail || e?.error?.title || e?.message || 'Error al actualizar la talla/color.');
+        this.handleApiError(err, 'Error al actualizar la talla/color.');
       },
     });
   }
 
-  DeleteVariant(): void {
+  onConfirmDeleteVariant(): void {
     const variantId = this.deletingVariant()!.id;
     this.submitting.set(true);
     this.productService.deleteVariant(this.productId, variantId).subscribe({
@@ -735,14 +930,22 @@ export default class ProductDetail implements OnInit {
         this.loadProduct(this.productId);
       },
       error: (err: unknown) => {
-        this.submitting.set(false);
-        const e = err as { status?: number; error?: { detail?: string; title?: string }; message?: string };
+        // Caso especial: 409 = la variante ya tiene movimientos o transferencias.
+        const e = err as {
+          status?: number;
+          error?: { detail?: string; title?: string };
+        };
         if (e.status === 409) {
-          this.toastService.error(e?.error?.detail || e?.error?.title || 'Esta variante está asociada a movimientos o transferencias y no se puede eliminar.');
+          this.submitting.set(false);
+          this.toastService.error(
+            e.error?.detail ||
+              e.error?.title ||
+              'Esta variante está asociada a movimientos o transferencias y no se puede eliminar.',
+          );
           this.closeModal();
           return;
         }
-        this.toastService.error(e?.error?.detail || e?.error?.title || e?.message || 'Error al eliminar la talla/color.');
+        this.handleApiError(err, 'Error al eliminar la talla/color.');
       },
     });
   }
@@ -758,9 +961,7 @@ export default class ProductDetail implements OnInit {
         this.loadProduct(this.productId);
       },
       error: (err: unknown) => {
-        this.submitting.set(false);
-        const e = err as { error?: { detail?: string; title?: string }; message?: string };
-        this.toastService.error(e?.error?.detail || e?.error?.title || e?.message || 'Error al ajustar el stock.');
+        this.handleApiError(err, 'Error al ajustar el stock.');
       },
     });
   }
@@ -775,5 +976,10 @@ export default class ProductDetail implements OnInit {
     } else {
       this.router.navigate(['inventory', 'products']);
     }
+  }
+
+  /** Stock de la variante en una sucursal concreta (0 si no está). */
+  stockAt(v: ProductVariantDto, branchId: GUID): number {
+    return v.branchStocks.find((s) => s.branchId === branchId)?.stock ?? 0;
   }
 }
