@@ -79,13 +79,26 @@ import { PermissionService } from '@features/auth/services/permmision-service';
         <div
           class="flex flex-col overflow-hidden rounded border border-border bg-bg-surface shadow-sm"
         >
-          <!-- Header columnas — solo desktop -->
+          <!-- Cabezal mobile — como el del detalle (Nombre | Stock) -->
+          @if (products().length > 0) {
+            <div
+              class="flex items-center gap-2 px-4 pr-8 pb-1.5 lg:hidden"
+              aria-hidden="true"
+            >
+              <span class="flex-1 table-header">Nombre</span>
+              <span class="table-header">Stock</span>
+            </div>
+          }
+
+          <!-- Header columnas — solo desktop. Misma grilla que las filas (gridColumns). -->
           <div
-            class="hidden px-4 py-3 border-b border-border bg-bg-muted lg:grid grid-cols-[9rem_1fr_12rem_8rem_6rem_7rem_6.5rem] table-header"
+            class="hidden px-4 py-3 border-b border-border bg-bg-muted lg:grid table-header"
+            [style.grid-template-columns]="gridColumns"
           >
             <span>Código</span>
+            <span>Marca</span>
             <span>Nombre</span>
-            <span>Marca / Cat.</span>
+            <span>Categoría</span>
             <span class="pr-4 text-right">Talla/Color</span>
             <span class="pr-4 text-right">Stock</span>
             <span>Estado</span>
@@ -99,9 +112,8 @@ import { PermissionService } from '@features/auth/services/permmision-service';
                 class="row-enter"
                 [style.animation-delay.ms]="i * 30"
                 [product]="p"
-                [index]="i"
+                [gridColumns]="gridColumns"
                 (viewDetail)="goToDetail($event)"
-                (viewMovements)="goToMovements($event)"
               />
             }
           </ul>
@@ -159,6 +171,12 @@ export default class ProductList implements OnInit {
 
   showCreateModal = signal(false);
 
+  /**
+   * Grilla de la tabla: la comparten el header y las filas para que no puedan
+   * desalinearse. Código | Marca | Nombre | Categoría | Talla/Color | Stock | Estado | Acción
+   */
+  readonly gridColumns = '8rem 9rem 1fr 9rem 7rem 5.5rem 6rem 4.5rem';
+
   hasActiveFilters = computed(() => {
     const q = this.query();
     // Ojo: Gender.Unisex es 0, así que no vale un chequeo por truthiness.
@@ -204,9 +222,6 @@ export default class ProductList implements OnInit {
 
   goToDetail(id: GUID) {
     this.router.navigate(['inventory', 'products', id, 'detail']);
-  }
-  goToMovements(id: GUID) {
-    this.router.navigate(['inventory', 'products', id, 'movements']);
   }
   goToCatalogs() {
     this.router.navigate(['inventory', 'products', 'catalog']);
