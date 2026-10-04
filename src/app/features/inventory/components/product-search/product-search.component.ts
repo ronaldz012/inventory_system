@@ -14,7 +14,7 @@ import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
 
 import { ProductService } from '../../services/product-service';
 import { ProductSearchResult } from './product-search-result.component';
-import { Gender } from '../../interfaces/gender';
+import { GENDER_LABELS, Gender } from '../../interfaces/gender';
 
 @Component({
   selector: 'app-product-search',
@@ -205,7 +205,7 @@ export class ProductSearch implements OnInit {
   }
 
   genderLabel(g: Gender | number): string {
-    return Gender[g as Gender] ?? '';
+    return GENDER_LABELS[g as Gender] ?? '';
   }
 
   onKeyDown(event: KeyboardEvent): void {

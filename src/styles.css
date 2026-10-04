@@ -283,11 +283,16 @@
 @import "./components.css";
 
 
-.material-icons {
-  display: inline-flex;
-  vertical-align: middle;
-  align-items: center;
-  justify-content: center;
+/* En @layer components para que las utilidades de Tailwind (hidden, flex, block…)
+   ganan cuando se combinan con un icono: si queda fuera de capa, su display
+   le gana a cualquier utilidad y `hidden` no oculta nada. */
+@layer components {
+  .material-icons {
+    display: inline-flex;
+    vertical-align: middle;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 @keyframes toast-in {

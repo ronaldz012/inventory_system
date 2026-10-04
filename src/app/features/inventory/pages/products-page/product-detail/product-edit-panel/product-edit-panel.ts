@@ -10,7 +10,7 @@ import {
 } from '@angular/forms/signals';
 import { ProductDetailDto } from '../../../../dtos/products/product-detail-dto';
 import { UpdateProductDto } from '../../../../dtos/products/update-product-dto';
-import { Gender } from '../../../../interfaces/gender';
+import { GENDER_OPTIONS, Gender } from '../../../../interfaces/gender';
 import { CategoryService } from '../../../../services/category-service';
 import { CategorySelectCtrl } from '@features/inventory/components/category-select-ctrl/category-select-ctrl.component';
 
@@ -318,11 +318,7 @@ export class ProductEditPanel implements OnInit {
   save = output<UpdateProductDto>();
   close = output<void>();
 
-  readonly genderOptions = [
-    { label: 'Unisex', value: Gender.Unisex },
-    { label: 'Hombre', value: Gender.Hombre },
-    { label: 'Mujer', value: Gender.Mujer },
-  ];
+  readonly genderOptions = GENDER_OPTIONS;
 
   // ── Modelo: única fuente de verdad ──
   editModel = signal<EditPanelModel>({

@@ -1,11 +1,5 @@
 import {Gender} from './gender';
 
-export const GenderLabel: Record<Gender, string> = {
-  [Gender.Unisex]: 'Unisex',
-  [Gender.Hombre]: 'Masc.',
-  [Gender.Mujer]: 'Fem.',
-};
-
 // Modelo interno (una etiqueta ya expandida)
 export interface LabelData {
   variantId: GUID;

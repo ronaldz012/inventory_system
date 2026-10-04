@@ -16,9 +16,10 @@ import {
 import { buildNewVariant, VariantForm } from '@features/inventory/models/variant-form.model';
 import { BrandSelectCtrl } from '@features/inventory/components/brand-select-crtl/brand-select-crtl.component';
 import { CategorySelectCtrl } from '@features/inventory/components/category-select-ctrl/category-select-ctrl.component';
-import { Gender } from '@features/inventory/interfaces/gender';
+import { GENDER_OPTIONS, Gender } from '@features/inventory/interfaces/gender';
 import { ProductSearchResult } from '@features/inventory/components/product-search/product-search-result.component';
 import { ToastService } from '@core/services/toast-service';
+import { ColorService } from '@features/inventory/services/color-service';
 
 const createVariantSchema = schema<VariantForm>((v) => {
   required(v.sizeId, { message: 'Requerido' });
@@ -33,13 +34,10 @@ const createVariantSchema = schema<VariantForm>((v) => {
   templateUrl: './create-product-modal.html',
 })
 export default class CreateProductModal implements OnInit {
-  readonly genderOptions = [
-    { label: 'UNISEX', value: Gender.Unisex },
-    { label: 'HOMBRE', value: Gender.Hombre },
-    { label: 'MUJER', value: Gender.Mujer },
-  ];
+  readonly genderOptions = GENDER_OPTIONS;
 
   private productService = inject(ProductService);
+  private colorService = inject(ColorService);
   private router = inject(Router);
   private toastService = inject(ToastService);
   close = output<void>();
@@ -107,6 +105,8 @@ export default class CreateProductModal implements OnInit {
   error = signal<string | null>(null);
 
   ngOnInit(): void {
+    // El select de color de cada talla/color lee ColorService pero no lo carga.
+    this.colorService.load();
     if (this.initialName()) {
       this.newProduct.update((current) => ({
         ...current,

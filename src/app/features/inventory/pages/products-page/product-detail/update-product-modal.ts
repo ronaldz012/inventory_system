@@ -1,7 +1,7 @@
 import { Component, input, output, OnInit, inject, signal } from '@angular/core';
 import { ProductDetailDto } from '../../../dtos/products/product-detail-dto';
 import { UpdateProductDto } from '../../../dtos/products/update-product-dto';
-import { Gender } from '../../../interfaces/gender';
+import { GENDER_OPTIONS, Gender } from '../../../interfaces/gender';
 import { CategoryService } from '../../../services/category-service';
 import { CategorySelectCtrl } from "@features/inventory/components/category-select-ctrl/category-select-ctrl.component";
 import { form, FormField, maxLength, minLength, required } from '@angular/forms/signals';
@@ -130,11 +130,7 @@ export class UpdateProductModal implements OnInit {
   save  = output<UpdateProductDto>();
   close = output<void>();
 
-  readonly genderOptions = [
-    { label: 'Unisex', value: Gender.Unisex },
-    { label: 'Hombre', value: Gender.Hombre },
-    { label: 'Mujer',  value: Gender.Mujer  },
-  ];
+  readonly genderOptions = GENDER_OPTIONS;
 
   formData = signal<{
     name:        string;

@@ -7,16 +7,13 @@ import { Paginator } from '@shared/components/app-paginator/app-paginator';
 import { ProductQueryParams } from '../../../dtos/products/product-dto';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 import { ProductFilterBar } from '../product-filter-bar/product-filter-bar';
-import { BrandService } from '@features/inventory/services/brand-service';
-import { CategoryService } from '@features/inventory/services/category-service';
-import { ColorService } from '@features/inventory/services/color-service';
 import CreateProductModal from '../create-product-modal/create-product-modal';
 import { PermissionService } from '@features/auth/services/permmision-service';
 
 @Component({
   selector: 'app-product-list',
   standalone: true,
-  imports: [ProductItem, SkeletonList, Paginator, ProductFilterBar, Paginator, CreateProductModal],
+  imports: [ProductItem, SkeletonList, Paginator, ProductFilterBar, CreateProductModal],
   template: `
     <div class="flex flex-col gap-3">
       <!-- Header: título + acciones -->
@@ -46,7 +43,11 @@ import { PermissionService } from '@features/auth/services/permmision-service';
       </div>
 
       <!-- Filtros -->
-      <app-product-filter-bar [params]="query()" (change)="patchQuery($event)" />
+      <app-product-filter-bar
+        [params]="query()"
+        (change)="patchQuery($event)"
+        (clear)="clearFilters()"
+      />
 
       <!-- Lista -->
       @if (loading()) {
@@ -67,18 +68,7 @@ import { PermissionService } from '@features/auth/services/permmision-service';
           @if (hasActiveFilters()) {
             <button
               class="font-inter text-xs font-bold text-accent-ui transition-colors duration-150 hover:underline"
-              (click)="
-                patchQuery({
-                  filter: undefined,
-                  categoryId: undefined,
-                  brandId: undefined,
-                  gender: undefined,
-                  includeInactive: undefined,
-                  sortBy: undefined,
-                  sortDescending: undefined,
-                  page: 1,
-                })
-              "
+              (click)="clearFilters()"
             >
               Limpiar filtros
             </button>
@@ -154,9 +144,6 @@ import { PermissionService } from '@features/auth/services/permmision-service';
 })
 export default class ProductList implements OnInit {
   private productService = inject(ProductService);
-  brandService = inject(BrandService);
-  categoryService = inject(CategoryService);
-  colorService = inject(ColorService);
   private router = inject(Router);
   readonly perm = inject(PermissionService);
 
@@ -174,7 +161,8 @@ export default class ProductList implements OnInit {
 
   hasActiveFilters = computed(() => {
     const q = this.query();
-    return !!(q.filter || q.categoryId || q.brandId || q.gender || q.includeInactive);
+    // Ojo: Gender.Unisex es 0, así que no vale un chequeo por truthiness.
+    return !!(q.filter || q.categoryId || q.brandId || q.gender !== undefined || q.includeInactive);
   });
 
   ngOnInit() {
@@ -184,6 +172,20 @@ export default class ProductList implements OnInit {
   patchQuery(patch: Partial<ProductQueryParams>) {
     this.query.update((q) => ({ ...q, ...patch }));
     this.load();
+  }
+
+  /** Un solo lugar que sabe qué se resetea (lo usa la barra y el estado vacío). */
+  clearFilters() {
+    this.patchQuery({
+      filter: undefined,
+      categoryId: undefined,
+      brandId: undefined,
+      gender: undefined,
+      includeInactive: undefined,
+      sortBy: undefined,
+      sortDescending: undefined,
+      page: 1,
+    });
   }
 
   load() {
@@ -197,9 +199,7 @@ export default class ProductList implements OnInit {
       },
       error: (err: any) => { this.loading.set(false); const e = err as { error?: { detail?: string; title?: string }; message?: string }; this.error.set(e?.error?.detail || e?.error?.title || e?.message || 'Error al cargar productos.'); },
     });
-    this.brandService.load();
-    this.categoryService.load();
-    this.colorService.load();
+    // Marcas y categorías las carga la barra de filtros (siempre montada).
   }
 
   goToDetail(id: GUID) {

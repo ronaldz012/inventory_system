@@ -278,85 +278,97 @@ describe('ProductDetail menú de orden', () => {
   });
 
   describe('modales por query param', () => {
-    const variantModal = (root: HTMLElement) =>
-      root.querySelector('app-update-variant-modal') as UpdateVariantModal | null;
+    it('muestra la etiqueta de género también para Unisex (0), no "—"', () => {
+      const { fixture, form } = setup();
+      expect(form.genderLabel(Gender.Unisex)).toBe('Unisex');
+      expect(form.genderLabel(Gender.Hombre)).toBe('Hombre');
+      expect(form.genderLabel(null)).toBe('—');
 
-    it('abre el modal de variante aunque el producto cargue después', () => {
-      deferProduct = true;
-      modalParam('edit:v2');
-      const fixture = TestBed.createComponent(Host);
-      fixture.detectChanges();
-      const form = fixture.debugElement.children[0].componentInstance as ProductDetail;
-
-      // el query param ya está, pero el producto todavía no: sin crashear
-      expect(form.editingVariant()).toBeNull();
-      expect(variantModal(fixture.nativeElement as HTMLElement)).toBeNull();
-
-      deliverProduct!();
-      fixture.detectChanges();
-
-      expect(form.editingVariant()?.sku).toBe('SKU-2');
-      expect(variantModal(fixture.nativeElement as HTMLElement)).not.toBeNull();
+      const root = fixture.nativeElement as HTMLElement;
+      expect(root.textContent).not.toContain('Género —');
     });
 
-    it('los tres modales de variante resuelven su variante desde la URL', () => {
-      const cases: [string, () => ProductVariantDto | null][] = [
-        ['edit:v3', () => null],
-        ['delete:v3', () => null],
-        ['adjust:v3', () => null],
-      ];
-      for (const [param] of cases) {
-        modalParam(param);
-        const { fixture, form } = setup();
-        expect(
-          form.editingVariant()?.sku ??
-            form.deletingVariant()?.sku ??
-            form.adjustingStockVariant()?.sku,
-        ).toBe('SKU-3');
-      }
-    });
+    describe('apertura por query param', () => {
+      const variantModal = (root: HTMLElement) =>
+        root.querySelector('app-update-variant-modal') as UpdateVariantModal | null;
 
-    it('?modal=edit-full y ?modal=product abren sus modales; ?modal=bulk-prices también', () => {
-      for (const [param, selector] of [
-        ['edit-full', 'app-product-edit-panel'],
-        ['product', 'app-update-product-modal'],
-        ['bulk-prices', 'app-bulk-price-modal'],
-        ['add-variant', 'app-add-variant-modal'],
-        ['delete-product', 'app-confirm-action-modal'],
-        ['toggle-status', 'app-confirm-action-modal'],
-      ] as const) {
-        modalParam(param);
+      it('abre el modal de variante aunque el producto cargue después', () => {
+        deferProduct = true;
+        modalParam('edit:v2');
         const fixture = TestBed.createComponent(Host);
         fixture.detectChanges();
-        const root = fixture.nativeElement as HTMLElement;
-        expect(root.querySelector(selector), `modal ${param}`).not.toBeNull();
-      }
-    });
+        const form = fixture.debugElement.children[0].componentInstance as ProductDetail;
 
-    it('quitar el query param cierra el modal', () => {
-      modalParam('edit:v2');
-      const fixture = TestBed.createComponent(Host);
-      fixture.detectChanges();
-      const form = fixture.debugElement.children[0].componentInstance as ProductDetail;
-      expect(form.editingVariant()).not.toBeNull();
+        // el query param ya está, pero el producto todavía no: sin crashear
+        expect(form.editingVariant()).toBeNull();
+        expect(variantModal(fixture.nativeElement as HTMLElement)).toBeNull();
 
-      modalParam(null);
-      fixture.detectChanges();
-      expect(form.editingVariant()).toBeNull();
-    });
+        deliverProduct!();
+        fixture.detectChanges();
 
-    it('?modal=product reutiliza el mismo guardado que edit-full (un solo PUT)', () => {
-      modalParam('product');
-      const fixture = TestBed.createComponent(Host);
-      fixture.detectChanges();
-      const modal = fixture.debugElement.query(By.directive(UpdateProductModal))
-        .componentInstance as UpdateProductModal;
-      modal.save.emit({ name: 'Zapato nuevo' });
-      fixture.detectChanges();
+        expect(form.editingVariant()?.sku).toBe('SKU-2');
+        expect(variantModal(fixture.nativeElement as HTMLElement)).not.toBeNull();
+      });
 
-      expect(updateCalls.length).toBe(1);
-      expect(updateCalls[0][0]).toBe('p1');
-      expect(updateCalls[0][1]).toEqual({ name: 'Zapato nuevo' });
+      it('los tres modales de variante resuelven su variante desde la URL', () => {
+        const cases: [string, () => ProductVariantDto | null][] = [
+          ['edit:v3', () => null],
+          ['delete:v3', () => null],
+          ['adjust:v3', () => null],
+        ];
+        for (const [param] of cases) {
+          modalParam(param);
+          const { fixture, form } = setup();
+          expect(
+            form.editingVariant()?.sku ??
+              form.deletingVariant()?.sku ??
+              form.adjustingStockVariant()?.sku,
+          ).toBe('SKU-3');
+        }
+      });
+
+      it('?modal=edit-full y ?modal=product abren sus modales; ?modal=bulk-prices también', () => {
+        for (const [param, selector] of [
+          ['edit-full', 'app-product-edit-panel'],
+          ['product', 'app-update-product-modal'],
+          ['bulk-prices', 'app-bulk-price-modal'],
+          ['add-variant', 'app-add-variant-modal'],
+          ['delete-product', 'app-confirm-action-modal'],
+          ['toggle-status', 'app-confirm-action-modal'],
+        ] as const) {
+          modalParam(param);
+          const fixture = TestBed.createComponent(Host);
+          fixture.detectChanges();
+          const root = fixture.nativeElement as HTMLElement;
+          expect(root.querySelector(selector), `modal ${param}`).not.toBeNull();
+        }
+      });
+
+      it('quitar el query param cierra el modal', () => {
+        modalParam('edit:v2');
+        const fixture = TestBed.createComponent(Host);
+        fixture.detectChanges();
+        const form = fixture.debugElement.children[0].componentInstance as ProductDetail;
+        expect(form.editingVariant()).not.toBeNull();
+
+        modalParam(null);
+        fixture.detectChanges();
+        expect(form.editingVariant()).toBeNull();
+      });
+
+      it('?modal=product reutiliza el mismo guardado que edit-full (un solo PUT)', () => {
+        modalParam('product');
+        const fixture = TestBed.createComponent(Host);
+        fixture.detectChanges();
+        const modal = fixture.debugElement.query(By.directive(UpdateProductModal))
+          .componentInstance as UpdateProductModal;
+        modal.save.emit({ name: 'Zapato nuevo' });
+        fixture.detectChanges();
+
+        expect(updateCalls.length).toBe(1);
+        expect(updateCalls[0][0]).toBe('p1');
+        expect(updateCalls[0][1]).toEqual({ name: 'Zapato nuevo' });
+      });
     });
   });
 });

@@ -14,6 +14,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { ProductService } from '../../../services/product-service';
 import { ProductDetailDto, ProductVariantDto } from '../../../dtos/products/product-detail-dto';
+import { GENDER_LABELS, Gender } from '../../../interfaces/gender';
 import { BranchContextService } from '@core/services/branch-context-service';
 
 import { UpdateProductVariantStockDto } from '../../../dtos/products/update-product-variant-stock-dto';
@@ -99,7 +100,7 @@ import {
               </div>
               <div class="min-w-0">
                 <p class="table-header">Género</p>
-                <p class="text-sm font-bold text-text-main truncate">{{ p.gender || '—' }}</p>
+                <p class="text-sm font-bold text-text-main truncate">{{ genderLabel(p.gender) }}</p>
               </div>
             </div>
             @if (p.description) {
@@ -981,5 +982,10 @@ export default class ProductDetail implements OnInit {
   /** Stock de la variante en una sucursal concreta (0 si no está). */
   stockAt(v: ProductVariantDto, branchId: GUID): number {
     return v.branchStocks.find((s) => s.branchId === branchId)?.stock ?? 0;
+  }
+
+  /** Etiqueta de género: `Gender.Unisex` es 0, así que no se puede usar `||`. */
+  genderLabel(gender: Gender | null | undefined): string {
+    return gender == null ? '—' : GENDER_LABELS[gender];
   }
 }
