@@ -118,7 +118,7 @@ import UpdateUserPanel from './update-user-panel/update-user-panel';
           <div class="bg-bg-surface rounded-xl border border-border-strong px-6 py-5">
             <p class="section-title mb-4">Acceso a sucursales</p>
             <div class="border border-border rounded-xl overflow-hidden">
-              <div class="hidden sm:grid grid-cols-2 gap-4 px-4 py-2 bg-bg-muted text-[10px] font-bold uppercase tracking-wider text-text-soft">
+              <div class="hidden sm:grid grid-cols-2 gap-4 px-4 py-2 bg-bg-muted table-header">
                 <span>Sucursal</span>
                 <span>Rol</span>
               </div>

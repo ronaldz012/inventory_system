@@ -1,22 +1,27 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ProductService } from '../../../services/product-service';
 import { ListProductDto } from '../../../dtos/products/list-product-dto';
 import ProductItem from './product-item/product-item';
 import { Paginator } from '@shared/components/app-paginator/app-paginator';
-import { ProductQueryParams } from '../../../dtos/products/product-dto';
+import {
+  parseProductQuery,
+  ProductQueryParams,
+  sameProductQuery,
+  serializeProductQuery,
+} from '../../../dtos/products/product-dto';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 import { ProductFilterBar } from '../product-filter-bar/product-filter-bar';
-import { BrandService } from '@features/inventory/services/brand-service';
-import { CategoryService } from '@features/inventory/services/category-service';
-import { ColorService } from '@features/inventory/services/color-service';
 import CreateProductModal from '../create-product-modal/create-product-modal';
 import { PermissionService } from '@features/auth/services/permmision-service';
+import { closeModal, openModal } from '@shared/utils/modal-query';
+import { readQuery, writeQuery } from '@shared/utils/list-query';
 
 @Component({
   selector: 'app-product-list',
   standalone: true,
-  imports: [ProductItem, SkeletonList, Paginator, ProductFilterBar, Paginator, CreateProductModal],
+  imports: [ProductItem, SkeletonList, Paginator, ProductFilterBar, CreateProductModal],
   template: `
     <div class="flex flex-col gap-3">
       <!-- Header: título + acciones -->
@@ -34,11 +39,7 @@ import { PermissionService } from '@features/auth/services/permmision-service';
           </button>
 
           @if (perm.canCreate('inventory', 'products')) {
-            <button
-              type="button"
-              (click)="showCreateModal.set(true)"
-              class="btn btn-primary btn-sm"
-            >
+            <button type="button" (click)="openCreateModal()" class="btn btn-primary btn-sm">
               + Nuevo producto
             </button>
           }
@@ -46,13 +47,19 @@ import { PermissionService } from '@features/auth/services/permmision-service';
       </div>
 
       <!-- Filtros -->
-      <app-product-filter-bar [params]="query()" (change)="patchQuery($event)" />
+      <app-product-filter-bar
+        [params]="query()"
+        (change)="patchQuery($event)"
+        (clear)="clearFilters()"
+      />
 
       <!-- Lista -->
       @if (loading()) {
         <app-skeleton-list [rows]="4" [columns]="3" />
       } @else if (error()) {
-        <div class="flex flex-col items-center gap-3 p-8 rounded border border-border bg-bg-surface shadow-sm">
+        <div
+          class="flex flex-col items-center gap-3 p-8 rounded border border-border bg-bg-surface shadow-sm"
+        >
           <span class="material-icons text-3xl text-feedback-error-text">error_outline</span>
           <p class="text-sm text-text-main">{{ error() }}</p>
           <button class="btn btn-primary btn-sm" (click)="load()">Reintentar</button>
@@ -67,18 +74,7 @@ import { PermissionService } from '@features/auth/services/permmision-service';
           @if (hasActiveFilters()) {
             <button
               class="font-inter text-xs font-bold text-accent-ui transition-colors duration-150 hover:underline"
-              (click)="
-                patchQuery({
-                  filter: undefined,
-                  categoryId: undefined,
-                  brandId: undefined,
-                  gender: undefined,
-                  includeInactive: undefined,
-                  sortBy: undefined,
-                  sortDescending: undefined,
-                  page: 1,
-                })
-              "
+              (click)="clearFilters()"
             >
               Limpiar filtros
             </button>
@@ -89,13 +85,22 @@ import { PermissionService } from '@features/auth/services/permmision-service';
         <div
           class="flex flex-col overflow-hidden rounded border border-border bg-bg-surface shadow-sm"
         >
-          <!-- Header columnas — solo desktop -->
+          <!-- Cabezal mobile (Nombre | Stock). Sin @if: acá products() nunca
+               está vacío porque el empty state es otra rama. -->
+          <div class="flex items-center gap-2 px-4 pr-8 pb-1.5 lg:hidden" aria-hidden="true">
+            <span class="flex-1 table-header">Nombre</span>
+            <span class="table-header">Stock</span>
+          </div>
+
+          <!-- Header columnas — solo desktop. Misma grilla que las filas (gridColumns). -->
           <div
-            class="hidden px-4 py-3 border-b border-border bg-bg-muted lg:grid grid-cols-[9rem_1fr_12rem_8rem_6rem_7rem_6.5rem] text-xs font-semibold uppercase tracking-wider text-text-soft"
+            class="hidden px-4 py-3 border-b border-border bg-bg-muted lg:grid table-header"
+            [style.grid-template-columns]="gridColumns"
           >
             <span>Código</span>
+            <span>Marca</span>
             <span>Nombre</span>
-            <span>Marca / Cat.</span>
+            <span>Categoría</span>
             <span class="pr-4 text-right">Talla/Color</span>
             <span class="pr-4 text-right">Stock</span>
             <span>Estado</span>
@@ -109,9 +114,8 @@ import { PermissionService } from '@features/auth/services/permmision-service';
                 class="row-enter"
                 [style.animation-delay.ms]="i * 30"
                 [product]="p"
-                [index]="i"
+                [gridColumns]="gridColumns"
                 (viewDetail)="goToDetail($event)"
-                (viewMovements)="goToMovements($event)"
               />
             }
           </ul>
@@ -121,8 +125,8 @@ import { PermissionService } from '@features/auth/services/permmision-service';
       <!-- Paginador -->
       @if (!loading() && totalItems() > 0) {
         <app-paginator
-          [page]="query().page!"
-          [pageSize]="query().pageSize!"
+          [page]="query().page"
+          [pageSize]="query().pageSize"
           [totalItems]="totalItems()"
           (pageChange)="patchQuery({ page: $event })"
           (pageSizeChange)="patchQuery({ pageSize: $event, page: 1 })"
@@ -131,7 +135,7 @@ import { PermissionService } from '@features/auth/services/permmision-service';
     </div>
 
     @if (showCreateModal()) {
-      <app-create-product-modal (close)="showCreateModal.set(false)" />
+      <app-create-product-modal (close)="closeCreateModal()" />
     }
   `,
   styles: [
@@ -152,61 +156,100 @@ import { PermissionService } from '@features/auth/services/permmision-service';
     `,
   ],
 })
-export default class ProductList implements OnInit {
+export default class ProductList {
   private productService = inject(ProductService);
-  brandService = inject(BrandService);
-  categoryService = inject(CategoryService);
-  colorService = inject(ColorService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   readonly perm = inject(PermissionService);
+
+  /** El queryParamMap es la fuente de verdad (filtros y modal). */
+  private readonly queryParams = toSignal(this.route.queryParamMap, { initialValue: null });
 
   products = signal<ListProductDto[]>([]);
   totalItems = signal(0);
   loading = signal(false);
   error = signal<string | null>(null);
 
-  query = signal<ProductQueryParams>({
-    page: 1,
-    pageSize: 10,
-  });
+  /**
+   * Estado de la lista derivado de la URL. Se escribe con `patchQuery`, nunca
+   * a mano: así refresh y "atrás" desde un detalle restauran el mismo estado.
+   * `sameProductQuery` evita recargas cuando la URL no cambió en sustancia
+   * (abrir/cerrar el modal no vuelve a pedir productos).
+   */
+  readonly query = computed<ProductQueryParams>(
+    () => parseProductQuery(readQuery(this.queryParams())),
+    { equal: sameProductQuery },
+  );
 
-  showCreateModal = signal(false);
+  /** Modal de crear producto: ?modal=create */
+  showCreateModal = computed(() => this.queryParams()?.get('modal') === 'create');
+
+  openCreateModal(): void {
+    openModal(this.router, this.route, 'create');
+  }
+
+  closeCreateModal(): void {
+    closeModal(this.router, this.route);
+  }
+
+  /**
+   * Grilla de la tabla: la comparten el header y las filas para que no puedan
+   * desalinearse. Código | Marca | Nombre | Categoría | Talla/Color | Stock | Estado | Acción
+   */
+  readonly gridColumns = '8rem 9rem 1fr 9rem 7rem 5.5rem 6rem 4.5rem';
 
   hasActiveFilters = computed(() => {
     const q = this.query();
-    return !!(q.filter || q.categoryId || q.brandId || q.gender || q.includeInactive);
+    // Ojo: Gender.Unisex es 0, así que no vale un chequeo por truthiness.
+    return !!(q.filter || q.categoryId || q.brandId || q.gender !== undefined || q.includeInactive);
   });
 
-  ngOnInit() {
-    this.load();
-  }
-
   patchQuery(patch: Partial<ProductQueryParams>) {
-    this.query.update((q) => ({ ...q, ...patch }));
-    this.load();
+    writeQuery(this.router, this.route, serializeProductQuery({ ...this.query(), ...patch }));
   }
 
-  load() {
+  clearFilters() {
+    this.patchQuery({
+      filter: undefined,
+      categoryId: undefined,
+      brandId: undefined,
+      gender: undefined,
+      includeInactive: undefined,
+      sortBy: undefined,
+      sortDescending: undefined,
+      page: 1,
+    });
+  }
+
+  constructor() {
+    effect(() => {
+      const q = this.query();
+      untracked(() => this.load(q));
+    });
+  }
+
+  load(q: ProductQueryParams = this.query()) {
     this.loading.set(true);
     this.error.set(null);
-    this.productService.getProducts(this.query()).subscribe({
+    this.productService.getProducts(q).subscribe({
       next: (data) => {
         this.products.set(data.items);
         this.totalItems.set(data.totalCount); // ajusta al nombre real de tu PagedResult
         this.loading.set(false);
       },
-      error: (err: any) => { this.loading.set(false); const e = err as { error?: { detail?: string; title?: string }; message?: string }; this.error.set(e?.error?.detail || e?.error?.title || e?.message || 'Error al cargar productos.'); },
+      error: (err: any) => {
+        this.loading.set(false);
+        const e = err as { error?: { detail?: string; title?: string }; message?: string };
+        this.error.set(
+          e?.error?.detail || e?.error?.title || e?.message || 'Error al cargar productos.',
+        );
+      },
     });
-    this.brandService.load();
-    this.categoryService.load();
-    this.colorService.load();
+    // Marcas y categorías las carga la barra de filtros (siempre montada).
   }
 
   goToDetail(id: GUID) {
     this.router.navigate(['inventory', 'products', id, 'detail']);
-  }
-  goToMovements(id: GUID) {
-    this.router.navigate(['inventory', 'products', id, 'movements']);
   }
   goToCatalogs() {
     this.router.navigate(['inventory', 'products', 'catalog']);

@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 import { ListProductDto } from '../../../../dtos/products/list-product-dto';
 
 @Component({
@@ -9,8 +9,18 @@ import { ListProductDto } from '../../../../dtos/products/list-product-dto';
 })
 export default class ProductItem {
   product = input.required<ListProductDto>();
-  index = input<number>(0);
+  /** Grilla compartida con el header de la lista (una sola fuente de verdad). */
+  gridColumns = input.required<string>();
 
   viewDetail = output<GUID>();
-  viewMovements = output<GUID>();
+
+  /** Semántica de color por cantidad: 0 · bajo (1-4) · normal (5+). */
+  readonly stockClasses = computed(() => {
+    const total = this.product().totalStock;
+    return total === 0
+      ? 'text-feedback-error-text'
+      : total < 5
+        ? 'text-feedback-warning-text'
+        : 'text-feedback-success-text';
+  });
 }

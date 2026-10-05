@@ -48,7 +48,7 @@
      ───────────────────────────── */
   --text-main:    #292929;  /* Negro Cal.com — peso visual limpio, no agresivo */
   --text-muted:   #555555;
-  --text-soft:    #888888;
+  --text-soft:    #707070;
   --text-inverse: #FFFFFF;
 
   /* ─────────────────────────────
@@ -138,7 +138,7 @@
      ───────────────────────────── */
   --text-main:    #F0EDE8;
   --text-muted:   #A8A29E;
-  --text-soft:    #6B6560;
+  --text-soft:    #8E8882;
   --text-inverse: #141414;
 
   /* ─────────────────────────────
@@ -283,11 +283,16 @@
 @import "./components.css";
 
 
-.material-icons {
-  display: inline-flex;
-  vertical-align: middle;
-  align-items: center;
-  justify-content: center;
+/* En @layer components para que las utilidades de Tailwind (hidden, flex, block…)
+   ganan cuando se combinan con un icono: si queda fuera de capa, su display
+   le gana a cualquier utilidad y `hidden` no oculta nada. */
+@layer components {
+  .material-icons {
+    display: inline-flex;
+    vertical-align: middle;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 @keyframes toast-in {

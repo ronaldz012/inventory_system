@@ -10,7 +10,7 @@ import {
 } from '@angular/forms/signals';
 import { ProductDetailDto } from '../../../../dtos/products/product-detail-dto';
 import { UpdateProductDto } from '../../../../dtos/products/update-product-dto';
-import { Gender } from '../../../../interfaces/gender';
+import { GENDER_OPTIONS, Gender } from '../../../../interfaces/gender';
 import { CategoryService } from '../../../../services/category-service';
 import { CategorySelectCtrl } from '@features/inventory/components/category-select-ctrl/category-select-ctrl.component';
 
@@ -210,17 +210,17 @@ const toCents = (v: number): number => Math.round(v * 100);
               <div
                 class="hidden md:grid grid-cols-[8rem_1fr_1fr_8rem] bg-bg-muted border-b border-border"
               >
-                <div class="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-text-soft">
+                <div class="px-3 py-2 table-header">
                   SKU
                 </div>
-                <div class="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-text-soft">
+                <div class="px-3 py-2 table-header">
                   Talla
                 </div>
-                <div class="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-text-soft">
+                <div class="px-3 py-2 table-header">
                   Color
                 </div>
                 <div
-                  class="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-text-soft text-right"
+                  class="px-3 py-2 table-header text-right"
                 >
                   Precio
                 </div>
@@ -318,11 +318,7 @@ export class ProductEditPanel implements OnInit {
   save = output<UpdateProductDto>();
   close = output<void>();
 
-  readonly genderOptions = [
-    { label: 'Unisex', value: Gender.Unisex },
-    { label: 'Hombre', value: Gender.Hombre },
-    { label: 'Mujer', value: Gender.Mujer },
-  ];
+  readonly genderOptions = GENDER_OPTIONS;
 
   // ── Modelo: única fuente de verdad ──
   editModel = signal<EditPanelModel>({

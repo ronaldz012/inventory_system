@@ -7,16 +7,15 @@
     <!-- Backdrop -->
     <div class="absolute inset-0 bg-overlay" (click)="close()"></div>
 
-    <!-- Panel -->
+    <!-- Panel: pantalla completa en mobile, diálogo en desktop -->
     <div
       class="modal-enter relative z-10 w-full max-w-lg mx-auto
-             bg-bg-surface rounded-t-2xl sm:rounded-2xl
+             bg-bg-surface rounded-none
+             sm:rounded-2xl
              shadow-lg overflow-hidden
-             flex flex-col max-h-[85dvh]"
+             flex flex-col h-[100dvh] max-h-[100dvh]
+             sm:h-auto sm:max-h-[85dvh]"
     >
-      <!-- Handle (mobile only) -->
-      <div class="sm:hidden w-10 h-1 rounded-full bg-bg-muted mx-auto mt-3 mb-1"></div>
-
       <!-- Header -->
       <div class="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border">
         <div class="flex items-center gap-2">
@@ -41,11 +40,16 @@
             type="text"
             [value]="query()"
             (input)="onInput($event)"
+            (keydown.enter)="onSearchEnter($event)"
             placeholder="Buscar por nombre, código o marca..."
+            aria-label="Buscar productos por nombre, código o marca"
+            enterkeyhint="search"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
             class="w-full pl-9 pr-9 py-2.5 text-sm text-text-main bg-bg-muted border border-border rounded-xl
                    placeholder:text-text-soft focus:outline-none focus:ring-1 focus:ring-accent-ui focus:border-accent-ui
                    transition-colors duration-150"
-            autofocus
           />
           <span class="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-text-soft text-[18px]">
             search
@@ -81,25 +85,39 @@
                 <button
                   type="button"
                   (click)="select(v.sku)"
-                  class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-accent-ui/10 transition-colors
-                         flex flex-col gap-1"
+                  [disabled]="v.availableStockInBranch <= 0"
+                  [attr.aria-label]="
+                    v.availableStockInBranch <= 0
+                      ? v.brandName + ' ' + v.productName + ' ' + v.size + ' sin stock'
+                      : 'Agregar ' + v.brandName + ' ' + v.productName + ' ' + v.size
+                  "
+                  class="w-full text-left px-3 py-2 rounded-xl transition-colors
+                         flex items-center gap-3
+                         enabled:hover:bg-accent-ui/10
+                         disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <span class="flex items-center justify-between gap-3">
-                    <span class="flex items-center gap-2 min-w-0">
-                      <span class="font-mono text-[11px] text-text-soft shrink-0">{{ v.sku }}</span>
-                      <span class="font-medium text-text-main text-[13px] truncate">
-                        {{ v.product.name }}
-                      </span>
+                  <span class="flex-1 min-w-0 flex flex-col gap-0.5">
+                    <span class="flex items-baseline gap-1 text-[13px] leading-tight min-w-0">
+                      @if (v.brandName) {
+                        <span class="shrink-0 font-bold text-text-main">{{ v.brandName }}</span>
+                        <span class="shrink-0 text-text-soft">·</span>
+                      }
+                      <span class="truncate font-semibold text-text-main">{{ v.productName }}</span>
                     </span>
-                    <span class="font-mono text-[13px] font-bold text-accent-ui shrink-0">
-                      {{ v.price | currency:'BOB':'symbol':'1.2-2' }}
+                    <span class="text-[11px] text-text-muted truncate">
+                      <span class="font-mono">{{ v.sku }}</span>
+                      @if (v.colorName || v.size) {
+                        · {{ v.colorName }}{{ v.size ? ' / ' + v.size : '' }}
+                      }
                     </span>
                   </span>
-                  <span class="text-[11px] text-text-muted">
-                    {{ v.product.brandName }}
-                    @if (v.colorName || v.size) {
-                      · {{ v.colorName }}{{ v.size ? ' / ' + v.size : '' }}
-                    }
+                  <span class="shrink-0 text-right font-mono">
+                    <span class="block text-[13px] font-bold text-accent-ui">
+                      {{ v.price | currency: 'BOB' : 'symbol' : '1.2-2' }}
+                    </span>
+                    <span class="block text-xs font-bold" [class]="stockClass(v.availableStockInBranch)">
+                      {{ v.availableStockInBranch }}u
+                    </span>
                   </span>
                 </button>
               </li>
@@ -108,8 +126,8 @@
         }
       </div>
 
-      <!-- Footer -->
-      <div class="px-4 pb-5 pt-1 border-t border-border">
+      <!-- Footer: solo desktop (en mobile la X ya cierra y se gana lista) -->
+      <div class="hidden sm:block px-4 pb-5 pt-1 border-t border-border">
         <button type="button" class="btn btn-secondary w-full" (click)="close()">
           Cancelar
         </button>

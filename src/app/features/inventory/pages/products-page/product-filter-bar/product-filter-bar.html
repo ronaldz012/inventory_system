@@ -1,89 +1,227 @@
-<div class="flex flex-wrap items-center gap-2">
-  <!-- Search -->
-  <div class="relative flex-1 min-w-[200px]">
-    <span class="absolute top-1/2 left-3 -translate-y-1/2 text-sm text-text-soft">🔍</span>
-    <input
-      type="text"
-      placeholder="Buscar por nombre o código..."
-      class="w-full pl-9 pr-3 py-2 text-sm bg-bg-muted border border-border rounded-xl text-text-main placeholder:text-text-soft focus:outline-none focus:ring-2 focus:ring-ring-focus-ring transition-colors"
-      [ngModel]="searchValue()"
-      (ngModelChange)="onSearch($event)"
-    />
+<div class="flex flex-col gap-2">
+  <!-- ── Fila 1: buscador + ordenar + filtros ─────────────────────────────── -->
+  <div class="flex items-center gap-2">
+    <!-- Search (incluye marca: el backend matchea nombre, código y marca).
+     Sin ícono de lupa, igual que el buscador de variantes del detalle:
+     el placeholder ya explica qué se busca y el input gana ancho en mobile. -->
+    <div class="relative flex-1 min-w-0">
+      <input
+        type="text"
+        placeholder="Buscar por nombre, código o marca…"
+        aria-label="Buscar productos por nombre, código o marca"
+        enterkeyhint="search"
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck="false"
+        class="w-full py-2 text-sm bg-bg-muted border border-border rounded-xl text-text-main placeholder:text-text-soft focus:outline-none focus:ring-2 focus:ring-ring-focus-ring transition-colors"
+        [class.pr-8]="searchValue()"
+        [class.pl-3]="!searchValue()"
+        [class.pl-2]="searchValue()"
+        [value]="searchValue()"
+        (input)="onSearch(valueOf($event))"
+        (keydown.enter)="onSearchEnter($event)"
+      />
+      @if (searchValue()) {
+        <button
+          type="button"
+          (click)="onSearch('')"
+          class="absolute right-2 top-1/2 -translate-y-1/2 text-text-soft hover:text-text-main"
+          aria-label="Limpiar búsqueda"
+        >
+          <span class="material-icons text-base">close</span>
+        </button>
+      }
+    </div>
+
+    <!-- Ordenar: menú con opciones explícitas (mismo patrón que el detalle) -->
+    <div class="relative shrink-0" data-sort-menu>
+      <button
+        #sortTrigger
+        type="button"
+        (click)="toggleSort()"
+        class="btn btn-sm gap-1 relative"
+        [class.btn-secondary]="!sortActive()"
+        [class.border-accent-ui]="sortActive()"
+        [class.bg-accent-ui/10]="sortActive()"
+        [class.text-accent-ui]="sortActive()"
+        aria-haspopup="menu"
+        [attr.aria-expanded]="sortMenuOpen()"
+        [title]="sortLabel()"
+        [attr.aria-label]="sortLabel()"
+      >
+        <span class="material-icons text-base leading-none">{{ sortIcon() }}</span>
+        <span class="hidden sm:inline whitespace-nowrap">{{ sortText() }}</span>
+        @if (sortActive()) {
+          <span
+            class="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-accent-ui"
+            aria-hidden="true"
+          ></span>
+        }
+      </button>
+
+      @if (sortMenuOpen()) {
+        <div
+          role="menu"
+          aria-label="Ordenar productos"
+          (keydown)="onSortMenuKeydown($event)"
+          class="absolute top-[calc(100%+6px)] right-0 z-50 w-max min-w-[13rem] max-w-[calc(100vw-2rem)] rounded-[10px] border border-border bg-bg-surface p-1 shadow-lg"
+        >
+          @for (opt of sortOptions; track opt.value) {
+            <button
+              #sortOption
+              type="button"
+              role="menuitemradio"
+              [attr.aria-checked]="currentSort() === opt.value"
+              (click)="selectSort(opt.value)"
+              class="w-full flex items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-sm transition-colors hover:bg-bg-muted"
+              [class.text-accent-ui]="currentSort() === opt.value"
+              [class.font-semibold]="currentSort() === opt.value"
+              [class.text-text-main]="currentSort() !== opt.value"
+            >
+              <span class="material-icons text-sm w-4 shrink-0 text-center leading-none">
+                @if (currentSort() === opt.value) {
+                  check
+                }
+              </span>
+              <span class="whitespace-nowrap">{{ opt.label }}</span>
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Filtros (categoría, género, inactivos) -->
+    <div class="relative shrink-0" data-filters-menu>
+      <button
+        #filtersTrigger
+        type="button"
+        (click)="toggleFilters()"
+        class="btn btn-sm gap-1"
+        [class.btn-secondary]="activeChips().length === 0"
+        [class.border-accent-ui]="activeChips().length > 0"
+        [class.bg-accent-ui/10]="activeChips().length > 0"
+        [class.text-accent-ui]="activeChips().length > 0"
+        aria-haspopup="dialog"
+        [attr.aria-expanded]="filtersOpen()"
+        title="Filtros"
+      >
+        <span class="material-icons text-base leading-none">filter_list</span>
+        <span class="hidden sm:inline">Filtros</span>
+        @if (activeChips().length > 0) {
+          <span
+            class="inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-accent-ui text-[10px] font-bold text-white"
+          >
+            {{ activeChips().length }}
+          </span>
+        }
+      </button>
+
+      @if (filtersOpen()) {
+        <div
+          role="dialog"
+          aria-label="Filtros de productos"
+          (keydown.enter)="applyFilters()"
+          class="absolute top-[calc(100%+6px)] right-0 z-50 w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-border bg-bg-surface p-3 shadow-lg flex flex-col gap-3"
+        >
+          <div>
+            <label class="field-label" for="filtro-categoria">Categoría</label>
+            <select
+              id="filtro-categoria"
+              class="w-full py-2 px-3 text-sm bg-bg-muted border border-border rounded-xl text-text-main focus:outline-none focus:ring-2 focus:ring-ring-focus-ring transition-colors"
+              (change)="setDraft({ categoryId: valueOf($event) || undefined })"
+            >
+              <option value="" [selected]="popover().categoryId === undefined">Todas</option>
+              @for (c of categories(); track c.id) {
+                <option [value]="c.id" [selected]="popover().categoryId === c.id">
+                  {{ c.name }}
+                </option>
+              }
+            </select>
+          </div>
+
+          <div>
+            <label class="field-label" for="filtro-genero">Género</label>
+            <select
+              id="filtro-genero"
+              class="w-full py-2 px-3 text-sm bg-bg-muted border border-border rounded-xl text-text-main focus:outline-none focus:ring-2 focus:ring-ring-focus-ring transition-colors"
+              (change)="setDraft({ gender: genderFromEvent($event) })"
+            >
+              <option value="" [selected]="popover().gender === undefined">Todos</option>
+              @for (opt of genderOptions; track opt.value) {
+                <option [value]="opt.value" [selected]="popover().gender === opt.value">
+                  {{ opt.label }}
+                </option>
+              }
+            </select>
+          </div>
+
+          <div class="flex items-center justify-between gap-2 pt-0.5">
+            <span class="text-sm text-text-main">Incluir inactivos</span>
+            <button
+              type="button"
+              role="switch"
+              [attr.aria-checked]="!!popover().includeInactive"
+              (click)="setDraft({ includeInactive: !popover().includeInactive })"
+              class="relative w-9 h-5 rounded-full transition-colors shrink-0"
+              [class.bg-accent-ui]="popover().includeInactive"
+              [class.bg-bg-muted]="!popover().includeInactive"
+              [class.border]="!popover().includeInactive"
+              [class.border-border]="!popover().includeInactive"
+              title="Mostrar también productos inactivos"
+            >
+              <span
+                class="absolute top-[2px] left-[2px] h-4 w-4 rounded-full bg-white transition-transform"
+                [class.translate-x-full]="popover().includeInactive"
+              ></span>
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2 border-t border-border pt-3">
+            <button
+              type="button"
+              (click)="clearDraft()"
+              data-filters-clear
+              class="btn btn-secondary btn-sm flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
+              [disabled]="popoverIsDefault()"
+            >
+              Limpiar
+            </button>
+            <button
+              type="button"
+              (click)="applyFilters()"
+              data-filters-apply
+              class="btn btn-primary btn-sm flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
+              [disabled]="!hasPending()"
+            >
+              Aplicar
+            </button>
+          </div>
+        </div>
+      }
+    </div>
   </div>
 
-  <!-- Incluir inactivos -->
-  <label
-    class="flex items-center gap-2 cursor-pointer select-none"
-    title="Mostrar también productos inactivos"
-  >
-    <span class="relative inline-flex items-center">
-      <input
-        type="checkbox"
-        class="sr-only peer"
-        [checked]="!!params().includeInactive"
-        (change)="onToggleInactive($event)"
-      />
-      <div
-        class="w-9 h-5 bg-bg-muted rounded-full peer peer-checked:bg-accent-ui peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"
-      ></div>
-    </span>
-    <span class="text-sm text-text-muted">Incluir inactivos</span>
-  </label>
-
-  <!-- Categoría -->
-  <select
-    class="py-2 px-3 text-sm bg-bg-muted border border-border rounded-xl text-text-muted focus:outline-none focus:ring-2 focus:ring-ring-focus-ring transition-colors"
-    [ngModel]="params().categoryId ?? ''"
-    (ngModelChange)="emit({ categoryId: $event || undefined, page: 1 })"
-  >
-    <option value="">Todas las categorías</option>
-    @for (c of categories(); track c.id) {
-      <option [value]="c.id">{{ c.name }}</option>
-    }
-  </select>
-
-  <!-- Marca -->
-  <select
-    class="py-2 px-3 text-sm bg-bg-muted border border-border rounded-xl text-text-muted focus:outline-none focus:ring-2 focus:ring-ring-focus-ring transition-colors"
-    [ngModel]="params().brandId ?? ''"
-    (ngModelChange)="emit({ brandId: $event || undefined, page: 1 })"
-  >
-    <option value="">Todas las marcas</option>
-    @for (b of brands(); track b.id) {
-      <option [value]="b.id">{{ b.name }}</option>
-    }
-  </select>
-
-  <!-- Género -->
-  <select
-    class="py-2 px-3 text-sm bg-bg-muted border border-border rounded-xl text-text-muted focus:outline-none focus:ring-2 focus:ring-ring-focus-ring transition-colors"
-    [ngModel]="params().gender ?? ''"
-    (ngModelChange)="emit({ gender: $event || undefined, page: 1 })"
-  >
-    <option value="">Todos los géneros</option>
-    <option [value]="Gender.Hombre">Masculino</option>
-    <option [value]="Gender.Mujer">Femenino</option>
-    <option [value]="Gender.Unisex">Unisex</option>
-  </select>
-
-  <!-- Ordenar por -->
-  <select
-    class="py-2 px-3 text-sm bg-bg-muted border border-border rounded-xl text-text-muted focus:outline-none focus:ring-2 focus:ring-ring-focus-ring transition-colors"
-    [ngModel]="currentSort()"
-    (ngModelChange)="onSortChange($event)"
-  >
-    <option value="created_desc">Más recientes</option>
-    <option value="stock_asc">Menor stock</option>
-    <option value="stock_desc">Mayor stock</option>
-  </select>
-
-  <!-- Clear filters -->
-  @if (hasActiveFilters()) {
-    <button
-      class="px-3 py-2 text-sm bg-btn-secondary-bg border border-border rounded-xl text-text-soft hover:bg-btn-secondary-hover hover:text-text-muted transition-colors"
-      (click)="clearAll()"
-    >
-      ✕ Limpiar
-    </button>
+  <!-- ── Chips: qué está filtrado ahora mismo ─────────────────────────────── -->
+  @if (activeChips().length > 0) {
+    <div class="flex flex-wrap items-center gap-1.5">
+      @for (chip of activeChips(); track chip.key) {
+        <button
+          type="button"
+          (click)="chip.clear()"
+          class="inline-flex items-center gap-1 py-1 pl-2 pr-1.5 rounded-lg bg-accent-ui/10 text-accent-ui text-xs font-medium border border-accent-ui/30 hover:bg-accent-ui/20 transition-colors"
+          [attr.aria-label]="'Quitar filtro ' + chip.label"
+        >
+          {{ chip.label }}
+          <span class="material-icons text-sm leading-none">close</span>
+        </button>
+      }
+      <button
+        type="button"
+        (click)="clearAll()"
+        class="text-xs text-text-soft hover:text-text-muted hover:underline px-1"
+      >
+        Limpiar
+      </button>
+    </div>
   }
 </div>

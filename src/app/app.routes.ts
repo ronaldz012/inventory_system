@@ -2,7 +2,6 @@ import { Routes } from '@angular/router';
 import { authGuard } from '@core/auth/auth-guard';
 import { featureGuard } from '@core/auth/feature-guard';
 import { adminGuard } from '@core/auth/admin-guard';
-import { lastViewGuard } from '@core/auth/last-view-guard';
 
 export const routes: Routes = [
   {
@@ -251,7 +250,7 @@ export const routes: Routes = [
           },
         ],
       },
-      { path: '', canActivate: [lastViewGuard], children: [] },
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: '**', redirectTo: 'not-found' },
     ],
   },

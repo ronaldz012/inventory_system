@@ -1,4 +1,22 @@
 <div class="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+  <!-- Destino compacto (solo mobile): contexto antes de escanear -->
+  <div class="md:hidden mb-4 flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-bg-surface">
+    <span class="text-xs text-text-soft shrink-0">De:</span>
+    <span class="text-xs font-bold text-text-main truncate">{{ originName() }}</span>
+    <span class="material-icons text-base text-accent-ui shrink-0">arrow_forward</span>
+    <div class="flex-1 min-w-0">
+      @if (loadingBranches()) {
+        <span class="text-xs text-text-soft">Cargando...</span>
+      } @else {
+        <app-branch-selector-destination
+          [compact]="true"
+          [branches]="branches()"
+          (branchSelected)="onBranchSelected($event)"
+        />
+      }
+    </div>
+  </div>
+
   <div class="grid grid-cols-1 md:grid-cols-[1fr_360px] gap-6 items-start">
     <!-- Columna izquierda: scanner + lista -->
     <div class="flex flex-col gap-4">
@@ -23,15 +41,12 @@
         }
       </div>
 
-      <div class="bg-bg-surface rounded-xl border border-border shadow-sm p-4">
-        <p class="text-xs font-medium text-text-soft uppercase tracking-wide mb-3">Items</p>
-        <app-create-transfer-item-list [items]="items()" (itemsChange)="items.set($event)" />
-      </div>
+      <app-create-transfer-item-list [items]="items()" (itemsChange)="items.set($event)" />
     </div>
 
     <!-- Columna derecha: configuración -->
     <div class="flex flex-col gap-4">
-      <div class="bg-bg-surface rounded-xl border border-border shadow-sm p-4">
+      <div class="hidden md:block bg-bg-surface rounded-xl border border-border shadow-sm p-4">
         <p class="text-xs font-medium text-text-soft uppercase tracking-wide mb-3">Destino</p>
 
         <div class="flex items-center gap-3">
@@ -90,4 +105,17 @@
       </div>
     </div>
   </div>
+
+  @if (showConfirm()) {
+    <app-transfer-confirm-modal
+      [originName]="originName()"
+      [destName]="destName()"
+      [productCount]="items().length"
+      [totalUnits]="totalUnits()"
+      [notes]="form().notes"
+      [submitting]="isSubmitting()"
+      (confirm)="executeCreate()"
+      (close)="closeConfirm()"
+    />
+  }
 </div>

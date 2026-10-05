@@ -6,12 +6,20 @@ import { BranchDto } from '../../../core/interfaces/branch.model';
   imports: [],
   template: `
     <div class="flex flex-col gap-1">
-      <label class="text-sm text-text-muted">Sucursal destino</label>
+      @if (!compact()) {
+        <label class="text-sm text-text-muted">Sucursal destino</label>
+      }
 
       <select
         (change)="onSelect($event)"
-        class="w-full px-3 py-2.5 text-base rounded-lg border border-border bg-bg-surface text-text-main
+        [attr.aria-label]="compact() ? 'Sucursal destino' : null"
+        class="w-full rounded-lg border border-border bg-bg-surface text-text-main
                focus:outline-none focus:ring-2 focus:ring-accent-ui/20 focus:border-accent-ui"
+        [class.px-3]="true"
+        [class.py-2.5]="!compact()"
+        [class.text-base]="!compact()"
+        [class.py-1.5]="compact()"
+        [class.text-sm]="compact()"
       >
         <option value="" disabled selected>Seleccionar sucursal...</option>
         @for (branch of branches(); track branch.id) {
@@ -25,6 +33,8 @@ import { BranchDto } from '../../../core/interfaces/branch.model';
 export class BranchSelectorDestination {
   branches = input.required<BranchDto[]>();
   branchSelected = output<BranchDto>();
+  /** Versión de una línea sin etiqueta (ej. barra mobile). */
+  compact = input(false);
 
   onSelect(event: Event): void {
     const target = event.target as HTMLSelectElement;
