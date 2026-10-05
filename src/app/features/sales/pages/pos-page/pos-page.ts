@@ -1,7 +1,12 @@
 import { Component, OnInit, ViewChild, signal, inject, computed } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { closeModal, openModal } from '@shared/utils/modal-query';
 import { SkuInput } from '@shared/components/sku-input/sku-input';
-import { isBarcodeApiAvailable, QrScannerModal } from '@features/sales/components/qr-scanner-modal/qr-scanner-modal';
+import {
+  isBarcodeApiAvailable,
+  QrScannerModal,
+} from '@features/sales/components/qr-scanner-modal/qr-scanner-modal';
 import { form, applyEach, min, validate } from '@angular/forms/signals';
 import { ProductService } from '@features/inventory/services';
 import { PosCartItemCardComponent } from './pos-item/pos-item.component';
@@ -50,13 +55,16 @@ export default class PosPage implements OnInit {
 
   @ViewChild(QrScannerModal) scanner!: QrScannerModal;
   private productService = inject(ProductService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
   scannerAvailable = signal(false);
 
   // Control de apertura para el BottomSheet de cobro en móviles
   isMobilePayOpen = signal(false);
 
-  // Control de apertura del modal de búsqueda de productos
-  isSearchOpen = signal(false);
+  /** El modal de búsqueda vive en la URL (?modal=search): "atrás" lo cierra. */
+  private readonly queryParams = toSignal(this.route.queryParamMap, { initialValue: null });
+  isSearchOpen = computed(() => this.queryParams()?.get('modal') === 'search');
 
   // 1. Estado reactivo principal del POS
   posModel = signal<PosSaleState>({
@@ -145,7 +153,11 @@ export default class PosPage implements OnInit {
   }
 
   private friendlyError(err: unknown, fallback: string): string {
-    const e = err as { error?: { detail?: string; title?: string; message?: string }; message?: string; status?: number };
+    const e = err as {
+      error?: { detail?: string; title?: string; message?: string };
+      message?: string;
+      status?: number;
+    };
     return e?.error?.detail || e?.error?.title || e?.error?.message || e?.message || fallback;
   }
 
@@ -186,15 +198,16 @@ export default class PosPage implements OnInit {
         this.checkRegister();
         this.toast.success('Caja abierta');
       },
-      error: (err) => this.toast.error(this.friendlyError(err, 'Error al abrir la caja. Intentá de nuevo.')),
+      error: (err) =>
+        this.toast.error(this.friendlyError(err, 'Error al abrir la caja. Intentá de nuevo.')),
     });
   }
 
   openSearch(): void {
-    this.isSearchOpen.set(true);
+    openModal(this.router, this.route, 'search');
   }
   closeSearch(): void {
-    this.isSearchOpen.set(false);
+    closeModal(this.router, this.route);
   }
 
   /** Agrega al carrito la variante elegida en el modal de búsqueda */
@@ -241,7 +254,8 @@ export default class PosPage implements OnInit {
           items: [],
         });
       },
-      error: (err) => this.toast.error(this.friendlyError(err, 'Error al procesar la venta. Intentá de nuevo.')),
+      error: (err) =>
+        this.toast.error(this.friendlyError(err, 'Error al procesar la venta. Intentá de nuevo.')),
     });
   }
 
@@ -302,7 +316,9 @@ export default class PosPage implements OnInit {
           this.toast.error(`SKU "${cleanSku}" no encontrado.`);
           return;
         }
-        this.toast.error(this.friendlyError(err, `No se encontró producto con código: ${cleanSku}`));
+        this.toast.error(
+          this.friendlyError(err, `No se encontró producto con código: ${cleanSku}`),
+        );
       },
     });
   }

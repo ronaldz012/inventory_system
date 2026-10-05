@@ -8,6 +8,7 @@ import { ListProductDto } from '../dtos/products/list-product-dto';
 import { ProductSearchResult } from '../components/product-search/product-search-result.component';
 import { ProductDetailDto } from '../dtos/products/product-detail-dto';
 import { ProductVariantBySkuDto } from '../dtos/products/product-variant-by-sku-dto';
+import { ProductVariantSearchDto } from '../dtos/products/product-variant-search-dto';
 import { UpdateProductDto } from '../dtos/products/update-product-dto';
 import { UpdateProductVariantDto } from '../dtos/products/update-product-variant-dto';
 import { UpdateProductVariantStockDto } from '../dtos/products/update-product-variant-stock-dto';
@@ -61,6 +62,18 @@ export class ProductService {
       params = params.set('includeInactive', 'true');
     }
     return this.http.get<ProductSearchResult[]>(this.product_url + '/Search', { params });
+  }
+
+  /**
+   * Búsqueda para el POS: una fila por variante, ya con precio y stock de la
+   * sucursal activa. Reemplaza a searchProduct + getVariantBySku en el modal.
+   */
+  searchVariants(request: string): Observable<ProductVariantSearchDto[]> {
+    let params = new HttpParams();
+    params = params.set('request', request);
+    return this.http.get<ProductVariantSearchDto[]>(`${this.productVariant_url}/search`, {
+      params,
+    });
   }
 
   updateStatus(productId: GUID, isActive: boolean): Observable<{ isActive: boolean }> {
