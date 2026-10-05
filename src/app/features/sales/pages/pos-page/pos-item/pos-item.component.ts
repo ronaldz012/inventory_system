@@ -3,8 +3,6 @@ import { FieldTree, FormField, form, min, validate } from '@angular/forms/signal
 import { CommonModule } from '@angular/common';
 import { PosCartItem } from '@features/sales/models/pos-sale-state.model';
 
-
-
 @Component({
   selector: 'app-pos-cart-item-card',
   standalone: true,
@@ -14,11 +12,9 @@ import { PosCartItem } from '@features/sales/models/pos-sale-state.model';
 export class PosCartItemCardComponent {
   // Inputs
   item = input.required<FieldTree<PosCartItem>>();
-  index = input.required<number>();
 
   removed = output<void>();
 
-  
   hasDiscount = computed(() => {
     const original = this.item().originalPrice().value();
     const selling = this.item().sellingPrice().value();
@@ -31,15 +27,16 @@ export class PosCartItemCardComponent {
     return price * qty;
   });
 
-
   adjustPrice(delta: number) {
     const currentPrice = this.item().sellingPrice().value();
     const originalPrice = this.item().originalPrice().value();
-    
+
     const newPrice = Math.max(0, currentPrice + delta);
 
     this.item().sellingPrice().value.set(newPrice);
-    this.item().discountAmount().value.set(originalPrice - newPrice);
+    this.item()
+      .discountAmount()
+      .value.set(originalPrice - newPrice);
   }
 
   onPriceInput(event: Event) {
@@ -48,7 +45,9 @@ export class PosCartItemCardComponent {
     const originalPrice = this.item().originalPrice().value();
 
     this.item().sellingPrice().value.set(newPrice);
-    this.item().discountAmount().value.set(originalPrice - newPrice);
+    this.item()
+      .discountAmount()
+      .value.set(originalPrice - newPrice);
   }
 
   // ── Controles de Cantidad ──────────────────────────────────────────
@@ -56,9 +55,9 @@ export class PosCartItemCardComponent {
   adjustQty(delta: number) {
     const currentQty = this.item().quantity().value();
     const maxStock = this.item().stock().value();
-    
+
     const newQty = Math.max(1, Math.min(maxStock, currentQty + delta));
-    
+
     this.item().quantity().value.set(newQty);
   }
 

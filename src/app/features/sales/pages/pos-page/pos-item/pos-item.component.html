@@ -1,107 +1,151 @@
-<!-- POS CART ITEM — Rediseño -->
+<!-- POS CART ITEM — misma estructura que create-transfer-item-list -->
 <div
-  class="bg-bg-surface border border-border rounded-xl shadow-xs hover:shadow-md hover:border-border-strong transition-all duration-200 group overflow-hidden"
+  class="bg-bg-surface border border-border rounded-xl px-3 py-2.5 flex flex-col gap-1.5"
   [class.border-feedback-error]="
     (item().sellingPrice().touched() && item().sellingPrice().invalid()) ||
     (item().quantity().touched() && item().quantity().invalid())
   "
 >
-
-  <!-- DESKTOP -->
-  <div class="hidden md:flex items-center gap-4 px-4 py-3">
-    <!-- Info -->
-    <div class="flex-1 min-w-0 flex flex-col gap-1.5">
-      <span class="font-mono text-xs font-bold tracking-wide text-accent-ui">{{ item().sku().value() }}</span>
-      <p class="text-[15px] font-bold text-text-main leading-snug break-words">{{ item().productName().value() }}</p>
-      <div class="flex items-center gap-2">
-        <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-bg-muted border border-border text-sm font-black text-text-main">#{{ item().size().value() }}</span>
-        <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-accent-ui/10 border border-accent-ui/20 text-sm font-bold text-accent-ui">{{ item().colorName().value() }}</span>
-        <span class="text-xs text-text-soft">{{ item().stock().value() }} disp. · {{ item().stock().value() - item().quantity().value() }} libre</span>
-      </div>
-    </div>
-
-    <!-- Precio -->
-    <div class="flex flex-col items-center gap-1 shrink-0">
-      @if (hasDiscount()) {
-        <span class="text-xs line-through text-text-soft font-mono">{{ item().originalPrice().value() | currency:'BOB':'symbol':'1.2-2' }}</span>
-      }
-      <div class="flex items-stretch rounded-lg overflow-hidden border border-border h-9 shadow-2xs">
-        <button type="button" (click)="adjustPrice(-5)" [disabled]="item().sellingPrice().value() <= 0" class="px-2.5 text-xs font-mono font-black text-text-muted bg-bg-muted hover:bg-feedback-error/10 hover:text-feedback-error-text border-r border-border transition-colors disabled:opacity-30">−5</button>
-        <input type="number" inputmode="decimal" [formField]="item().sellingPrice" (input)="onPriceInput($event)" step="5" class="w-20 text-center text-sm font-black text-accent-ui bg-bg-surface font-mono focus:outline-none" />
-        <button type="button" (click)="adjustPrice(5)" class="px-2.5 text-xs font-mono font-black text-text-muted bg-bg-muted hover:bg-feedback-success/10 hover:text-feedback-success-text border-l border-border transition-colors">+5</button>
-      </div>
-      @if (hasDiscount()) {
-        <span class="pill-success text-[10px] font-mono px-1.5 py-0.5 rounded-md font-bold">−{{ item().discountAmount().value() | currency:'BOB':'symbol':'1.2-2' }}</span>
-      }
-    </div>
-
-    <!-- Cantidad -->
-    <div class="flex items-stretch rounded-lg overflow-hidden border border-border h-9 shadow-2xs shrink-0">
-      <button type="button" (click)="adjustQty(-1)" [disabled]="item().quantity().value() <= 1" class="px-3 text-sm font-bold text-text-muted bg-bg-muted hover:bg-bg-elevated border-r border-border transition-colors disabled:opacity-30">−</button>
-      <input type="number" inputmode="numeric" [formField]="item().quantity" class="w-12 text-center text-sm font-extrabold text-text-main bg-bg-surface font-mono focus:outline-none select-none" />
-      <button type="button" (click)="adjustQty(1)" [disabled]="item().quantity().value() >= item().stock().value()" class="px-3 text-sm font-bold text-text-muted bg-bg-muted hover:bg-bg-elevated border-l border-border transition-colors disabled:opacity-30">+</button>
-    </div>
-
-    <!-- Subtotal + delete -->
-    <div class="text-right min-w-[110px] shrink-0 font-mono">
-      <span class="text-[10px] uppercase tracking-wider text-text-soft block font-bold leading-none mb-1">Subtotal</span>
-      <span class="text-base font-black text-accent-ui">{{ subtotal() | currency:'BOB':'symbol':'1.2-2' }}</span>
-    </div>
-    <button type="button" (click)="onRemove()" class="action-btn action-btn--delete shrink-0 opacity-0 group-hover:opacity-100" title="Eliminar">
+  <!-- Fila 1: SKU + eliminar -->
+  <div class="flex items-center gap-2">
+    <p class="flex-1 min-w-0 font-mono text-[11px] font-bold tracking-wide text-accent-ui truncate">
+      {{ item().sku().value() }}
+    </p>
+    <button
+      type="button"
+      (click)="onRemove()"
+      class="md:hidden shrink-0 action-text action-text--delete"
+    >
+      Eliminar
+    </button>
+    <button
+      type="button"
+      (click)="onRemove()"
+      aria-label="Quitar producto"
+      class="hidden md:flex shrink-0 w-8 h-8 rounded-lg text-text-soft items-center justify-center hover:bg-feedback-error hover:text-feedback-error-text transition-colors"
+    >
       <span class="material-icons text-base">delete</span>
     </button>
   </div>
 
-  <!-- MOBILE -->
-  <div class="flex flex-col md:hidden">
-    <div class="flex items-start justify-between gap-3 p-4 pb-3">
-      <div class="flex-1 min-w-0 flex flex-col gap-2">
-        <span class="font-mono text-xs font-bold tracking-wide text-accent-ui">{{ item().sku().value() }}</span>
-        <p class="text-[15px] font-bold text-text-main leading-snug break-words">{{ item().productName().value() }}</p>
-        <div class="flex items-center gap-2">
-          <span class="inline-flex items-center px-3 py-1.5 rounded-lg bg-bg-muted border border-border text-base font-black text-text-main">#{{ item().size().value() }}</span>
-          <span class="inline-flex items-center px-3 py-1.5 rounded-lg bg-accent-ui/10 border border-accent-ui/20 text-sm font-bold text-accent-ui">{{ item().colorName().value() }}</span>
-        </div>
-        <span class="text-xs text-text-soft">{{ item().stock().value() }} disp. · {{ item().stock().value() - item().quantity().value() }} libre</span>
-      </div>
-      <button type="button" (click)="onRemove()" class="action-btn action-btn--delete shrink-0" title="Eliminar">
-        <span class="material-icons text-base">delete</span>
+  <!-- Fila 2: Marca · Nombre -->
+  <p class="text-sm font-semibold text-text-main break-words leading-snug">
+    @if (item().brandName().value()) {
+      <span>{{ item().brandName().value() }} · </span>
+    }
+    {{ item().productName().value() }}
+  </p>
+
+  <!-- Fila 3: variante + cantidad -->
+  <div class="flex items-center gap-2">
+    <div class="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap">
+      <span
+        class="inline-flex items-center px-2 py-0.5 rounded-md bg-accent-ui/10 border border-accent-ui/20 text-[11px] font-bold text-accent-ui"
+        >{{ item().colorName().value() }}</span
+      >
+      <span
+        class="inline-flex items-center px-2 py-0.5 rounded-md bg-bg-muted border border-border text-[11px] font-bold text-text-main"
+        >#{{ item().size().value() }}</span
+      >
+      <span class="text-[11px] text-text-soft tabular-nums"
+        >{{ item().stock().value() }} disp.</span
+      >
+    </div>
+    <div class="flex items-center gap-1 shrink-0" aria-label="Cantidad">
+      <button
+        type="button"
+        (click)="adjustQty(-1)"
+        [disabled]="item().quantity().value() <= 1"
+        aria-label="Quitar uno"
+        class="w-8 h-8 rounded-lg border border-border bg-bg-muted text-text-main flex items-center justify-center text-base font-bold leading-none disabled:opacity-30 disabled:cursor-not-allowed hover:bg-bg-elevated active:scale-95 transition-all"
+      >
+        −
+      </button>
+      <input
+        type="number"
+        inputmode="numeric"
+        [formField]="item().quantity"
+        aria-label="Cantidad"
+        class="w-8 text-center text-sm font-mono font-bold tabular-nums text-text-main bg-transparent focus:outline-none select-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+      />
+      <button
+        type="button"
+        (click)="adjustQty(1)"
+        [disabled]="item().quantity().value() >= item().stock().value()"
+        aria-label="Agregar uno"
+        class="w-8 h-8 rounded-lg border border-border bg-bg-muted text-text-main flex items-center justify-center text-base font-bold leading-none disabled:opacity-30 disabled:cursor-not-allowed hover:bg-bg-elevated active:scale-95 transition-all"
+      >
+        +
       </button>
     </div>
+  </div>
 
-    <div class="grid grid-cols-2 gap-3 px-4 pb-3">
-      <div class="flex flex-col gap-1">
-        <span class="text-[10px] uppercase font-bold text-text-soft">Precio</span>
-        <div class="flex items-stretch rounded-lg overflow-hidden border border-border h-9 bg-bg-surface">
-          <button type="button" (click)="adjustPrice(-5)" [disabled]="item().sellingPrice().value() <= 0" class="flex-1 text-xs font-mono font-bold bg-bg-muted hover:bg-bg-elevated border-r border-border transition-colors">-5</button>
-          <input type="number" inputmode="decimal" [formField]="item().sellingPrice" (input)="onPriceInput($event)" step="5" class="w-14 text-center text-sm font-black text-accent-ui bg-bg-surface font-mono focus:outline-none" />
-          <button type="button" (click)="adjustPrice(5)" class="flex-1 text-xs font-mono font-bold bg-bg-muted hover:bg-bg-elevated border-l border-border transition-colors">+5</button>
-        </div>
-        @if (hasDiscount()) {
-          <span class="text-xs line-through text-text-soft font-mono">{{ item().originalPrice().value() | currency:'BOB':'symbol':'1.2-2' }}</span>
-        }
+  <!-- Fila 4: precio + subtotal -->
+  <div class="flex items-end justify-between gap-2">
+    <div class="flex flex-col gap-0.5">
+      <span class="text-[10px] uppercase font-bold text-text-soft leading-none">Precio</span>
+      <div class="flex items-center gap-1">
+        <button
+          type="button"
+          (click)="adjustPrice(-5)"
+          [disabled]="item().sellingPrice().value() <= 0"
+          aria-label="Bajar precio 5"
+          class="w-8 h-8 rounded-lg border border-border bg-bg-muted text-text-main flex items-center justify-center text-xs font-mono font-bold leading-none disabled:opacity-30 disabled:cursor-not-allowed hover:bg-bg-elevated active:scale-95 transition-all"
+        >
+          −5
+        </button>
+        <input
+          type="number"
+          inputmode="decimal"
+          [formField]="item().sellingPrice"
+          (input)="onPriceInput($event)"
+          step="5"
+          aria-label="Precio de venta"
+          class="w-20 text-center text-sm font-black text-accent-ui bg-transparent font-mono focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+        <button
+          type="button"
+          (click)="adjustPrice(5)"
+          aria-label="Subir precio 5"
+          class="w-8 h-8 rounded-lg border border-border bg-bg-muted text-text-main flex items-center justify-center text-xs font-mono font-bold leading-none disabled:opacity-30 disabled:cursor-not-allowed hover:bg-bg-elevated active:scale-95 transition-all"
+        >
+          +5
+        </button>
       </div>
-      <div class="flex flex-col gap-1">
-        <span class="text-[10px] uppercase font-bold text-text-soft">Cantidad</span>
-        <div class="flex items-stretch rounded-lg overflow-hidden border border-border h-9 bg-bg-surface">
-          <button type="button" (click)="adjustQty(-1)" [disabled]="item().quantity().value() <= 1" class="flex-1 text-sm font-bold bg-bg-muted hover:bg-bg-elevated border-r border-border transition-colors">−</button>
-          <input type="number" inputmode="numeric" [formField]="item().quantity" class="w-10 text-center text-sm font-extrabold text-text-main bg-bg-surface font-mono focus:outline-none select-none" />
-          <button type="button" (click)="adjustQty(1)" [disabled]="item().quantity().value() >= item().stock().value()" class="flex-1 text-sm font-bold bg-bg-muted hover:bg-bg-elevated border-l border-border transition-colors">+</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="flex items-center justify-between px-4 py-2.5 bg-bg-muted/40 border-t border-border">
       @if (hasDiscount()) {
-        <span class="pill-success text-[10px] font-mono px-2 py-0.5 rounded-md font-bold">Ahorro −{{ (item().discountAmount().value() * item().quantity().value()) | currency:'BOB':'symbol':'1.2-2' }}</span>
-      } @else {
-        <span></span>
+        <span class="text-[11px] line-through text-text-soft font-mono tabular-nums"
+          >Bs {{ item().originalPrice().value() | number: '1.2-2' }}</span
+        >
       }
-      <span class="text-sm font-black text-accent-ui font-mono">{{ subtotal() | currency:'BOB':'symbol':'1.2-2' }}</span>
+    </div>
+    <div class="text-right shrink-0 font-mono">
+      <span class="text-[10px] uppercase font-bold text-text-soft block leading-none mb-0.5"
+        >Subtotal</span
+      >
+      <span class="text-base font-black text-accent-ui tabular-nums">{{
+        subtotal() | currency: 'BOB' : 'symbol' : '1.2-2'
+      }}</span>
+      @if (hasDiscount()) {
+        <span
+          class="pill-success text-[10px] font-mono px-1.5 py-0.5 rounded-md font-bold block w-fit ml-auto mt-0.5"
+          >−Bs {{ item().discountAmount().value() | number: '1.2-2' }}</span
+        >
+      }
     </div>
   </div>
 
   @if (item().quantity().touched() && item().quantity().invalid()) {
-    <div class="bg-feedback-error/5 text-feedback-error-text text-[11px] px-3 py-1.5 text-center border-t border-border/40 font-bold">⚠️ {{ item().quantity().errors()[0].message }}</div>
+    <div
+      class="bg-feedback-error/5 text-feedback-error-text text-[11px] px-3 py-1.5 text-center rounded-lg font-bold"
+    >
+      ⚠️ {{ item().quantity().errors()[0].message }}
+    </div>
+  }
+  @if (item().sellingPrice().touched() && item().sellingPrice().invalid()) {
+    <div
+      class="bg-feedback-error/5 text-feedback-error-text text-[11px] px-3 py-1.5 text-center rounded-lg font-bold"
+    >
+      ⚠️ {{ item().sellingPrice().errors()[0].message }}
+    </div>
   }
 </div>

@@ -147,7 +147,7 @@
                 track cartItem().value().productVariantId;
                 let i = $index
               ) {
-                <app-pos-cart-item-card [item]="cartItem" [index]="i" (removed)="removeItem(i)" />
+                <app-pos-cart-item-card [item]="cartItem" (removed)="removeItem(i)" />
               }
             </div>
 

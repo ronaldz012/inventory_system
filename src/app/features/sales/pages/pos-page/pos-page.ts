@@ -292,7 +292,7 @@ export default class PosPage implements OnInit {
               productName: variant.productName,
               quantity: 1,
               categoryName: variant.categoryName,
-              brandName: '',
+              brandName: variant.brandName,
               sku: variant.sku,
               size: variant.size,
               colorName: variant.colorName,

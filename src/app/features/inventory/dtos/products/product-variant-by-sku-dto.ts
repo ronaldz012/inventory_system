@@ -16,6 +16,7 @@ export interface ProductVariantBySkuDto {
   productDescription: string;
   gender: number | string;
   branchName: string;
+  brandName: string;
   categoryName: string;
   isActive?: boolean;
 }
