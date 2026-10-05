@@ -126,35 +126,216 @@ describe('ProductFilterBar', () => {
     expect(chips(fixture)[0].textContent).toContain('Género: Mujer');
   });
 
-  it('el toggle de inactivos dentro del popover emite includeInactive', () => {
-    const { fixture, host } = setup();
-    filtersBtn(fixture).click();
-    fixture.detectChanges();
+  describe('popover de filtros con botón Aplicar', () => {
+    const openPopover = (f: ComponentFixture<Host>): void => {
+      filtersBtn(f).click();
+      f.detectChanges();
+    };
+    const applyBtn = (f: ComponentFixture<Host>): HTMLButtonElement =>
+      root(f).querySelector<HTMLButtonElement>('[data-filters-apply]')!;
+    const clearBtn = (f: ComponentFixture<Host>): HTMLButtonElement =>
+      root(f).querySelector<HTMLButtonElement>('[data-filters-clear]')!;
+    const category = (f: ComponentFixture<Host>): HTMLSelectElement =>
+      root(f).querySelector<HTMLSelectElement>('#filtro-categoria')!;
+    const gender = (f: ComponentFixture<Host>): HTMLSelectElement =>
+      root(f).querySelector<HTMLSelectElement>('#filtro-genero')!;
+    const inactive = (f: ComponentFixture<Host>): HTMLButtonElement =>
+      root(f).querySelector<HTMLButtonElement>('[role="switch"]')!;
 
-    const toggle = root(fixture).querySelector<HTMLButtonElement>('[role="switch"]')!;
-    expect(toggle.getAttribute('aria-checked')).toBe('false');
-    toggle.click();
-    fixture.detectChanges();
-    expect(host.patches.at(-1)).toEqual({ includeInactive: true, page: 1 });
+    it('cambiar un control NO emite nada (solo edita el borrador)', () => {
+      const { fixture, host } = setup();
+      openPopover(fixture);
+      host.patches.length = 0;
 
-    toggle.click();
-    fixture.detectChanges();
-    expect(host.patches.at(-1)).toEqual({ includeInactive: undefined, page: 1 });
-  });
+      category(fixture).value = 'c1';
+      category(fixture).dispatchEvent(new Event('change'));
+      gender(fixture).value = String(Gender.Hombre);
+      gender(fixture).dispatchEvent(new Event('change'));
+      inactive(fixture).click();
+      fixture.detectChanges();
 
-  it('el género se emite como número y vacío como undefined', () => {
-    const { fixture, host } = setup();
-    filtersBtn(fixture).click();
-    fixture.detectChanges();
+      expect(host.patches).toHaveLength(0);
+    });
 
-    const gender = root(fixture).querySelector<HTMLSelectElement>('#filtro-genero')!;
-    gender.value = String(Gender.Hombre);
-    gender.dispatchEvent(new Event('change'));
-    expect(host.patches.at(-1)).toEqual({ gender: Gender.Hombre, page: 1 });
+    it('"Aplicar" emite los tres campos juntos, en una sola llamada', () => {
+      const { fixture, host } = setup();
+      openPopover(fixture);
+      host.patches.length = 0;
 
-    gender.value = '';
-    gender.dispatchEvent(new Event('change'));
-    expect(host.patches.at(-1)).toEqual({ gender: undefined, page: 1 });
+      category(fixture).value = 'c1';
+      category(fixture).dispatchEvent(new Event('change'));
+      gender(fixture).value = String(Gender.Mujer);
+      gender(fixture).dispatchEvent(new Event('change'));
+      inactive(fixture).click();
+      fixture.detectChanges();
+
+      applyBtn(fixture).click();
+      fixture.detectChanges();
+
+      expect(host.patches).toEqual([
+        { categoryId: 'c1', gender: Gender.Mujer, includeInactive: true, page: 1 },
+      ]);
+      expect(host.cleared()).toBe(false);
+    });
+
+    it('"Aplicar" cierra el popover', () => {
+      const { fixture, bar } = setup();
+      openPopover(fixture);
+      category(fixture).value = 'c1';
+      category(fixture).dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+      applyBtn(fixture).click();
+      fixture.detectChanges();
+      expect(bar.filtersOpen()).toBe(false);
+    });
+
+    it('"Aplicar" empieza deshabilitado y se habilita al cambiar algo', () => {
+      const { fixture } = setup();
+      openPopover(fixture);
+      expect(applyBtn(fixture).disabled).toBe(true);
+
+      category(fixture).value = 'c1';
+      category(fixture).dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+      expect(applyBtn(fixture).disabled).toBe(false);
+    });
+
+    it('"Aplicar" vuelve a deshabilitarse si se vuelve al valor aplicado', () => {
+      const { fixture, host } = setup();
+      openPopover(fixture);
+      category(fixture).value = 'c1';
+      category(fixture).dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+      expect(applyBtn(fixture).disabled).toBe(false);
+
+      category(fixture).value = '';
+      category(fixture).dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+      expect(applyBtn(fixture).disabled).toBe(true);
+      expect(host.patches).toHaveLength(0);
+    });
+
+    it('Enter dentro del popover aplica', () => {
+      const { fixture, host } = setup();
+      openPopover(fixture);
+      host.patches.length = 0;
+      category(fixture).value = 'c1';
+      category(fixture).dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+
+      root(fixture)
+        .querySelector<HTMLElement>('[role="dialog"]')!
+        .dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      fixture.detectChanges();
+
+      expect(host.patches).toEqual([
+        { categoryId: 'c1', gender: undefined, includeInactive: undefined, page: 1 },
+      ]);
+    });
+
+    it('"Limpiar" resetea el borrador sin emitir, y queda el borrador = default', () => {
+      const { fixture, host } = setup();
+      openPopover(fixture);
+      host.patches.length = 0;
+      category(fixture).value = 'c1';
+      category(fixture).dispatchEvent(new Event('change'));
+      gender(fixture).value = String(Gender.Hombre);
+      gender(fixture).dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+
+      clearBtn(fixture).click();
+      fixture.detectChanges();
+
+      expect(host.patches).toHaveLength(0);
+      expect(category(fixture).value).toBe('');
+      expect(gender(fixture).value).toBe('');
+      expect(inactive(fixture).getAttribute('aria-checked')).toBe('false');
+    });
+
+    it('"Limpiar" se habilita solo si hay algo puesto en el popover', () => {
+      const { fixture } = setup();
+      openPopover(fixture);
+      expect(clearBtn(fixture).disabled).toBe(true);
+      inactive(fixture).click();
+      fixture.detectChanges();
+      expect(clearBtn(fixture).disabled).toBe(false);
+    });
+
+    it('al reabrir el popover se descarta el borrador (parte del estado aplicado)', () => {
+      const { fixture, host } = setup();
+      openPopover(fixture);
+      category(fixture).value = 'c1';
+      category(fixture).dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+
+      filtersBtn(fixture).click(); // cerrar
+      fixture.detectChanges();
+      filtersBtn(fixture).click(); // reabrir
+      fixture.detectChanges();
+
+      expect(category(fixture).value).toBe('');
+      expect(host.patches).toHaveLength(0);
+    });
+
+    it('los chips siguen mostrando el estado aplicado, no el borrador', () => {
+      const { fixture, host } = setup();
+      openPopover(fixture);
+      category(fixture).value = 'c1';
+      category(fixture).dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+
+      expect(chips(fixture)).toHaveLength(0);
+
+      applyBtn(fixture).click();
+      fixture.detectChanges();
+
+      expect(host.params().categoryId).toBe('c1');
+      expect(chips(fixture)).toHaveLength(1);
+    });
+
+    it('sin cambios pendientes "Aplicar" está deshabilitado y no emite', () => {
+      const { fixture, host, bar } = setup();
+      openPopover(fixture);
+      host.patches.length = 0;
+      expect(applyBtn(fixture).disabled).toBe(true);
+
+      applyBtn(fixture).click();
+      fixture.detectChanges();
+      expect(host.patches).toHaveLength(0);
+      expect(bar.filtersOpen()).toBe(true);
+    });
+
+    it('el valor aplicado se muestra aunque las opciones lleguen después', () => {
+      // Las categorías pueden responder más tarde que la apertura del popover;
+      // como la selección vive en cada <option> ([selected]), el orden no importa.
+      categories.set([]);
+      const { fixture, host } = setup();
+      host.params.set({ page: 1, pageSize: 10, categoryId: 'c1' });
+      fixture.detectChanges();
+
+      openPopover(fixture);
+      expect(category(fixture).value).toBe('');
+
+      categories.set([{ id: 'c1', name: 'Calzado' }]);
+      fixture.detectChanges();
+
+      expect(category(fixture).value).toBe('c1');
+    });
+
+    it('tras aplicar, el popover reabierto muestra el filtro aplicado', async () => {
+      const { fixture, host } = setup();
+      openPopover(fixture);
+      category(fixture).value = 'c1';
+      category(fixture).dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+      applyBtn(fixture).click();
+      fixture.detectChanges();
+      await fixture.whenStable(); // el host ya propagó el nuevo params
+
+      openPopover(fixture);
+      expect(category(fixture).value).toBe('c1');
+      expect(host.params().categoryId).toBe('c1');
+    });
   });
 
   it('Enter aplica la búsqueda al instante y baja el teclado', () => {
@@ -181,19 +362,16 @@ describe('ProductFilterBar', () => {
     expect(root(fixture).querySelector('input')!.getAttribute('enterkeyhint')).toBe('search');
   });
 
-  it('Limpiar filtros emite el evento clear y cierra el popover', () => {
-    const { fixture, host, bar } = setup();
+  it('el "Limpiar" de los chips limpia todo y emite clear', () => {
+    const { fixture, host } = setup();
     host.params.set({ page: 1, pageSize: 10, categoryId: 'c1' });
     fixture.detectChanges();
-    filtersBtn(fixture).click();
+
+    const clear = root(fixture).querySelector<HTMLButtonElement>('[aria-label^="Quitar filtro"]')!;
+    clear.click();
     fixture.detectChanges();
 
-    // "Limpiar filtros" es el único button hijo directo del popover
-    root(fixture).querySelector<HTMLButtonElement>('[role="dialog"] > button')!.click();
-    fixture.detectChanges();
-
-    expect(host.cleared()).toBe(true);
-    expect(bar.filtersOpen()).toBe(false);
+    expect(host.patches.at(-1)).toEqual({ categoryId: undefined, page: 1 });
   });
 
   describe('menú de orden', () => {

@@ -17,8 +17,8 @@
         [class.pr-8]="searchValue()"
         [class.pl-3]="!searchValue()"
         [class.pl-2]="searchValue()"
-        [ngModel]="searchValue()"
-        (ngModelChange)="onSearch($event)"
+        [value]="searchValue()"
+        (input)="onSearch(valueOf($event))"
         (keydown.enter)="onSearchEnter($event)"
       />
       @if (searchValue()) {
@@ -120,6 +120,7 @@
         <div
           role="dialog"
           aria-label="Filtros de productos"
+          (keydown.enter)="applyFilters()"
           class="absolute top-[calc(100%+6px)] right-0 z-50 w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-border bg-bg-surface p-3 shadow-lg flex flex-col gap-3"
         >
           <div>
@@ -127,12 +128,13 @@
             <select
               id="filtro-categoria"
               class="w-full py-2 px-3 text-sm bg-bg-muted border border-border rounded-xl text-text-main focus:outline-none focus:ring-2 focus:ring-ring-focus-ring transition-colors"
-              [ngModel]="params().categoryId ?? ''"
-              (ngModelChange)="emit({ categoryId: $event || undefined, page: 1 })"
+              (change)="setDraft({ categoryId: valueOf($event) || undefined })"
             >
-              <option value="">Todas</option>
+              <option value="" [selected]="popover().categoryId === undefined">Todas</option>
               @for (c of categories(); track c.id) {
-                <option [value]="c.id">{{ c.name }}</option>
+                <option [value]="c.id" [selected]="popover().categoryId === c.id">
+                  {{ c.name }}
+                </option>
               }
             </select>
           </div>
@@ -142,12 +144,13 @@
             <select
               id="filtro-genero"
               class="w-full py-2 px-3 text-sm bg-bg-muted border border-border rounded-xl text-text-main focus:outline-none focus:ring-2 focus:ring-ring-focus-ring transition-colors"
-              [ngModel]="params().gender ?? ''"
-              (ngModelChange)="emit({ gender: $event === '' ? undefined : +$event, page: 1 })"
+              (change)="setDraft({ gender: genderFromEvent($event) })"
             >
-              <option value="">Todos</option>
+              <option value="" [selected]="popover().gender === undefined">Todos</option>
               @for (opt of genderOptions; track opt.value) {
-                <option [value]="opt.value">{{ opt.label }}</option>
+                <option [value]="opt.value" [selected]="popover().gender === opt.value">
+                  {{ opt.label }}
+                </option>
               }
             </select>
           </div>
@@ -157,30 +160,42 @@
             <button
               type="button"
               role="switch"
-              [attr.aria-checked]="!!params().includeInactive"
-              (click)="onToggleInactive()"
+              [attr.aria-checked]="!!popover().includeInactive"
+              (click)="setDraft({ includeInactive: !popover().includeInactive })"
               class="relative w-9 h-5 rounded-full transition-colors shrink-0"
-              [class.bg-accent-ui]="params().includeInactive"
-              [class.bg-bg-muted]="!params().includeInactive"
-              [class.border]="!params().includeInactive"
-              [class.border-border]="!params().includeInactive"
+              [class.bg-accent-ui]="popover().includeInactive"
+              [class.bg-bg-muted]="!popover().includeInactive"
+              [class.border]="!popover().includeInactive"
+              [class.border-border]="!popover().includeInactive"
               title="Mostrar también productos inactivos"
             >
               <span
                 class="absolute top-[2px] left-[2px] h-4 w-4 rounded-full bg-white transition-transform"
-                [class.translate-x-full]="params().includeInactive"
+                [class.translate-x-full]="popover().includeInactive"
               ></span>
             </button>
           </div>
 
-          <button
-            type="button"
-            (click)="clearAll()"
-            class="btn btn-secondary btn-sm w-full"
-            [disabled]="activeChips().length === 0"
-          >
-            Limpiar filtros
-          </button>
+          <div class="flex items-center gap-2 border-t border-border pt-3">
+            <button
+              type="button"
+              (click)="clearDraft()"
+              data-filters-clear
+              class="btn btn-secondary btn-sm flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
+              [disabled]="popoverIsDefault()"
+            >
+              Limpiar
+            </button>
+            <button
+              type="button"
+              (click)="applyFilters()"
+              data-filters-apply
+              class="btn btn-primary btn-sm flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
+              [disabled]="!hasPending()"
+            >
+              Aplicar
+            </button>
+          </div>
         </div>
       }
     </div>

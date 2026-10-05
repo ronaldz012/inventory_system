@@ -13,10 +13,10 @@ import {
   viewChildren,
 } from '@angular/core';
 import { CategoryService } from '../../../services/category-service';
-import { FormsModule } from '@angular/forms';
 import { ProductQueryParams, ProductSortBy } from '../../../dtos/products/product-dto';
 import { GENDER_LABELS, GENDER_OPTIONS, Gender } from '../../../interfaces/gender';
 import { BrandService } from '@features/inventory/services/brand-service';
+import { asNumber } from '@shared/utils/list-query';
 
 /** Filtro activo mostrado como chip (etiqueta + cómo se quita). */
 interface FilterChip {
@@ -27,9 +27,16 @@ interface FilterChip {
 
 type SortValue = 'created_desc' | 'stock_desc' | 'stock_asc';
 
+/** Opción de orden: ya trae el patch que emite (no hay switch separado). */
+interface SortOption {
+  value: SortValue;
+  label: string;
+  sortBy: ProductSortBy;
+  sortDescending: boolean;
+}
+
 @Component({
   selector: 'app-product-filter-bar',
-  imports: [FormsModule],
   templateUrl: './product-filter-bar.html',
   styles: ``,
 })
@@ -39,8 +46,6 @@ export class ProductFilterBar implements OnInit {
   /** Limpiar todo (el contenedor decide qué resetea: también la búsqueda). */
   clear = output<void>();
 
-  Gender = Gender;
-  ProductSortBy = ProductSortBy;
   readonly genderOptions = GENDER_OPTIONS;
 
   private categoryService = inject(CategoryService);
@@ -58,6 +63,17 @@ export class ProductFilterBar implements OnInit {
     effect(() => this.searchValue.set(this.params().filter ?? ''));
   }
 
+  /** Valor del control que-originó el evento (input o select). */
+  valueOf(event: Event): string {
+    return (event.target as HTMLInputElement | HTMLSelectElement).value;
+  }
+
+  /** Valor de un select de género: '' (Todos) → undefined; si no, número. */
+  genderFromEvent(event: Event): Gender | undefined {
+    const raw = this.valueOf(event);
+    return raw === '' ? undefined : asNumber(raw, Gender.Unisex);
+  }
+
   ngOnInit(): void {
     this.categoryService.load();
     this.brandService.load();
@@ -71,47 +87,48 @@ export class ProductFilterBar implements OnInit {
   onSearch(value: string) {
     this.searchValue.set(value);
     if (this.debounceTimer) clearTimeout(this.debounceTimer);
-    this.debounceTimer = setTimeout(() => this.emit({ filter: value || undefined, page: 1 }), 350);
+    this.debounceTimer = setTimeout(
+      () => this.change.emit({ filter: value || undefined, page: 1 }),
+      350,
+    );
   }
 
   /** Enter = "listo": baja el teclado y aplica la búsqueda inmediatamente. */
   onSearchEnter(event: Event) {
     const searchBox = event.target as HTMLInputElement;
     if (this.debounceTimer) clearTimeout(this.debounceTimer);
-    this.emit({ filter: searchBox.value || undefined, page: 1 });
+    this.change.emit({ filter: searchBox.value || undefined, page: 1 });
     searchBox.blur();
   }
 
-  onSortChange(value: SortValue) {
-    switch (value) {
-      case 'stock_asc':
-        this.emit({ sortBy: ProductSortBy.Stock, sortDescending: false, page: 1 });
-        break;
-      case 'stock_desc':
-        this.emit({ sortBy: ProductSortBy.Stock, sortDescending: true, page: 1 });
-        break;
-      default:
-        this.emit({ sortBy: ProductSortBy.CreatedAt, sortDescending: true, page: 1 });
-    }
-  }
-
-  onToggleInactive() {
-    this.emit({ includeInactive: !this.params().includeInactive || undefined, page: 1 });
-  }
-
-  currentSort(): SortValue {
+  readonly currentSort = computed<SortValue>(() => {
     const p = this.params();
     if (p.sortBy === ProductSortBy.Stock) {
       return p.sortDescending ? 'stock_desc' : 'stock_asc';
     }
     return 'created_desc';
-  }
+  });
 
   // ── Menú de orden ────────────────────────────────────────────────────────
-  readonly sortOptions: readonly { value: SortValue; label: string }[] = [
-    { value: 'created_desc', label: 'Más recientes' },
-    { value: 'stock_desc', label: 'Mayor stock' },
-    { value: 'stock_asc', label: 'Menor stock' },
+  readonly sortOptions: readonly SortOption[] = [
+    {
+      value: 'created_desc',
+      label: 'Más recientes',
+      sortBy: ProductSortBy.CreatedAt,
+      sortDescending: true,
+    },
+    {
+      value: 'stock_desc',
+      label: 'Mayor stock',
+      sortBy: ProductSortBy.Stock,
+      sortDescending: true,
+    },
+    {
+      value: 'stock_asc',
+      label: 'Menor stock',
+      sortBy: ProductSortBy.Stock,
+      sortDescending: false,
+    },
   ];
 
   sortMenuOpen = signal(false);
@@ -151,7 +168,9 @@ export class ProductFilterBar implements OnInit {
   }
 
   selectSort(value: SortValue): void {
-    this.onSortChange(value);
+    const option = this.sortOptions.find((o) => o.value === value);
+    if (option)
+      this.change.emit({ sortBy: option.sortBy, sortDescending: option.sortDescending, page: 1 });
     this.sortMenuOpen.set(false);
   }
 
@@ -217,21 +236,73 @@ export class ProductFilterBar implements OnInit {
     }
   }
 
-  emit(patch: Partial<ProductQueryParams>) {
-    this.change.emit(patch);
-  }
-
   // ── Popover de filtros ───────────────────────────────────────────────────
   filtersOpen = signal(false);
   private filtersTrigger = viewChild<ElementRef<HTMLButtonElement>>('filtersTrigger');
 
+  /**
+   * Los 3 controles del popover escriben en un borrador; recién al pulsar
+   * "Aplicar" se emite. Así una ronda de filtros = una navegación + un request
+   * (y no tres), y los chips/badge siguen reflejando el estado aplicado.
+   * `null` = sin borrador → se muestra el estado aplicado.
+   */
+  private readonly draft = signal<ProductQueryParams | null>(null);
+
+  readonly popover = computed<ProductQueryParams>(() => this.draft() ?? this.params());
+
+  /** Hay cambios sin aplicar (comparación por campo, como sameProductQuery). */
+  readonly hasPending = computed(() => !this.samePopover(this.popover(), this.params()));
+
+  /** Los 3 campos del popover están en su valor por defecto. */
+  readonly popoverIsDefault = computed(() => {
+    const p = this.popover();
+    return !p.categoryId && p.gender === undefined && !p.includeInactive;
+  });
+
+  private samePopover(a: ProductQueryParams, b: ProductQueryParams): boolean {
+    return (
+      a.categoryId === b.categoryId &&
+      a.gender === b.gender &&
+      a.includeInactive === b.includeInactive
+    );
+  }
+
+  /** Un cambio dentro del popover NO navega: solo edita el borrador. */
+  setDraft(patch: Partial<ProductQueryParams>): void {
+    this.draft.update((current) => ({ ...(current ?? this.params()), ...patch }));
+  }
+
+  /** Limpiar los 3 campos del popover (tampoco navega). */
+  clearDraft(): void {
+    this.setDraft({ categoryId: undefined, gender: undefined, includeInactive: undefined });
+  }
+
+  /** Único punto de salida del popover: una navegación + un request. */
+  applyFilters(): void {
+    if (this.hasPending()) {
+      const draft = this.popover();
+      this.change.emit({
+        categoryId: draft.categoryId,
+        gender: draft.gender,
+        includeInactive: draft.includeInactive,
+        page: 1,
+      });
+    }
+    this.draft.set(null);
+    this.filtersOpen.set(false);
+  }
+
   toggleFilters(): void {
-    this.filtersOpen.update((v) => !v);
+    const next = !this.filtersOpen();
+    this.filtersOpen.set(next);
+    // Al abrir siempre se parte del estado aplicado (nada de borradores viejos).
+    if (next) this.draft.set(null);
   }
 
   closeFilters(): void {
     if (!this.filtersOpen()) return;
     this.filtersOpen.set(false);
+    this.draft.set(null);
     this.filtersTrigger()?.nativeElement.focus();
   }
 
@@ -251,7 +322,7 @@ export class ProductFilterBar implements OnInit {
       chips.push({
         key: 'categoryId',
         label: `Categoría: ${name ?? '—'}`,
-        clear: () => this.emit({ categoryId: undefined, page: 1 }),
+        clear: () => this.change.emit({ categoryId: undefined, page: 1 }),
       });
     }
 
@@ -260,16 +331,15 @@ export class ProductFilterBar implements OnInit {
       chips.push({
         key: 'brandId',
         label: `Marca: ${name ?? '—'}`,
-        clear: () => this.emit({ brandId: undefined, page: 1 }),
+        clear: () => this.change.emit({ brandId: undefined, page: 1 }),
       });
     }
 
     if (p.gender !== undefined) {
-      const label = GENDER_LABELS[p.gender] ?? 'Todos';
       chips.push({
         key: 'gender',
-        label: `Género: ${label}`,
-        clear: () => this.emit({ gender: undefined, page: 1 }),
+        label: `Género: ${GENDER_LABELS[p.gender]}`,
+        clear: () => this.change.emit({ gender: undefined, page: 1 }),
       });
     }
 
@@ -277,7 +347,7 @@ export class ProductFilterBar implements OnInit {
       chips.push({
         key: 'includeInactive',
         label: 'Inactivos',
-        clear: () => this.emit({ includeInactive: undefined, page: 1 }),
+        clear: () => this.change.emit({ includeInactive: undefined, page: 1 }),
       });
     }
 
