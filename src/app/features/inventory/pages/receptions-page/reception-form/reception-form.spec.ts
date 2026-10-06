@@ -238,4 +238,27 @@ describe('ReceptionForm confirm flow', () => {
     expect(form.showConfirm()).toBe(false);
     expect(createSpy.calls).toBe(0);
   });
+
+  it('la vista muestra productos, unidades y costo total', () => {
+    const { fixture, form } = setup();
+    const [base] = item.variants;
+    form.reception.set({
+      notes: '',
+      items: [
+        {
+          ...item,
+          variants: [
+            { ...base, id: 'v1', quantityReceived: 10, unitCost: 5 },
+            { ...base, id: 'v2', quantityReceived: 14, unitCost: 10 },
+          ],
+        },
+      ],
+    });
+    fixture.detectChanges();
+
+    const text = ((fixture.nativeElement as HTMLElement).textContent ?? '').replace(/\s+/g, ' ');
+    expect(text).toContain('Productos (1)');
+    expect(text).toContain('24');
+    expect(text).toContain('190');
+  });
 });

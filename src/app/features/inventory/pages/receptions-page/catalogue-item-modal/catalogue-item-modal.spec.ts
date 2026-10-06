@@ -91,6 +91,46 @@ describe('CatalogueItemModal — inclusión por cantidad', () => {
     expect(modal.error()).toBe('Cargá al menos una cantidad.');
   });
 
+  it('el costo único se aplica en vivo a todas las filas', () => {
+    const modal = setup();
+    modal.onProductSelected(fakeProduct);
+
+    modal.onUniqueCostChange('45');
+
+    const costs = modal.itemModel().variants.map((v) => v.unitCost);
+    expect(costs).toEqual([45, 45]);
+  });
+
+  it('vaciar el costo único no borra los costos por fila', () => {
+    const modal = setup();
+    modal.onProductSelected(fakeProduct);
+    modal.onUniqueCostChange('45');
+    modal.updateVariantField(0, 'unitCost', { target: { value: '50' } } as unknown as Event);
+
+    modal.onUniqueCostChange('');
+
+    const costs = modal.itemModel().variants.map((v) => v.unitCost);
+    expect(costs).toEqual([50, 45]);
+  });
+
+  it('al salir del costo único se limpia solo el campo, no las filas', () => {
+    const fixture = TestBed.createComponent(CatalogueItemModal);
+    fixture.detectChanges();
+    const modal = fixture.componentInstance;
+    const root = fixture.nativeElement as HTMLElement;
+    modal.onProductSelected(fakeProduct);
+    modal.onUniqueCostChange('45');
+    fixture.detectChanges();
+
+    const master = root.querySelector<HTMLInputElement>('input[placeholder="0.00"]')!;
+    master.dispatchEvent(new FocusEvent('blur'));
+    fixture.detectChanges();
+
+    expect(modal.masterCost()).toBeNull();
+    expect(modal.itemModel().variants.map((v) => v.unitCost)).toEqual([45, 45]);
+    expect(master.value).toBe('');
+  });
+
   describe('búsqueda por pasos', () => {
     function setupDom() {
       const fixture = TestBed.createComponent(CatalogueItemModal);
@@ -156,6 +196,12 @@ describe('CatalogueItemModal — inclusión por cantidad', () => {
 
       expect(modal.showSearchStep()).toBe(false);
       expect(modal.itemModel().variants).toHaveLength(2);
+
+      const header = (root.textContent ?? '').replace(/\s+/g, ' ');
+      expect(header).toContain('Nike');
+      expect(header).toContain('Zapato');
+      expect(header.indexOf('Nike')).toBeLessThan(header.indexOf('Zapato'));
+      expect(header).toContain('2 tallas');
     });
 
     it('Cambiar vuelve al paso de búsqueda', () => {

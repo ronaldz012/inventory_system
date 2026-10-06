@@ -319,12 +319,10 @@ export default class CatalogueItemModal implements OnInit {
   }
 
   onUniqueCostChange(value: string): void {
-    this.masterCost.set(parseAmountInput(value));
-  }
-
-  /** Escribe el costo único en todas las filas (commit explícito, sin propagación en vivo). */
-  applyUniqueCost(): void {
-    const cost = this.masterCost();
+    const cost = parseAmountInput(value);
+    this.masterCost.set(cost);
+    // En vivo, pero con guarda: vacío/inválido no toca las filas (no borra
+    // costos cargados uno por uno al limpiar el campo).
     if (cost == null) return;
     this.itemModel.update((current) => ({
       ...current,
