@@ -47,6 +47,16 @@
   </div>
 
   <div class="space-y-3">
+    <!-- Buscador inline: elige el modelo, el panel configura sus variantes -->
+    <div class="flex flex-col gap-1">
+      <span class="field-label">Agregar producto</span>
+      <app-product-search
+        [excludeIds]="existingProductIds()"
+        (productSelected)="onInlineProductPicked($event)"
+        (createNew)="onNotFound($event)"
+      />
+    </div>
+
     @if (submitError()) {
       <div
         class="px-3 py-2 text-sm text-feedback-error-text bg-feedback-error border border-border rounded-md"

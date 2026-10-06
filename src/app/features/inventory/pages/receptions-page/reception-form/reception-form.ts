@@ -15,6 +15,7 @@ import { ProviderService } from '@features/inventory/services/provider-service';
 import { ItemForm, Reception, VariantForm } from '@features/inventory/models/variant-form.model';
 import { ProductSearchResult } from '@features/inventory/components/product-search/product-search-result.component';
 import ProviderSelectCtrl from '@features/inventory/components/provider-select-ctrl/provider-select-ctrl';
+import { ProductSearch } from '@features/inventory/components/product-search/product-search.component';
 import { closeModal, getModalId, openModal, swapModal } from '@shared/utils/modal-query';
 import { ToastService } from '@core/services/toast-service';
 import { BranchContextService } from '@core/services/branch-context-service';
@@ -28,6 +29,7 @@ import { BranchContextService } from '@core/services/branch-context-service';
     CreateProductModal,
     ProviderSelectCtrl,
     ReceptionConfirmModal,
+    ProductSearch,
   ],
   templateUrl: './reception-form.html',
 })
@@ -267,6 +269,15 @@ export default class ReceptionForm implements OnInit {
 
   openAddCatalogueModal(): void {
     this.pendingProduct.set(null);
+    this.pushModal('catalogue');
+  }
+
+  /**
+   * El inline elige el modelo; el panel configura sus variantes (sin cambios).
+   */
+  onInlineProductPicked(product: ProductSearchResult | null): void {
+    if (!product) return;
+    this.pendingProduct.set(product);
     this.pushModal('catalogue');
   }
 }
