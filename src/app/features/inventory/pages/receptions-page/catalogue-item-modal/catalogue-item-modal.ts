@@ -1,23 +1,39 @@
-import { Component, computed, inject, input, output, signal, OnInit } from '@angular/core';
+import {
+  afterNextRender,
+  Component,
+  computed,
+  DestroyRef,
+  ElementRef,
+  inject,
+  input,
+  OnInit,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
-import { applyEach, applyWhen, form, required } from '@angular/forms/signals';
+import { debounceTime, distinctUntilChanged, finalize, Subject, switchMap } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { applyEach, applyWhen, form, min, required, schema } from '@angular/forms/signals';
 
-import { ProductSearch } from '../../../components/product-search/product-search.component';
 import { ProductSearchResult } from '../../../components/product-search/product-search-result.component';
 
 import { ProductService } from '@features/inventory/services/product-service';
-import { Gender } from '@features/inventory/interfaces/gender';
+import { GENDER_LABELS, Gender } from '@features/inventory/interfaces/gender';
 import { existingVariantSchema, ItemForm } from '@features/inventory/models/variant-form.model';
 import { blockNonNumericKeys, parseAmountInput } from '@shared/utils/list-query';
 
 @Component({
   selector: 'app-catalogue-item-modal',
   standalone: true,
-  imports: [ProductSearch, CurrencyPipe],
+  imports: [CurrencyPipe],
   templateUrl: './catalogue-item-modal.html',
 })
 export default class CatalogueItemModal implements OnInit {
   private productService = inject(ProductService);
+  private destroyRef = inject(DestroyRef);
+  private search$ = new Subject<string>();
+  private searchInput = viewChild<ElementRef<HTMLInputElement>>('catalogueSearchInput');
 
   // ── Inputs ────────────────────────────────────────────────────────────
   mode = input<'add' | 'edit'>('add');
@@ -34,6 +50,79 @@ export default class CatalogueItemModal implements OnInit {
   // ── Estado UI ─────────────────────────────────────────────────────────
   error = signal<string | null>(null);
   selectedProduct = signal<ProductSearchResult | null>(null);
+
+  // ── Búsqueda por pasos (sin dropdown): paso 1 buscar, paso 2 variantes ──
+  searchQuery = signal('');
+  searching = signal(false);
+  searchResults = signal<ProductSearchResult[]>([]);
+
+  /** Sin producto (y en modo add) se busca; con producto se cargan variantes. */
+  showSearchStep = computed(() => this.mode() === 'add' && !this.selectedProduct());
+
+  visibleSearchResults = computed(() => {
+    const excluded = new Set(this.mode() === 'add' ? this.existingProductIds() : []);
+    return this.searchResults().filter((r) => !excluded.has(r.id));
+  });
+
+  showSearchEmpty = computed(
+    () =>
+      !this.searching() &&
+      this.visibleSearchResults().length === 0 &&
+      this.searchQuery().trim().length >= 2,
+  );
+
+  constructor() {
+    afterNextRender(() => {
+      if (this.showSearchStep()) this.searchInput()?.nativeElement.focus();
+    });
+
+    this.search$
+      .pipe(
+        debounceTime(400),
+        distinctUntilChanged(),
+        switchMap((q) => {
+          if (q.trim().length < 2) {
+            this.searchResults.set([]);
+            this.searching.set(false);
+            return [];
+          }
+          this.searching.set(true);
+          return this.productService
+            .searchProduct(q)
+            .pipe(finalize(() => this.searching.set(false)));
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((r) => this.searchResults.set(r));
+  }
+
+  onSearchInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.searchQuery.set(value);
+    this.search$.next(value);
+  }
+
+  /** Enter elige el primer resultado (rápido en desktop). */
+  onSearchEnter(): void {
+    const first = this.visibleSearchResults()[0];
+    if (first) this.selectSearchResult(first);
+  }
+
+  selectSearchResult(product: ProductSearchResult): void {
+    this.searchQuery.set('');
+    this.searchResults.set([]);
+    this.onProductSelected(product);
+  }
+
+  /** Volver al paso 1 con el buscador limpio y enfocado. */
+  changeProduct(): void {
+    this.clearProduct();
+    setTimeout(() => this.searchInput()?.nativeElement.focus());
+  }
+
+  genderLabel(g: Gender | number): string {
+    return GENDER_LABELS[g as Gender] ?? '';
+  }
 
   /** Costo único para llenar todas las filas (herramienta, sin modos ni candados). */
   masterCost = signal<number | null>(null);
