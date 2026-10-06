@@ -16,7 +16,7 @@ const item: ItemForm = {
   product: { id: 'p1', productName: 'Zapato', internalCode: 'ZAP', categoryName: 'Calzado', brandName: 'Nike', genderName: '', description: '' },
   variants: [
     {
-      mode: 'ex', id: 'v1', sizeId: 's1', sizeName: '35', colorId: 'c1',
+      mode: 'ex', id: 'v1', sizeId: 's1', sizeName: '35', sizeOrder: 1, colorId: 'c1',
       colorCode: '', colorName: 'Rojo', quantityReceived: 6, unitCost: 50,
       price: 120, sku: 'SKU-1', selected: true,
     },

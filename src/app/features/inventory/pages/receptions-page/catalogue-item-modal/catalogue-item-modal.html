@@ -163,10 +163,11 @@
 
       <!-- VARIANTES -->
       <section class="space-y-3">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between gap-2">
           <h3 class="section-title">
             {{ mode() === 'edit' ? 'Tallas/Colores del pedido' : 'Tallas/Colores disponibles' }}
           </h3>
+          <div class="flex items-center gap-2">
           @if (itemModel().variants.length > 0) {
             <div
               class="flex items-center gap-3 bg-bg-muted/60 px-3 py-1.5 rounded-lg border border-border"
@@ -188,6 +189,15 @@
               </div>
             </div>
           }
+          <button
+            type="button"
+            (click)="showAddVariant.set(true)"
+            class="btn btn-secondary btn-sm shrink-0"
+          >
+            <span class="material-icons text-base leading-none">add</span>
+            Variante
+          </button>
+          </div>
         </div>
 
         <div class="border border-border rounded-xl bg-bg-surface shadow-sm">
@@ -360,5 +370,14 @@
         </button>
       </div>
     </footer>
+  }
+
+  @if (showAddVariant()) {
+    <app-add-variant-modal
+      [existingVariants]="itemModel().variants"
+      [submitting]="addVariantSaving()"
+      (save)="onSaveAddVariant($event)"
+      (close)="showAddVariant.set(false)"
+    />
   }
 </div>

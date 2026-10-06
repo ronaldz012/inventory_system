@@ -17,20 +17,35 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { applyEach, applyWhen, form, min, required, schema } from '@angular/forms/signals';
 
 import { ProductSearchResult } from '../../../components/product-search/product-search-result.component';
+import AddVariantModal from '../../products-page/product-detail/product-detail-variant/add-variant-modal';
 
 import { ProductService } from '@features/inventory/services/product-service';
+import { SizeService } from '@features/inventory/services/size-service';
 import { GENDER_LABELS, Gender } from '@features/inventory/interfaces/gender';
-import { existingVariantSchema, ItemForm } from '@features/inventory/models/variant-form.model';
+import {
+  existingVariantSchema,
+  ItemForm,
+  VariantForm,
+} from '@features/inventory/models/variant-form.model';
+import { CreateProductVariantDto } from '@features/inventory/dtos/products/create-product-variant-dto';
 import { blockNonNumericKeys, parseAmountInput } from '@shared/utils/list-query';
+
+/** Réplica del orden backend (Color.Name, Size.SortOrder). Sort estable. */
+function sortVariants(rows: VariantForm[]): VariantForm[] {
+  return rows.sort(
+    (a, b) => a.colorName.localeCompare(b.colorName, 'es') || a.sizeOrder - b.sizeOrder,
+  );
+}
 
 @Component({
   selector: 'app-catalogue-item-modal',
   standalone: true,
-  imports: [CurrencyPipe],
+  imports: [CurrencyPipe, AddVariantModal],
   templateUrl: './catalogue-item-modal.html',
 })
 export default class CatalogueItemModal implements OnInit {
   private productService = inject(ProductService);
+  private sizeService = inject(SizeService);
   private destroyRef = inject(DestroyRef);
   private search$ = new Subject<string>();
   private searchInput = viewChild<ElementRef<HTMLInputElement>>('catalogueSearchInput');
@@ -50,6 +65,10 @@ export default class CatalogueItemModal implements OnInit {
   // ── Estado UI ─────────────────────────────────────────────────────────
   error = signal<string | null>(null);
   selectedProduct = signal<ProductSearchResult | null>(null);
+
+  /** Modal anidado para crear una variante nueva sin salir del panel. */
+  showAddVariant = signal(false);
+  addVariantSaving = signal(false);
 
   // ── Búsqueda por pasos (sin dropdown): paso 1 buscar, paso 2 variantes ──
   searchQuery = signal('');
@@ -180,6 +199,9 @@ export default class CatalogueItemModal implements OnInit {
 
   // ── Init ──────────────────────────────────────────────────────────────
   ngOnInit(): void {
+    // Catálogo de tallas para resolver el sizeOrder de una variante recién
+    // creada cuando el POST no lo incluye (lookup local, cached).
+    this.sizeService.load();
     if (this.mode() === 'edit') {
       const created = this.initialProduct();
       if (created) this.loadProduct(created);
@@ -210,6 +232,7 @@ export default class CatalogueItemModal implements OnInit {
           sku: v.sku,
           size: v.size,
           sizeId: v.sizeId,
+          sizeOrder: v.sizeOrder ?? 0,
           colorId: v.colorId,
           colorName: v.color,
           price: v.price,
@@ -233,6 +256,7 @@ export default class CatalogueItemModal implements OnInit {
             id: v.id,
             sizeId: v.sizeId,
             sizeName: v.size,
+            sizeOrder: v.sizeOrder ?? 0,
             colorId: v.colorId,
             colorCode: '',
             colorName: v.color,
@@ -268,12 +292,13 @@ export default class CatalogueItemModal implements OnInit {
         genderName: Gender[product.gender],
         description: product.description,
       },
-      variants: product.productVariants.map((v) => ({
-        mode: 'ex' as const,
-        id: v.id,
-        sizeId: v.sizeId,
-        sizeName: v.size,
-        colorId: v.colorId,
+        variants: product.productVariants.map((v) => ({
+          mode: 'ex' as const,
+          id: v.id,
+          sizeId: v.sizeId,
+          sizeName: v.size,
+          sizeOrder: v.sizeOrder ?? 0,
+          colorId: v.colorId,
         colorCode: '',
         colorName: v.colorName,
         price: v.price,
@@ -328,6 +353,53 @@ export default class CatalogueItemModal implements OnInit {
       ...current,
       variants: current.variants.map((v) => ({ ...v, unitCost: cost })),
     }));
+  }
+
+  // ── Crear variante (sin refetch) ────────────────────────────────────
+  /**
+   * Crea la variante en backend y la encaja en su lugar (color, talla) sin
+   * refetch: las filas existentes conservan identidad y lo tipeado intacto.
+   */
+  onSaveAddVariant(dto: CreateProductVariantDto): void {
+    const productId = this.itemModel().product.id;
+    if (!productId || this.addVariantSaving()) return;
+
+    this.addVariantSaving.set(true);
+    this.productService.createVariants(productId, { variants: [dto] }).subscribe({
+      next: (created) => {
+        this.addVariantSaving.set(false);
+        const first = created[0];
+        if (!first) {
+          this.error.set('El backend no devolvió la variante creada.');
+          return;
+        }
+        const row: VariantForm = {
+          mode: 'ex',
+          id: first.productVariantId,
+          sizeId: dto.sizeId,
+          sizeName: first.size,
+          sizeOrder: first.sizeOrder ?? this.lookupSizeOrder(dto.sizeId),
+          colorId: dto.colorId,
+          colorCode: '',
+          colorName: first.colorName,
+          price: dto.price,
+          quantityReceived: null,
+          unitCost: this.masterCost() ?? null,
+          sku: first.sku,
+        };
+        this.itemModel.update((m) => ({ ...m, variants: sortVariants([...m.variants, row]) }));
+        this.showAddVariant.set(false);
+      },
+      error: () => {
+        this.addVariantSaving.set(false);
+        this.error.set('No se pudo crear la variante. Intentá de nuevo.');
+      },
+    });
+  }
+
+  /** SizeOrder desde el catálogo local (fallback si el POST no lo trae). */
+  private lookupSizeOrder(sizeId: GUID): number {
+    return this.sizeService.sizes().find((s) => s.id === sizeId)?.sortOrder ?? 0;
   }
 
   // ── Submit ────────────────────────────────────────────────────────────

@@ -2,9 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import CatalogueItemModal from './catalogue-item-modal';
 import { ProductService } from '@features/inventory/services/product-service';
+import { SizeService } from '@features/inventory/services/size-service';
 import { ProductSearchResult } from '../../../components/product-search/product-search-result.component';
 import { Gender } from '@features/inventory/interfaces/gender';
 import { ItemForm } from '@features/inventory/models/variant-form.model';
+import { ProductVariantCreatedDto } from '@features/inventory/dtos/products/create-product-variant-dto';
 
 const fakeProduct: ProductSearchResult = {
   id: 'p1',
@@ -21,6 +23,7 @@ const fakeProduct: ProductSearchResult = {
       sku: 'SKU-1',
       size: '42',
       sizeId: 's42',
+      sizeOrder: 3,
       colorId: 'c-azul',
       colorName: 'Azul',
       price: 100,
@@ -30,6 +33,7 @@ const fakeProduct: ProductSearchResult = {
       sku: 'SKU-2',
       size: '44',
       sizeId: 's44',
+      sizeOrder: 5,
       colorId: 'c-azul',
       colorName: 'Azul',
       price: 100,
@@ -39,14 +43,29 @@ const fakeProduct: ProductSearchResult = {
 
 describe('CatalogueItemModal — inclusión por cantidad', () => {
   let searchResults: ProductSearchResult[];
+  let createdResponse: ProductVariantCreatedDto[];
 
   beforeEach(async () => {
     searchResults = [];
+    createdResponse = [];
     await TestBed.configureTestingModule({
       imports: [CatalogueItemModal],
       // modo add: no hace HTTP (solo initFromEdit llamaría a getById)
       providers: [
-        { provide: ProductService, useValue: { searchProduct: () => of(searchResults) } },
+        {
+          provide: ProductService,
+          useValue: {
+            searchProduct: () => of(searchResults),
+            createVariants: () => of(createdResponse),
+          },
+        },
+        {
+          provide: SizeService,
+          useValue: {
+            load: () => {},
+            sizes: () => [{ id: 's42', sortOrder: 3 }, { id: 's43', sortOrder: 4 }, { id: 's44', sortOrder: 5 }],
+          },
+        },
       ],
     }).compileComponents();
   });
@@ -129,6 +148,64 @@ describe('CatalogueItemModal — inclusión por cantidad', () => {
     expect(modal.masterCost()).toBeNull();
     expect(modal.itemModel().variants.map((v) => v.unitCost)).toEqual([45, 45]);
     expect(master.value).toBe('');
+  });
+
+  describe('crear variante sin refetch', () => {
+    const newDto = { sizeId: 's43' as GUID, colorId: 'c-azul' as GUID, price: 120 };
+
+    it('encaja la fila nueva en su lugar sin tocar lo tipeado', () => {
+      // POST sin sizeOrder → fallback al catálogo local (s43 → 4)
+      createdResponse = [{ productVariantId: 'v3', sku: 'SKU-3', size: '43', colorName: 'Azul' }];
+      const modal = setup();
+      modal.onProductSelected(fakeProduct);
+      modal.updateVariantField(0, 'quantityReceived', fieldEvent('5'));
+      modal.updateVariantField(0, 'unitCost', fieldEvent('10'));
+      modal.showAddVariant.set(true);
+
+      modal.onSaveAddVariant(newDto);
+
+      const rows = modal.itemModel().variants;
+      expect(rows.map((v) => v.sku)).toEqual(['SKU-1', 'SKU-3', 'SKU-2']);
+      // lo tipeado intacto: las filas existentes conservan identidad/valores
+      expect(rows[0].quantityReceived).toBe(5);
+      expect(rows[0].unitCost).toBe(10);
+      expect(rows[1]).toMatchObject({
+        id: 'v3',
+        sizeId: 's43',
+        sizeName: '43',
+        sizeOrder: 4,
+        colorId: 'c-azul',
+        unitCost: null,
+      });
+      expect(modal.showAddVariant()).toBe(false);
+      expect(modal.addVariantSaving()).toBe(false);
+    });
+
+    it('prefiere el sizeOrder del POST y hereda el costo único', () => {
+      createdResponse = [
+        { productVariantId: 'v3', sku: 'SKU-3', size: '43', colorName: 'Azul', sizeOrder: 4 },
+      ];
+      const modal = setup();
+      modal.onProductSelected(fakeProduct);
+      modal.onUniqueCostChange('45');
+
+      modal.onSaveAddVariant(newDto);
+
+      const rows = modal.itemModel().variants;
+      expect(rows.map((v) => v.sku)).toEqual(['SKU-1', 'SKU-3', 'SKU-2']);
+      expect(rows[1].unitCost).toBe(45);
+    });
+
+    it('sin respuesta del backend muestra error y no agrega filas', () => {
+      createdResponse = [];
+      const modal = setup();
+      modal.onProductSelected(fakeProduct);
+
+      modal.onSaveAddVariant(newDto);
+
+      expect(modal.itemModel().variants).toHaveLength(2);
+      expect(modal.error()).toBe('El backend no devolvió la variante creada.');
+    });
   });
 
   describe('búsqueda por pasos', () => {

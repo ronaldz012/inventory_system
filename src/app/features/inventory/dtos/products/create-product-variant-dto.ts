@@ -13,4 +13,5 @@ export interface ProductVariantCreatedDto {
   sku: string;
   size: string;
   colorName: string;
+  sizeOrder?: number;
 }

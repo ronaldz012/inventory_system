@@ -28,6 +28,7 @@ export interface ProductVariantDto {
   description: string;
   size: string;
   sizeId: GUID;
+  sizeOrder?: number;
   color: string;
   colorId: GUID;
   price: number;
