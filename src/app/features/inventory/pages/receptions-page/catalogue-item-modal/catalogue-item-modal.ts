@@ -1,6 +1,6 @@
 import { Component, computed, inject, input, output, signal, OnInit } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
-import { applyEach, applyWhen, form, min, required, schema } from '@angular/forms/signals';
+import { applyEach, applyWhen, form, required } from '@angular/forms/signals';
 
 import { ProductSearch } from '../../../components/product-search/product-search.component';
 import { ProductSearchResult } from '../../../components/product-search/product-search-result.component';
@@ -8,16 +8,7 @@ import { ProductSearchResult } from '../../../components/product-search/product-
 import { ProductService } from '@features/inventory/services/product-service';
 import { Gender } from '@features/inventory/interfaces/gender';
 import { existingVariantSchema, ItemForm } from '@features/inventory/models/variant-form.model';
-
-interface CatalogueItemModel extends ItemForm {
-  sameCostForAll: boolean;
-  uniqueCost: number | null;
-}
-
-const uniqueCostSchema = schema<number | null>((c) => {
-  required(c, { message: 'Requerido' });
-  min(c, 0.5, { message: 'Mín Bs 0.50' });
-});
+import { blockNonNumericKeys, parseAmountInput } from '@shared/utils/list-query';
 
 @Component({
   selector: 'app-catalogue-item-modal',
@@ -44,9 +35,15 @@ export default class CatalogueItemModal implements OnInit {
   error = signal<string | null>(null);
   selectedProduct = signal<ProductSearchResult | null>(null);
 
-  costLocked = computed(() => this.itemModel().sameCostForAll ?? false);
+  /** Costo único para llenar todas las filas (herramienta, sin modos ni candados). */
+  masterCost = signal<number | null>(null);
 
-  selectedVariants = computed(() => this.itemModel().variants.filter((v) => v.selected));
+  /** El template no puede llamar imports: se expone el helper tal cual. */
+  readonly blockKeys = blockNonNumericKeys;
+
+  selectedVariants = computed(() =>
+    this.itemModel().variants.filter((v) => v.quantityReceived != null),
+  );
 
   totalUnits = computed(() =>
     this.selectedVariants().reduce((sum, v) => sum + (v.quantityReceived ?? 0), 0),
@@ -68,7 +65,7 @@ export default class CatalogueItemModal implements OnInit {
   hasSummary = computed(() => this.selectedVariants().length > 0 && this.totalUnits() > 0);
 
   // ── Form ──────────────────────────────────────────────────────────────
-  itemModel = signal<CatalogueItemModel>({
+  itemModel = signal<ItemForm>({
     product: {
       id: null,
       internalCode: '',
@@ -79,15 +76,16 @@ export default class CatalogueItemModal implements OnInit {
       description: '',
     },
     variants: [],
-    sameCostForAll: true,
-    uniqueCost: null,
   });
 
   itemForm = form(this.itemModel, (s) => {
     required(s.product.id, { message: 'Requerido' });
-    applyWhen(s.uniqueCost, ({ valueOf }) => valueOf(s.sameCostForAll) === true, uniqueCostSchema);
     applyEach(s.variants, (item) => {
-      applyWhen(item, ({ valueOf }) => valueOf(item.selected) === true, existingVariantSchema);
+      applyWhen(
+        item,
+        ({ valueOf }) => valueOf(item.quantityReceived) != null,
+        existingVariantSchema,
+      );
     });
   });
 
@@ -151,16 +149,10 @@ export default class CatalogueItemModal implements OnInit {
             colorName: v.color,
             price: v.price,
             quantityReceived: existing?.quantityReceived ?? null,
-            unitCost:
-              existing?.unitCost ??
-              (editItem.sameCostForAll ? (editItem.uniqueCost ?? null) : null),
+            unitCost: existing?.unitCost ?? null,
             sku: v.sku,
-            selected: !!existing,
           };
         }),
-        generalCost: editItem.generalCost ?? null,
-        sameCostForAll: editItem.sameCostForAll ?? false,
-        uniqueCost: editItem.uniqueCost ?? null,
       });
     });
   }
@@ -199,11 +191,7 @@ export default class CatalogueItemModal implements OnInit {
         quantityReceived: null,
         unitCost: null,
         sku: v.sku,
-        selected: false,
       })),
-      generalCost: null,
-      sameCostForAll: this.mode() === 'add',
-      uniqueCost: null,
     });
   }
 
@@ -220,29 +208,12 @@ export default class CatalogueItemModal implements OnInit {
         description: '',
       },
       variants: [],
-      generalCost: null,
-      sameCostForAll: true,
-      uniqueCost: null,
     });
   }
 
   // ── Variantes ─────────────────────────────────────────────────────────
-  toggleVariant(index: number): void {
-    this.itemModel.update((m) => {
-      const variants = m.variants.map((v, i) => {
-        if (i !== index) return v;
-        const selected = !v.selected;
-        return m.sameCostForAll && selected && m.uniqueCost != null
-          ? { ...v, selected, unitCost: m.uniqueCost }
-          : { ...v, selected };
-      });
-      return { ...m, variants };
-    });
-  }
-
   updateVariantField(index: number, field: 'quantityReceived' | 'unitCost', event: Event): void {
-    const value = parseFloat((event.target as HTMLInputElement).value);
-    const cleanValue = isNaN(value) ? null : value;
+    const cleanValue = parseAmountInput((event.target as HTMLInputElement).value);
 
     this.itemModel.update((m) => {
       const variants = m.variants.map((v, i) => (i === index ? { ...v, [field]: cleanValue } : v));
@@ -250,51 +221,35 @@ export default class CatalogueItemModal implements OnInit {
     });
   }
 
-  onToggleSameCost(enabled: boolean): void {
-    this.itemModel.update((current) => {
-      if (enabled) {
-        return {
-          ...current,
-          sameCostForAll: true,
-          variants: current.variants.map((v) => ({
-            ...v,
-            unitCost: current.uniqueCost ?? null,
-          })),
-        };
-      }
-      return { ...current, sameCostForAll: false };
-    });
+  /**
+   * Cantidad inválida (tocada y con error): gana sobre el accent de "llena".
+   */
+  qtyInvalid(index: number): boolean {
+    const state = this.itemForm.variants[index].quantityReceived();
+    return state.touched() && state.invalid();
   }
 
   onUniqueCostChange(value: string): void {
-    const parsed = parseFloat(value);
-    const cost = isNaN(parsed) ? null : parsed;
-
-    this.itemModel.update((current) => ({
-      ...current,
-      uniqueCost: cost,
-      variants:
-        (current.sameCostForAll ?? true)
-          ? current.variants.map((v) => ({ ...v, unitCost: cost }))
-          : current.variants,
-    }));
+    this.masterCost.set(parseAmountInput(value));
   }
 
-  private normalizeUniqueCost(model: CatalogueItemModel): CatalogueItemModel {
-    if (!model.sameCostForAll || model.uniqueCost == null) return model;
-    return {
-      ...model,
-      variants: model.variants.map((v) => ({ ...v, unitCost: model.uniqueCost })),
-    };
+  /** Escribe el costo único en todas las filas (commit explícito, sin propagación en vivo). */
+  applyUniqueCost(): void {
+    const cost = this.masterCost();
+    if (cost == null) return;
+    this.itemModel.update((current) => ({
+      ...current,
+      variants: current.variants.map((v) => ({ ...v, unitCost: cost })),
+    }));
   }
 
   // ── Submit ────────────────────────────────────────────────────────────
   onConfirm(): void {
     this.itemForm().markAsTouched();
 
-    const selectedVariants = this.itemModel().variants.filter((v) => v.selected);
-    if (!selectedVariants.length) {
-      this.error.set('Seleccioná al menos una talla/color.');
+    const enteredVariants = this.itemModel().variants.filter((v) => v.quantityReceived != null);
+    if (!enteredVariants.length) {
+      this.error.set('Cargá al menos una cantidad.');
       return;
     }
 
@@ -308,11 +263,9 @@ export default class CatalogueItemModal implements OnInit {
 
     if (this.itemForm().invalid()) return;
 
-    const normalized = this.normalizeUniqueCost(this.itemModel());
-
     const finalItem: ItemForm = {
-      ...normalized,
-      variants: normalized.variants.filter((v) => v.selected),
+      ...this.itemModel(),
+      variants: this.itemModel().variants.filter((v) => v.quantityReceived != null),
     };
 
     this.confirm.emit({ index: this.mode() === 'edit' ? this.index() : null, item: finalItem });

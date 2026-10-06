@@ -12,7 +12,6 @@ export function readQuery(params: ParamMap | null | undefined): Record<string, s
   return out;
 }
 
-
 export function writeQuery(
   router: Router,
   route: ActivatedRoute,
@@ -50,4 +49,27 @@ export function asEnum<T extends number>(
 /** `''` → undefined (para no escribir params vacíos). */
 export function asOptionalString(value: string | undefined): string | undefined {
   return value === undefined || value.trim() === '' ? undefined : value;
+}
+
+/**
+ * Texto crudo de un input numérico → número o null.
+ * Normaliza la coma decimal (`12,50` → 12.5) y trata como vacío todo lo que no
+ * sea un número válido no-negativo (letras, `-`, `e`, etc.). El `null` deja que
+ * la validación existente (`required`/`min`) haga su trabajo.
+ */
+export function parseAmountInput(raw: string | null | undefined): number | null {
+  if (raw == null) return null;
+  const normalized = raw.trim().replace(',', '.');
+  if (normalized === '' || /[eE]/.test(normalized)) return null;
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return parsed;
+}
+
+/** Teclas que nunca tienen sentido en cantidades/montos (el `-` y `e` entran igual por pegado). */
+const BLOCKED_NUMERIC_KEYS = new Set(['-', '+', 'e', 'E']);
+
+/** Para `(keydown)` en inputs numéricos: frena `-`, `+`, `e` en el acto. */
+export function blockNonNumericKeys(event: KeyboardEvent): void {
+  if (BLOCKED_NUMERIC_KEYS.has(event.key)) event.preventDefault();
 }

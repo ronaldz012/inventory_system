@@ -7,9 +7,6 @@ export interface Reception {
 export interface ItemForm {
   product: ProductInfo;
   variants: VariantForm[];
-  generalCost?: number | null;
-  sameCostForAll?: boolean;
-  uniqueCost?: number | null;
 }
 
 export interface ProductInfo {
@@ -33,7 +30,8 @@ export interface VariantForm {
   unitCost: number | null;
   price: number | null;
   sku: string;
-  selected: boolean;
+  /** Legacy: ya nadie lo lee (la inclusión la marca quantityReceived). */
+  selected?: boolean;
 }
 export const existingVariantSchema = schema<VariantForm>((v) => {
   required(v.id, { message: 'Seleccioná una talla/color' });
