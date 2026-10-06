@@ -9,15 +9,7 @@
       </span>
     </div>
 
-    <div class="flex flex-col md:flex-row md:items-center gap-3">
-      <input
-        [value]="reception().notes"
-        (input)="updateNotes($event)"
-        placeholder="Notas (proveedor, temporada...)"
-        aria-label="Notas de la recepción"
-        class="w-full md:flex-1 px-3 py-1.5 border border-border bg-bg-surface rounded-md text-sm text-text-main placeholder-text-soft focus:outline-none focus:ring-1 focus:ring-accent-ui focus:border-accent-ui transition-colors duration-150"
-      />
-
+    <div class="flex flex-col md:flex-row md:items-start gap-2">
       <div class="w-full md:w-80 lg:w-96">
         <app-provider-select-ctrl
           [fieldId]="providerForm.id()"
@@ -26,25 +18,19 @@
         />
       </div>
 
-      <div class="flex flex-wrap items-center gap-3 md:ml-auto">
-        <button
-          type="button"
-          (click)="onCancel()"
-          class="flex-1 sm:flex-none px-3 py-1.5 text-sm font-semibold text-btn-secondary-text border border-border bg-btn-secondary-bg rounded-md hover:bg-btn-secondary-hover transition-colors duration-150 shadow-sm"
-        >
-          Cancelar
-        </button>
-        <button
-          type="button"
-          (click)="onSubmit()"
-          [disabled]="isSubmitting()"
-          class="flex-1 sm:flex-none px-4 py-1.5 text-sm font-semibold bg-btn-primary-bg text-btn-primary-text rounded-md hover:bg-btn-primary-hover disabled:opacity-50 transition-colors duration-150 shadow-sm"
-        >
-          {{ isSubmitting() ? 'Guardando...' : 'Guardar recepción' }}
-        </button>
+      <div class="w-full md:flex-1">
+        <input
+          [value]="reception().notes"
+          (input)="updateNotes($event)"
+          placeholder="Notas (proveedor, temporada...)"
+          aria-label="Notas de la recepción"
+          class="w-full px-3 py-1 border border-border bg-bg-surface rounded-md text-sm text-text-main placeholder-text-soft focus:outline-none focus:ring-1 focus:ring-accent-ui focus:border-accent-ui transition-colors duration-150"
+        />
       </div>
     </div>
   </div>
+
+  <div class="border-t border-border-strong"></div>
 
   <div class="space-y-3">
     <!-- Buscador inline: elige el modelo, el panel configura sus variantes -->

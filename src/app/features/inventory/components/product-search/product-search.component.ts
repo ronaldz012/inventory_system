@@ -23,6 +23,10 @@ import { GENDER_LABELS, Gender } from '../../interfaces/gender';
   template: `
     <div class="relative w-full" (focusout)="handleFocusOut($event)">
       <div class="relative">
+        <span
+          class="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-base text-text-soft pointer-events-none"
+          >search</span
+        >
         <input
           type="text"
           [value]="query()"
@@ -30,7 +34,7 @@ import { GENDER_LABELS, Gender } from '../../interfaces/gender';
           (focus)="onFocus()"
           (keydown)="onKeyDown($event)"
           placeholder="Buscá por nombre, código o SKU..."
-          class="w-full px-3 py-2 pr-10 text-[13px] text-text-main bg-bg-surface border border-border rounded-lg
+          class="w-full pl-9 pr-10 py-2 text-[13px] text-text-main bg-bg-surface border border-border rounded-lg
                  placeholder:text-text-soft focus:outline-none focus:ring-1 focus:ring-accent-ui focus:border-accent-ui
                  transition-colors duration-150"
         />
