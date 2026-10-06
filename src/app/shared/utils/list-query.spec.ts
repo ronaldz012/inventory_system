@@ -4,6 +4,8 @@ import {
   asNumber,
   asOptionalBool,
   asOptionalString,
+  blockNonNumericKeys,
+  parseAmountInput,
   readQuery,
   writeQuery,
 } from './list-query';
@@ -76,6 +78,55 @@ describe('list-query', () => {
       expect(asOptionalString('')).toBeUndefined();
       expect(asOptionalString('   ')).toBeUndefined();
       expect(asOptionalString(undefined)).toBeUndefined();
+    });
+  });
+
+  describe('parseAmountInput', () => {
+    it('parsea números válidos', () => {
+      expect(parseAmountInput('12')).toBe(12);
+      expect(parseAmountInput('12.5')).toBe(12.5);
+      expect(parseAmountInput('0')).toBe(0);
+      expect(parseAmountInput('  7 ')).toBe(7);
+    });
+
+    it('normaliza la coma decimal', () => {
+      expect(parseAmountInput('12,50')).toBe(12.5);
+    });
+
+    it('negativos y basura van a null (vacío)', () => {
+      expect(parseAmountInput('-5')).toBeNull();
+      expect(parseAmountInput('-0.5')).toBeNull();
+      expect(parseAmountInput('abc')).toBeNull();
+      expect(parseAmountInput('1e5')).toBeNull();
+      expect(parseAmountInput('')).toBeNull();
+      expect(parseAmountInput(null)).toBeNull();
+      expect(parseAmountInput(undefined)).toBeNull();
+    });
+  });
+
+  describe('blockNonNumericKeys', () => {
+    const keydown = (key: string): { prevented: boolean } => {
+      let prevented = false;
+      blockNonNumericKeys({
+        key,
+        preventDefault: () => {
+          prevented = true;
+        },
+      } as KeyboardEvent);
+      return { prevented };
+    };
+
+    it('frena -, + y e', () => {
+      expect(keydown('-').prevented).toBe(true);
+      expect(keydown('+').prevented).toBe(true);
+      expect(keydown('e').prevented).toBe(true);
+      expect(keydown('E').prevented).toBe(true);
+    });
+
+    it('deja pasar dígitos, punto, coma y control', () => {
+      for (const key of ['0', '5', '.', ',', 'Backspace', 'ArrowLeft', 'Tab', 'Enter']) {
+        expect(keydown(key).prevented).toBe(false);
+      }
     });
   });
 });
