@@ -1,156 +1,75 @@
 <!-- =====================================================
-  RECEPTION ITEM CARD
-  Desktop-first, responsive mobile
+  RECEPTION ITEM CARD — plana, agrupada por color
   ===================================================== -->
 
-<div
-  class="bg-bg-surface border border-border rounded-xl shadow-xs hover:shadow-md hover:border-border-strong transition-all duration-200 group overflow-hidden"
->
-  <!-- ── HEADER DE LA CARD ── -->
-  <div
-    class="flex items-center justify-between gap-4 px-4 py-3 border-b border-border bg-bg-muted/30"
-  >
-    <!-- Izquierda: info principal -->
-    <div class="flex items-center gap-3 min-w-0">
-      <div class="flex flex-col min-w-0">
-        <div class="flex flex-wrap items-center gap-1.5">
-          <span class="tag-neutral">{{ group().product.internalCode }}</span>
-          <span class="tag-info">{{ group().product.brandName }}</span>
-          <span class="text-[10px] text-text-soft">{{ group().product.categoryName }}</span>
-        </div>
-        <h3
-          class="text-sm font-bold text-text-main truncate mt-1 group-hover:text-accent-ui transition-colors"
-        >
-          {{ group().product.productName }}
-        </h3>
-      </div>
-    </div>
-
-    <!-- Derecha: totales + acciones -->
-    <div class="flex items-center gap-4 shrink-0">
-      <div class="hidden sm:flex items-center gap-4">
-        <div class="flex flex-col items-end">
-          <span class="field-label">Unidades</span>
-          <span class="text-sm font-extrabold text-text-main font-mono">{{ totalUnits() }} u.</span>
-        </div>
-        <div class="flex flex-col items-end border-l border-border pl-4">
-          <span class="field-label">Inversión total</span>
-          <span class="text-sm font-black text-accent-ui font-mono">{{
-            totalCost() | currency: 'BOB' : 'symbol' : '1.2-2'
-          }}</span>
-        </div>
-      </div>
-
-      <!-- Acciones: visibles en hover desktop, siempre visibles mobile -->
-      <div class="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-all">
+<div class="bg-bg-surface border border-border rounded-xl overflow-hidden">
+  <!-- ── HEADER ── -->
+  <div class="flex flex-col gap-0.5 px-3 py-2 border-b border-border bg-bg-muted/30">
+    <div class="flex items-center gap-2">
+      <span class="flex-1 min-w-0 truncate font-mono text-xs font-bold text-text-soft">
+        {{ group().product.internalCode || '—' }}
+      </span>
+      <div class="flex items-center gap-1 shrink-0">
         <button
           type="button"
           (click)="onEdit()"
           class="btn-icon hover:bg-feedback-info hover:text-feedback-info-text"
           title="Editar"
+          aria-label="Editar producto"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-            />
-          </svg>
+          <span class="material-icons text-base">edit</span>
         </button>
         <button
           type="button"
           (click)="onRemove()"
           class="btn-icon hover:bg-feedback-error hover:text-feedback-error-text"
           title="Eliminar"
+          aria-label="Eliminar producto"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            />
-          </svg>
+          <span class="material-icons text-base">delete</span>
         </button>
       </div>
     </div>
+    <div class="flex items-center gap-2">
+      <p class="flex-1 min-w-0 truncate text-sm">
+        @if (group().product.brandName) {
+          <span class="font-bold text-text-main">{{ group().product.brandName }}</span>
+          <span class="text-text-soft"> · </span>
+        }
+        <span class="font-semibold text-text-main">{{ group().product.productName }}</span>
+      </p>
+      <span class="shrink-0 text-xs font-mono tabular-nums whitespace-nowrap">
+        <span class="font-extrabold text-text-main">{{ totalUnits() }} u.</span>
+        <span class="text-text-soft"> · </span>
+        <span class="font-black text-accent-ui">{{ totalCost() | number: '1.2-2' }}</span>
+      </span>
+    </div>
   </div>
 
-  <!-- ── TOTALES MOBILE ── -->
-  <div
-    class="flex sm:hidden items-center justify-between px-4 py-2 bg-bg-muted/20 border-b border-border text-xs"
-  >
-    <span class="text-text-soft">
-      Unidades: <span class="font-bold text-text-main font-mono">{{ totalUnits() }}</span>
-    </span>
-    <span class="text-text-soft">
-      Total:
-      <span class="font-bold text-accent-ui font-mono">{{
-        totalCost() | currency: 'BOB' : 'symbol' : '1.2-2'
-      }}</span>
-    </span>
-  </div>
-
-  <!-- ── VARIANTES MOBILE ── -->
-  <div class="divide-y divide-border sm:hidden">
-    @for (variant of group().variants; track variant.id) {
-      <div class="px-4 py-2.5">
-        <div class="flex items-center justify-between gap-2">
-          <span class="font-mono font-semibold text-text-main text-[11px]">{{ variant.sku }}</span>
-          <span class="tag-neutral">{{ variant.sizeName }}</span>
+  <!-- ── FILAS POR COLOR ── -->
+  <div class="flex flex-col divide-y divide-border/60">
+    @for (row of rowsByColor(); track row.colorId) {
+      <div class="flex items-center gap-2 px-3 py-1.5">
+        <span
+          class="shrink-0 w-20 truncate text-[13px] font-semibold text-text-main"
+          [title]="row.colorName"
+        >
+          {{ row.colorName || '—' }}
+        </span>
+        <div class="flex-1 flex flex-wrap gap-1 min-w-0">
+          @for (v of row.items; track v.id) {
+            <span
+              class="inline-flex items-baseline gap-1 px-2 py-0.5 rounded-md bg-bg-muted text-xs tabular-nums whitespace-nowrap"
+            >
+              <span class="font-bold text-text-main">{{ v.sizeName }}</span>
+              <span class="font-black text-accent-ui">×{{ v.quantityReceived }}</span>
+            </span>
+          }
         </div>
-        <div class="flex items-center justify-between gap-2 mt-1 text-xs">
-          <span class="text-text-soft">
-            Cant. <span class="font-bold text-text-main">{{ variant.quantityReceived }}</span>
-            · Costo U.
-            <span class="font-mono text-text-muted">{{
-              variant.unitCost | currency: 'BOB' : 'symbol' : '1.2-2'
-            }}</span>
-          </span>
-          <span class="font-mono font-bold text-feedback-success-text">
-            {{
-              variant.quantityReceived! * variant.unitCost! | currency: 'BOB' : 'symbol' : '1.2-2'
-            }}
-          </span>
-        </div>
+        <span class="shrink-0 text-xs font-mono tabular-nums text-text-soft whitespace-nowrap"
+          >{{ row.units }} u.</span
+        >
       </div>
     }
-  </div>
-
-  <!-- ── TABLA DE VARIANTES (desktop) ── -->
-  <div class="hidden sm:block overflow-x-auto">
-    <table class="w-full text-[11px]">
-      <thead>
-        <tr class="border-b border-border bg-bg-muted/20">
-          <th class="px-4 py-2 text-left field-label">SKU</th>
-          <th class="px-3 py-2 text-left field-label">Talla</th>
-          <th class="px-3 py-2 text-right field-label">Cant.</th>
-          <th class="px-3 py-2 text-right field-label">Costo U.</th>
-          <th class="px-3 py-2 text-right field-label">Subtotal</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (variant of group().variants; track variant.id) {
-          <tr class="border-b border-border last:border-0 hover:bg-accent-ui/5 transition-colors">
-            <td class="px-4 py-2 font-mono font-semibold text-text-main">{{ variant.sku }}</td>
-            <td class="px-3 py-2">
-              <span class="tag-neutral">{{ variant.sizeName }}</span>
-            </td>
-            <td class="px-3 py-2 text-right font-bold text-text-main">
-              {{ variant.quantityReceived }}
-            </td>
-            <td class="px-3 py-2 text-right font-mono text-text-muted">
-              {{ variant.unitCost | currency: 'BOB' : 'symbol' : '1.2-2' }}
-            </td>
-            <td class="px-3 py-2 text-right font-mono font-bold text-feedback-success-text">
-              {{
-                variant.quantityReceived! * variant.unitCost! | currency: 'BOB' : 'symbol' : '1.2-2'
-              }}
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
   </div>
 </div>

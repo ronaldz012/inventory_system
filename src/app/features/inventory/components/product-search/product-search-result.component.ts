@@ -19,6 +19,7 @@ export interface ProductVariantOption {
   sku: string;
   size: string;
   sizeId: GUID;
+  sizeOrder?: number;
   colorId: GUID;
   colorName: string;
   price: number;

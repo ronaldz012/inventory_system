@@ -29,7 +29,7 @@ import CreateProvider from '../create-provider/create-provider';
           (keydown)="handleKeydown($event)"
           [placeholder]="placeholder()"
           autocomplete="off"
-          class="w-full px-3 py-2 bg-transparent text-text-main placeholder:text-text-soft
+          class="w-full px-3 py-1 bg-transparent text-text-main placeholder:text-text-soft
                  focus:outline-none"
         />
 

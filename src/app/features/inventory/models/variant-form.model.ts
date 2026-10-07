@@ -23,6 +23,7 @@ export interface VariantForm {
   id: GUID | null;
   sizeId: GUID;
   sizeName: string;
+  sizeOrder: number;
   colorId: GUID;
   colorCode: string;
   colorName: string;
@@ -58,6 +59,7 @@ export function buildExistingVariant(): VariantForm {
     id: null,
     sizeId: '' as GUID,
     sizeName: '',
+    sizeOrder: 0,
     colorId: '' as GUID,
     colorCode: '',
     colorName: '',
@@ -75,6 +77,7 @@ export function buildNewVariant(): VariantForm {
     id: '' as GUID,
     sizeId: '' as GUID,
     sizeName: '',
+    sizeOrder: 0,
     colorId: '' as GUID,
     colorCode: '',
     colorName: '',

@@ -1,23 +1,54 @@
-import { Component, computed, inject, input, output, signal, OnInit } from '@angular/core';
+import {
+  afterNextRender,
+  Component,
+  computed,
+  DestroyRef,
+  ElementRef,
+  inject,
+  input,
+  OnInit,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
-import { applyEach, applyWhen, form, required } from '@angular/forms/signals';
+import { debounceTime, distinctUntilChanged, finalize, Subject, switchMap } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { applyEach, applyWhen, form, min, required, schema } from '@angular/forms/signals';
 
-import { ProductSearch } from '../../../components/product-search/product-search.component';
 import { ProductSearchResult } from '../../../components/product-search/product-search-result.component';
+import AddVariantModal from '../../products-page/product-detail/product-detail-variant/add-variant-modal';
 
 import { ProductService } from '@features/inventory/services/product-service';
-import { Gender } from '@features/inventory/interfaces/gender';
-import { existingVariantSchema, ItemForm } from '@features/inventory/models/variant-form.model';
+import { SizeService } from '@features/inventory/services/size-service';
+import { GENDER_LABELS, Gender } from '@features/inventory/interfaces/gender';
+import {
+  existingVariantSchema,
+  ItemForm,
+  VariantForm,
+} from '@features/inventory/models/variant-form.model';
+import { CreateProductVariantDto } from '@features/inventory/dtos/products/create-product-variant-dto';
 import { blockNonNumericKeys, parseAmountInput } from '@shared/utils/list-query';
+
+/** Réplica del orden backend (Color.Name, Size.SortOrder). Sort estable. */
+function sortVariants(rows: VariantForm[]): VariantForm[] {
+  return rows.sort(
+    (a, b) => a.colorName.localeCompare(b.colorName, 'es') || a.sizeOrder - b.sizeOrder,
+  );
+}
 
 @Component({
   selector: 'app-catalogue-item-modal',
   standalone: true,
-  imports: [ProductSearch, CurrencyPipe],
+  imports: [CurrencyPipe, AddVariantModal],
   templateUrl: './catalogue-item-modal.html',
 })
 export default class CatalogueItemModal implements OnInit {
   private productService = inject(ProductService);
+  private sizeService = inject(SizeService);
+  private destroyRef = inject(DestroyRef);
+  private search$ = new Subject<string>();
+  private searchInput = viewChild<ElementRef<HTMLInputElement>>('catalogueSearchInput');
 
   // ── Inputs ────────────────────────────────────────────────────────────
   mode = input<'add' | 'edit'>('add');
@@ -34,6 +65,83 @@ export default class CatalogueItemModal implements OnInit {
   // ── Estado UI ─────────────────────────────────────────────────────────
   error = signal<string | null>(null);
   selectedProduct = signal<ProductSearchResult | null>(null);
+
+  /** Modal anidado para crear una variante nueva sin salir del panel. */
+  showAddVariant = signal(false);
+  addVariantSaving = signal(false);
+
+  // ── Búsqueda por pasos (sin dropdown): paso 1 buscar, paso 2 variantes ──
+  searchQuery = signal('');
+  searching = signal(false);
+  searchResults = signal<ProductSearchResult[]>([]);
+
+  /** Sin producto (y en modo add) se busca; con producto se cargan variantes. */
+  showSearchStep = computed(() => this.mode() === 'add' && !this.selectedProduct());
+
+  visibleSearchResults = computed(() => {
+    const excluded = new Set(this.mode() === 'add' ? this.existingProductIds() : []);
+    return this.searchResults().filter((r) => !excluded.has(r.id));
+  });
+
+  showSearchEmpty = computed(
+    () =>
+      !this.searching() &&
+      this.visibleSearchResults().length === 0 &&
+      this.searchQuery().trim().length >= 2,
+  );
+
+  constructor() {
+    afterNextRender(() => {
+      if (this.showSearchStep()) this.searchInput()?.nativeElement.focus();
+    });
+
+    this.search$
+      .pipe(
+        debounceTime(400),
+        distinctUntilChanged(),
+        switchMap((q) => {
+          if (q.trim().length < 2) {
+            this.searchResults.set([]);
+            this.searching.set(false);
+            return [];
+          }
+          this.searching.set(true);
+          return this.productService
+            .searchProduct(q)
+            .pipe(finalize(() => this.searching.set(false)));
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((r) => this.searchResults.set(r));
+  }
+
+  onSearchInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.searchQuery.set(value);
+    this.search$.next(value);
+  }
+
+  /** Enter elige el primer resultado (rápido en desktop). */
+  onSearchEnter(): void {
+    const first = this.visibleSearchResults()[0];
+    if (first) this.selectSearchResult(first);
+  }
+
+  selectSearchResult(product: ProductSearchResult): void {
+    this.searchQuery.set('');
+    this.searchResults.set([]);
+    this.onProductSelected(product);
+  }
+
+  /** Volver al paso 1 con el buscador limpio y enfocado. */
+  changeProduct(): void {
+    this.clearProduct();
+    setTimeout(() => this.searchInput()?.nativeElement.focus());
+  }
+
+  genderLabel(g: Gender | number): string {
+    return GENDER_LABELS[g as Gender] ?? '';
+  }
 
   /** Costo único para llenar todas las filas (herramienta, sin modos ni candados). */
   masterCost = signal<number | null>(null);
@@ -91,6 +199,9 @@ export default class CatalogueItemModal implements OnInit {
 
   // ── Init ──────────────────────────────────────────────────────────────
   ngOnInit(): void {
+    // Catálogo de tallas para resolver el sizeOrder de una variante recién
+    // creada cuando el POST no lo incluye (lookup local, cached).
+    this.sizeService.load();
     if (this.mode() === 'edit') {
       const created = this.initialProduct();
       if (created) this.loadProduct(created);
@@ -121,6 +232,7 @@ export default class CatalogueItemModal implements OnInit {
           sku: v.sku,
           size: v.size,
           sizeId: v.sizeId,
+          sizeOrder: v.sizeOrder ?? 0,
           colorId: v.colorId,
           colorName: v.color,
           price: v.price,
@@ -144,6 +256,7 @@ export default class CatalogueItemModal implements OnInit {
             id: v.id,
             sizeId: v.sizeId,
             sizeName: v.size,
+            sizeOrder: v.sizeOrder ?? 0,
             colorId: v.colorId,
             colorCode: '',
             colorName: v.color,
@@ -179,12 +292,13 @@ export default class CatalogueItemModal implements OnInit {
         genderName: Gender[product.gender],
         description: product.description,
       },
-      variants: product.productVariants.map((v) => ({
-        mode: 'ex' as const,
-        id: v.id,
-        sizeId: v.sizeId,
-        sizeName: v.size,
-        colorId: v.colorId,
+        variants: product.productVariants.map((v) => ({
+          mode: 'ex' as const,
+          id: v.id,
+          sizeId: v.sizeId,
+          sizeName: v.size,
+          sizeOrder: v.sizeOrder ?? 0,
+          colorId: v.colorId,
         colorCode: '',
         colorName: v.colorName,
         price: v.price,
@@ -230,17 +344,62 @@ export default class CatalogueItemModal implements OnInit {
   }
 
   onUniqueCostChange(value: string): void {
-    this.masterCost.set(parseAmountInput(value));
-  }
-
-  /** Escribe el costo único en todas las filas (commit explícito, sin propagación en vivo). */
-  applyUniqueCost(): void {
-    const cost = this.masterCost();
+    const cost = parseAmountInput(value);
+    this.masterCost.set(cost);
+    // En vivo, pero con guarda: vacío/inválido no toca las filas (no borra
+    // costos cargados uno por uno al limpiar el campo).
     if (cost == null) return;
     this.itemModel.update((current) => ({
       ...current,
       variants: current.variants.map((v) => ({ ...v, unitCost: cost })),
     }));
+  }
+
+  // ── Crear variante (sin refetch) ────────────────────────────────────
+  /**
+   * Crea la variante en backend y la encaja en su lugar (color, talla) sin
+   * refetch: las filas existentes conservan identidad y lo tipeado intacto.
+   */
+  onSaveAddVariant(dto: CreateProductVariantDto): void {
+    const productId = this.itemModel().product.id;
+    if (!productId || this.addVariantSaving()) return;
+
+    this.addVariantSaving.set(true);
+    this.productService.createVariants(productId, { variants: [dto] }).subscribe({
+      next: (created) => {
+        this.addVariantSaving.set(false);
+        const first = created[0];
+        if (!first) {
+          this.error.set('El backend no devolvió la variante creada.');
+          return;
+        }
+        const row: VariantForm = {
+          mode: 'ex',
+          id: first.productVariantId,
+          sizeId: dto.sizeId,
+          sizeName: first.size,
+          sizeOrder: first.sizeOrder ?? this.lookupSizeOrder(dto.sizeId),
+          colorId: dto.colorId,
+          colorCode: '',
+          colorName: first.colorName,
+          price: dto.price,
+          quantityReceived: null,
+          unitCost: this.masterCost() ?? null,
+          sku: first.sku,
+        };
+        this.itemModel.update((m) => ({ ...m, variants: sortVariants([...m.variants, row]) }));
+        this.showAddVariant.set(false);
+      },
+      error: () => {
+        this.addVariantSaving.set(false);
+        this.error.set('No se pudo crear la variante. Intentá de nuevo.');
+      },
+    });
+  }
+
+  /** SizeOrder desde el catálogo local (fallback si el POST no lo trae). */
+  private lookupSizeOrder(sizeId: GUID): number {
+    return this.sizeService.sizes().find((s) => s.id === sizeId)?.sortOrder ?? 0;
   }
 
   // ── Submit ────────────────────────────────────────────────────────────

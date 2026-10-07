@@ -16,7 +16,7 @@ const item: ItemForm = {
   product: { id: 'p1', productName: 'Zapato', internalCode: 'ZAP', categoryName: 'Calzado', brandName: 'Nike', genderName: '', description: '' },
   variants: [
     {
-      mode: 'ex', id: 'v1', sizeId: 's1', sizeName: '35', colorId: 'c1',
+      mode: 'ex', id: 'v1', sizeId: 's1', sizeName: '35', sizeOrder: 1, colorId: 'c1',
       colorCode: '', colorName: 'Rojo', quantityReceived: 6, unitCost: 50,
       price: 120, sku: 'SKU-1', selected: true,
     },
@@ -237,5 +237,28 @@ describe('ReceptionForm confirm flow', () => {
     params$.next({ get: () => null });
     expect(form.showConfirm()).toBe(false);
     expect(createSpy.calls).toBe(0);
+  });
+
+  it('la vista muestra productos, unidades y costo total', () => {
+    const { fixture, form } = setup();
+    const [base] = item.variants;
+    form.reception.set({
+      notes: '',
+      items: [
+        {
+          ...item,
+          variants: [
+            { ...base, id: 'v1', quantityReceived: 10, unitCost: 5 },
+            { ...base, id: 'v2', quantityReceived: 14, unitCost: 10 },
+          ],
+        },
+      ],
+    });
+    fixture.detectChanges();
+
+    const text = ((fixture.nativeElement as HTMLElement).textContent ?? '').replace(/\s+/g, ' ');
+    expect(text).toContain('Productos (1)');
+    expect(text).toContain('24');
+    expect(text).toContain('190');
   });
 });

@@ -144,7 +144,7 @@ interface AddVariantModel {
   `,
 })
 export default class AddVariantModal {
-  existingVariants = input.required<ProductVariantDto[]>();
+  existingVariants = input.required<Pick<ProductVariantDto, 'colorId' | 'sizeId'>[]>();
   submitting = input<boolean>(false);
 
   save = output<CreateProductVariantDto>();
