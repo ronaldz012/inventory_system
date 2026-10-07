@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { AuthService as Auth0Service } from '@auth0/auth0-angular';
 import { BranchContextService } from '@core/services/branch-context-service';
 import { ConnectivityService } from '@core/services/connectivity-service';
+import { ToastService } from '@core/services/toast-service';
 import { environment } from 'environments/environment';
 import { catchError, switchMap, throwError, timeout, tap, MonoTypeOperatorFunction } from 'rxjs';
 
@@ -26,6 +27,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth0 = inject(Auth0Service);
   const branchContext = inject(BranchContextService);
   const connectivity = inject(ConnectivityService);
+  const toast = inject(ToastService);
   const router = inject(Router);
 
   if (req.url.includes('/api/Auth/health') || req.url.includes('gstatic.com/generate_204')) {
@@ -56,7 +58,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       if ((error as { __connectivityHandled?: boolean })?.__connectivityHandled) {
         return throwError(() => error as HttpErrorResponse);
       }
-      router.navigate(['/login'], { queryParams: { reason: 'session-expired' } });
+      const code = (error as { error?: string })?.error;
+      if (code === 'login_required' || code === 'missing_refresh_token' || code === 'invalid_grant') {
+        router.navigate(['/login'], { queryParams: { reason: 'session-expired' } });
+      } else {
+        console.warn('[auth] token silencioso falló sin sesión muerta:', code ?? error);
+        toast.error('No pudimos validar tu sesión. Intentá de nuevo.');
+      }
       return throwError(() => error as HttpErrorResponse);
     }),
   );

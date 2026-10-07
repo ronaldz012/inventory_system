@@ -19,6 +19,7 @@ export const appConfig: ApplicationConfig = {
       authorizationParams: {
         redirect_uri: environment.auth0.authorizationParams.redirect_uri,
         audience: environment.auth0.authorizationParams.audience,
+        scope: 'openid profile email offline_access',
       },
       cacheLocation: 'localstorage',
       useRefreshTokens: true,
