@@ -11,6 +11,7 @@ import { PagedResult } from '../dtos/paged-result';
 import { StockReceptionDetailDto } from '../dtos/receptions/stock-reception-details-dto';
 import { ReceptionLabelsDto } from '../dtos/receptions/reception-labels-dto';
 import { StockReceptionRevertCheckDto } from '../dtos/receptions/stock-reception-revert-check-dto';
+import { StockReceptionResultDto } from '../dtos/receptions/stock-reception-result-dto';
 
 @Injectable({
   providedIn: 'root',
@@ -18,8 +19,8 @@ import { StockReceptionRevertCheckDto } from '../dtos/receptions/stock-reception
 export class ReceptionService {
   private url = `${environment.BACKEND_URL}/api/Reception`;
   private http = inject(HttpClient);
-  create(payload: createReceptionDto): Observable<boolean> {
-    return this.http.post<boolean>(this.url, payload);
+  create(payload: createReceptionDto): Observable<StockReceptionResultDto> {
+    return this.http.post<StockReceptionResultDto>(this.url, payload);
   }
 
   getAll(query: ReceptionQueryParams): Observable<PagedResult<StockReceptionListDto>> {

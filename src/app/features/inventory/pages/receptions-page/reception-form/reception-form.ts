@@ -215,9 +215,9 @@ export default class ReceptionForm implements OnInit {
     this.submitError.set(null);
 
     this.receptionService.create(payload).subscribe({
-      next: () => {
+      next: (result) => {
         this.isSubmitting.set(false);
-        this.router.navigate(['inventory', 'receptions']);
+        this.router.navigate(['inventory', 'receptions', result.id]);
       },
       error: (err: unknown) => {
         this.isSubmitting.set(false);
