@@ -1,4 +1,4 @@
-import { Component, inject, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { form, FormField, min, required, validate } from '@angular/forms/signals';
 import { ColorSelectCtrl } from '@features/inventory/components/color-select-ctrl/color-select-ctrl.component';
 import { SizeSelectCtrl } from '@features/inventory/components/size-select-ctrl/size-select-ctrl.component';
@@ -83,7 +83,7 @@ interface AddVariantModel {
 
           <!-- Precio -->
           <div>
-            <label class="field-label block">Precio</label>
+            <label class="field-label block">Precio de Venta</label>
             <div class="relative">
               <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-text-soft"
                 >Bs</span
@@ -97,6 +97,22 @@ interface AddVariantModel {
                 placeholder="0.00"
               />
             </div>
+            @if (distinctPrices().length > 0) {
+              <div class="flex items-center gap-1.5 flex-wrap mt-1.5">
+                <span class="text-[10px] text-text-soft">Precios del producto:</span>
+                @for (p of distinctPrices(); track p) {
+                  <button
+                    type="button"
+                    (click)="usePrice(p)"
+                    [class.!border-accent-ui]="model().price === p"
+                    [class.!text-accent-ui]="model().price === p"
+                    class="px-1.5 py-0.5 text-[11px] font-mono border border-border rounded-md text-text-muted hover:border-accent-ui hover:text-accent-ui transition-colors"
+                  >
+                    Bs {{ p }}
+                  </button>
+                }
+              </div>
+            }
             @if (addVariantForm.price().touched() && addVariantForm.price().invalid()) {
               @for (error of addVariantForm.price().errors(); track error.kind) {
                 <span class="text-xs text-feedback-error-text font-medium leading-none mt-1 block">
@@ -144,7 +160,9 @@ interface AddVariantModel {
   `,
 })
 export default class AddVariantModal {
-  existingVariants = input.required<Pick<ProductVariantDto, 'colorId' | 'sizeId'>[]>();
+  existingVariants = input.required<
+    (Pick<ProductVariantDto, 'colorId' | 'sizeId'> & { price: number | null })[]
+  >();
   submitting = input<boolean>(false);
 
   save = output<CreateProductVariantDto>();
@@ -183,6 +201,18 @@ export default class AddVariantModal {
         : null;
     });
   });
+
+  /** Precios distintos presentes en el producto (chips de ayuda). */
+  distinctPrices = computed(() => {
+    const set = new Set<number>();
+    for (const v of this.existingVariants()) if (v.price != null) set.add(v.price);
+    return [...set].sort((a, b) => a - b);
+  });
+
+  /** Un tap en un chip aplica ese precio (acción explícita, nunca automática). */
+  usePrice(p: number): void {
+    this.model.update((m) => ({ ...m, price: p }));
+  }
 
   onSave(): void {
     this.addVariantForm().markAsTouched();
