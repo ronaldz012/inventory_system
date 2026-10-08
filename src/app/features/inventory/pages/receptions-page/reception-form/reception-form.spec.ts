@@ -39,10 +39,12 @@ describe('ReceptionForm confirm flow', () => {
   const navigateSpy = {
     calls: [] as unknown[],
     flags: [] as (boolean | undefined)[],
+    paths: [] as unknown[][],
     fn(commands: unknown[], extras?: { queryParams?: { modal?: string | null }; replaceUrl?: boolean }) {
       const modal = extras?.queryParams?.modal;
       params$.next({ get: () => (modal == null ? null : modal) });
       this.calls.push(modal);
+      this.paths.push(commands);
       this.flags.push(extras?.replaceUrl);
       return Promise.resolve(true);
     },
@@ -53,6 +55,7 @@ describe('ReceptionForm confirm flow', () => {
     createSpy.fail = false;
     navigateSpy.calls = [];
     navigateSpy.flags = [];
+    navigateSpy.paths = [];
     params$.next({ get: () => null });
     await TestBed.configureTestingModule({
       imports: [Host],
@@ -65,8 +68,13 @@ describe('ReceptionForm confirm flow', () => {
             create: () => {
               createSpy.calls++;
               return {
-                subscribe: ({ next, error }: { next: () => void; error: (e: unknown) => void }) =>
-                  createSpy.fail ? error({ message: 'Falla' }) : next(),
+                subscribe: ({
+                  next,
+                  error,
+                }: {
+                  next: (result: { id: string }) => void;
+                  error: (e: unknown) => void;
+                }) => (createSpy.fail ? error({ message: 'Falla' }) : next({ id: 'r1' })),
               };
             },
           },
@@ -121,13 +129,14 @@ describe('ReceptionForm confirm flow', () => {
     expect(createSpy.calls).toBe(0);
   });
 
-  it('executeCreate envía el payload y navega', () => {
+  it('executeCreate envía el payload y navega al detalle creado', () => {
     const { form } = setup();
     form.providerModel.set({ id: 'prov1', name: 'Proveedor 1' });
     form.reception.set({ notes: '', items: [item] });
     form.executeCreate();
     expect(createSpy.calls).toBe(1);
     expect(form.isSubmitting()).toBe(false);
+    expect(navigateSpy.paths).toContainEqual(['inventory', 'receptions', 'r1']);
   });
 
   it('sin proveedor no abre el confirm y muestra error', () => {
