@@ -244,7 +244,7 @@
               @for (row of group.rows; track row.variant.id) {
               <div
                 data-nav-row
-                class="flex flex-col md:grid md:grid-cols-[88px_64px_72px_84px_92px] md:items-center border-b border-border last:border-b-0 transition-colors"
+                class="flex flex-col md:grid md:grid-cols-[88px_64px_72px_84px_92px] md:items-center border-b border-border last:border-b-0 transition-colors focus-within:bg-accent-ui/5"
               >
                 <!-- Mobile fila 1: identidad (el color lo da el grupo) -->
                 <div class="flex items-center gap-2 px-3 py-1.5 md:p-0 md:contents">
@@ -277,7 +277,7 @@
                       [class.!border-accent-ui]="
                         row.variant.quantityReceived != null && !qtyInvalid(row.index)
                       "
-                      class="field-number flex-1 min-w-0 w-full px-1.5 py-0.5 border border-border rounded text-[11px] font-mono text-text-main bg-bg-surface focus:outline-none focus:border-accent-ui"
+                      class="field-number flex-1 min-w-0 w-full px-1.5 py-0.5 border border-border rounded text-[11px] font-mono text-text-main bg-bg-surface focus:outline-none focus:border-accent-ui focus:ring-2 focus:ring-accent-ui/20"
                     />
                     @if (
                       itemForm.variants[row.index].quantityReceived().touched() &&
@@ -309,10 +309,10 @@
                         itemForm.variants[row.index].unitCost().touched() &&
                         itemForm.variants[row.index].unitCost().invalid()
                       "
-                      class="field-number flex-1 min-w-0 w-full px-1.5 py-0.5 border border-border rounded text-[11px] font-mono text-text-main bg-bg-surface focus:outline-none focus:border-accent-ui"
+                      class="field-number flex-1 min-w-0 w-full px-1.5 py-0.5 border border-border rounded text-[11px] font-mono text-text-main bg-bg-surface focus:outline-none focus:border-accent-ui focus:ring-2 focus:ring-accent-ui/20"
                     />
-                      @if (
-                        itemForm.variants[row.index].unitCost().touched() &&
+                    @if (
+                      itemForm.variants[row.index].unitCost().touched() &&
                         itemForm.variants[row.index].unitCost().invalid()
                       ) {
                         @for (
