@@ -96,6 +96,11 @@
                         · {{ genderLabel(product.gender) }}
                       }
                     </span>
+                    @if (product.description) {
+                      <span class="text-[11px] text-text-soft italic truncate">{{
+                        product.description
+                      }}</span>
+                    }
                   </span>
                   <span
                     class="shrink-0 text-[10px] bg-bg-muted px-1.5 py-0.5 rounded text-text-muted font-semibold whitespace-nowrap"
