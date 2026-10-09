@@ -3,6 +3,7 @@ import { TransferDirection, TransferStatus } from './transfer-enums';
 
 export interface StockTransferListDto {
   id: GUID;
+  number: number;
   direction : TransferDirection;
   counterpartBranchName: string;
   requesterName: string;

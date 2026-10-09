@@ -10,6 +10,7 @@
           class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium leading-none"
           [class]="statusClasses(reception().status)"
         >{{ Status[reception().status] }}</span>
+        <span class="font-mono text-[11px] font-bold text-text-muted">#{{ reception().number }}</span>
       </div>
       <p class="truncate font-inter text-sm font-bold leading-tight text-text-main">
         {{ reception().providerName || '—' }}
@@ -22,7 +23,7 @@
         {{ reception().productVariantsCount === 1 ? 'talla/color' : 'tallas/colores' }}
         · {{ reception().totalItems }} uds
         · <span class="font-bold text-accent-ui">
-            {{ reception().totalCost | currency:'BOB':'symbol':'1.2-2' }}
+            {{ reception().totalCost | number: '1.2-2' }}
           </span>
         · <span class="font-medium text-text-main">
             {{ reception().receivedAt | smartDate }}
@@ -40,8 +41,12 @@
   <!-- ====== DESKTOP ====== -->
   <div
     class="group hidden lg:grid items-center px-4 py-3 transition-colors duration-150 hover:bg-bg-muted"
-    style="grid-template-columns: 7rem 9rem 1fr 6rem 5rem 7rem 5.5rem 3.5rem;"
+    [style.grid-template-columns]="gridCols"
   >
+    <span class="font-mono text-sm font-bold text-text-main">
+      #{{ reception().number }}
+    </span>
+
     <span class="font-inter text-xs font-medium text-text-main">
       {{ reception().receivedAt | smartDate }}
     </span>
@@ -63,8 +68,8 @@
       {{ reception().totalItems }} uds
     </span>
 
-    <span class="pr-4 text-right font-inter text-sm font-extrabold text-accent-ui">
-      {{ reception().totalCost | currency:'BOB':'symbol':'1.2-2' }}
+    <span class="pr-4 text-right font-inter text-[13px] font-bold text-accent-ui">
+      {{ reception().totalCost | number: '1.2-2' }}
     </span>
 
     <span

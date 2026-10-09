@@ -63,28 +63,52 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
             </div>
           }
 
-          <div class="bg-bg-surface rounded-xl border border-border-strong px-6 py-5 shadow-xs">
-            <p class="text-[11px] font-bold uppercase tracking-wider text-text-soft mb-4">Información general</p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+          <div class="bg-bg-surface rounded-xl border border-border-strong px-4 py-3">
+            <div class="flex items-center gap-2">
+              <p class="text-sm font-semibold text-text-main">
+                {{ isReturn() ? 'Devolución' : 'Venta' }} #{{ s.number }}
+              </p>
+              <span
+                class="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold shrink-0"
+                [class]="
+                  isReturn()
+                    ? 'bg-feedback-warning/15 text-feedback-warning-text'
+                    : 'bg-accent-ui/10 text-accent-ui'
+                "
+                >{{ isReturn() ? 'Devolución' : 'Venta' }}</span
+              >
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
               <div>
-                <p class="field-label">Fecha</p>
-                <p class="field-value text-sm font-medium">{{ s.createdAt | smartDate }}</p>
-              </div>
-              <div>
-                <p class="field-label">Vendedor</p>
-                <p class="field-value text-sm font-medium truncate">{{ s.soldByName }}</p>
-              </div>
-              <div>
-                <p class="field-label">Tipo</p>
-                <p class="field-value">
-                  <span class="px-2 py-0.5 rounded-md text-xs font-bold" [class]="isReturn() ? 'bg-feedback-warning/15 text-feedback-warning-text' : 'bg-accent-ui/10 text-accent-ui'">
-                    {{ isReturn() ? 'Devolución' : 'Venta' }}
-                  </span>
+                <p class="table-header">Total</p>
+                <p
+                  class="text-xl font-black font-mono"
+                  [class.text-feedback-error-text]="isReturn()"
+                  [class.text-text-main]="!isReturn()"
+                >
+                  {{ s.totalAmount | currency: 'BOB' : 'symbol' : '1.2-2' }}
                 </p>
               </div>
               <div>
-                <p class="field-label">Método de pago</p>
-                <p class="field-value">
+                <p class="table-header">Fecha</p>
+                <p class="text-sm font-bold text-text-main">{{ s.createdAt | smartDate }}</p>
+              </div>
+              <div class="min-w-0">
+                <p class="table-header">Vendedor</p>
+                <p class="text-sm font-bold text-text-main truncate" [title]="s.soldByName">
+                  {{ s.soldByName }}
+                </p>
+              </div>
+              <div>
+                <p class="table-header">Artículos</p>
+                <p class="text-sm font-bold font-mono text-text-main">
+                  {{ s.totalItems }} <span class="text-xs font-bold">u</span>
+                </p>
+              </div>
+              <div>
+                <p class="table-header">Método de pago</p>
+                <p class="text-sm font-bold">
                   @if (s.paymentMethod === PaymentMethod.Cash) {
                     <span class="text-xs font-medium text-text-muted bg-bg-muted px-2 py-0.5 rounded-md">Efectivo</span>
                   } @else {
@@ -93,8 +117,8 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                 </p>
               </div>
               <div>
-                <p class="field-label">Tipo de documento</p>
-                <p class="field-value">
+                <p class="table-header">Tipo de documento</p>
+                <p class="text-sm font-bold">
                   @if (s.documentType === DocumentType.Invoice) {
                     <span class="text-xs font-medium text-feedback-success-text bg-feedback-success-bg/10 px-2 py-0.5 rounded-md">Factura</span>
                   } @else if (s.documentType === DocumentType.PendingInvoice) {
@@ -105,26 +129,17 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                 </p>
               </div>
               <div>
-                <p class="field-label">Total</p>
-                <p class="field-value text-sm font-bold font-mono" [class.text-feedback-error-text]="isReturn()">{{ s.totalAmount | currency: 'BOB' : 'symbol' : '1.2-2' }}</p>
+                <p class="table-header">N° Factura</p>
+                <p class="text-sm font-bold font-mono text-text-main">{{ s.invoiceNumber ?? '—' }}</p>
               </div>
-              <div>
-                <p class="field-label">Artículos</p>
-                <p class="field-value text-sm">{{ s.totalItems }} unid.</p>
-              </div>
-              <div>
-                <p class="field-label">N° Factura</p>
-                <p class="field-value text-sm font-mono">{{ s.invoiceNumber ?? '—' }}</p>
-              </div>
-              <div>
-                <p class="field-label">Código de transacción</p>
-                <p class="field-value text-sm font-mono truncate">{{ s.transactionCode || '—' }}</p>
-              </div>
-              <div class="sm:col-span-2">
-                <p class="field-label">Notas</p>
-                <p class="field-value text-sm break-words">{{ s.notes || '—' }}</p>
+              <div class="min-w-0">
+                <p class="table-header">Código de transacción</p>
+                <p class="text-sm font-bold font-mono text-text-main truncate" [title]="s.transactionCode || ''">{{ s.transactionCode || '—' }}</p>
               </div>
             </div>
+            @if (s.notes) {
+              <p class="text-[13px] text-text-muted leading-snug mt-1 break-words">{{ s.notes }}</p>
+            }
           </div>
 
           <div class="bg-bg-surface rounded-xl border border-border-strong shadow-xs overflow-hidden">

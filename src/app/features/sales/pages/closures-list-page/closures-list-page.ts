@@ -43,8 +43,9 @@ import { BaseQueryDto } from '@features/inventory/dtos/base-query-dto';
       } @else {
         <div class="bg-bg-surface rounded-xl border border-border shadow-xs overflow-hidden">
           <div
-            class="hidden lg:grid lg:grid-cols-8 px-4 py-3 bg-bg-muted border-b border-border table-header"
+            class="hidden lg:grid lg:grid-cols-9 px-4 py-3 bg-bg-muted border-b border-border table-header"
           >
+            <span>Nº</span>
             <span class="col-span-2">Apertura</span>
             <span class="text-right">Ventas</span>
             <span class="text-right">Efectivo</span>
@@ -63,6 +64,8 @@ import { BaseQueryDto } from '@features/inventory/dtos/base-query-dto';
                 <div class="flex items-center gap-4 px-4 py-3.5 lg:hidden">
                   <div class="flex flex-col min-w-0 flex-1">
                     <p class="truncate font-inter text-sm font-bold leading-tight text-text-main">
+                      <span class="font-mono">#{{ c.number }}</span>
+                      ·
                       {{ c.openedAt | smartDate }}
                     </p>
                     <p class="font-inter text-xs text-text-muted mt-0.5">
@@ -102,8 +105,11 @@ import { BaseQueryDto } from '@features/inventory/dtos/base-query-dto';
 
                 <!-- DESKTOP -->
                 <div
-                  class="hidden lg:grid lg:grid-cols-8 items-center px-4 py-3 transition-colors duration-150 hover:bg-bg-muted"
+                  class="hidden lg:grid lg:grid-cols-9 items-center px-4 py-3 transition-colors duration-150 hover:bg-bg-muted"
                 >
+                  <span class="font-mono text-[13px] font-bold text-text-main">
+                    #{{ c.number }}
+                  </span>
                   <div class="col-span-2">
                     <p class="text-[13px] font-medium text-text-main">
                       {{ c.openedAt | smartDate }}

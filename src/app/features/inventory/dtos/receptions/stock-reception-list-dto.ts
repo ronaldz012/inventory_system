@@ -2,6 +2,7 @@ import { BaseQueryDto } from '../base-query-dto';
 
 export interface StockReceptionListDto {
   id: GUID;
+  number: number;
   branchId: number;
   providerId: GUID;
   providerName: string;

@@ -2,6 +2,7 @@ import { TransferDirection, TransferStatus } from "./transfer-enums"
 
 export interface StockTransferDetailDto {
   id:GUID,
+  number: number,
   direction: TransferDirection,
   fromBranchName:string,
   toBranchName:string,

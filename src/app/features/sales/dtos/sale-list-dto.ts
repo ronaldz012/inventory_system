@@ -2,6 +2,7 @@ import { SaleType, PaymentMethod, DocumentType } from './sale-detail-dto';
 
 export interface SaleListDto {
   id: GUID;
+  number: number;
   createdAt: string;
   totalAmount: number;
   soldByName: string;

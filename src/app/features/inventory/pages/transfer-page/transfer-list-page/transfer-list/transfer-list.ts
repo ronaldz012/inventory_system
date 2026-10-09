@@ -1,6 +1,6 @@
 import { Component, input, output, signal } from '@angular/core';
 import { StockTransferListDto } from '../../../../dtos/transfers/stock-transfer-list-dto';
-import { TransferListItem } from './transfer-list-item/transfer-list-item';
+import { TransferListItem, TRANSFER_LIST_GRID } from './transfer-list-item/transfer-list-item';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 
 @Component({
@@ -26,8 +26,9 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
         <div
           class="hidden lg:grid px-4 py-2 border-b border-border bg-bg-muted
              text-[11px] font-semibold text-text-soft uppercase tracking-wide"
-          style="grid-template-columns: 5.5rem 5rem 6rem 1fr 8rem 4.5rem 5.5rem 9rem;"
+          [style.grid-template-columns]="gridCols"
         >
+          <span class="pr-4">Nº</span>
           <span class="pr-4">Creado</span>
           <span>Dirección</span>
           <span>Estado</span>
@@ -84,6 +85,8 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 })
 export class TransferList {
   transfers = input.required<StockTransferListDto[]>();
+  /** El template no puede llamar imports: se expone la constante tal cual. */
+  readonly gridCols = TRANSFER_LIST_GRID;
   loading = input<boolean>(false);
 
   viewDetail = output<GUID>();

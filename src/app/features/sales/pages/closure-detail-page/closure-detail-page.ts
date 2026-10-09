@@ -50,61 +50,28 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
             <h1 class="text-lg font-black text-text-main">Detalle de Cierre</h1>
           </div>
 
-           <div class="bg-bg-surface rounded-xl border border-border-strong px-6 py-5 shadow-xs">
-            <p class="section-title mb-4">Información general</p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+           <div class="bg-bg-surface rounded-xl border border-border-strong px-4 py-3">
+            <div class="flex items-center gap-2">
+              <p class="text-sm font-semibold text-text-main">Cierre #{{ c.number }}</p>
+              <span
+                class="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold shrink-0"
+                [class.bg-feedback-success]="c.difference === 0"
+                [class.text-feedback-success-text]="c.difference === 0"
+                [class.bg-feedback-error]="c.difference !== 0"
+                [class.text-feedback-error-text]="c.difference !== 0"
+                >@if (c.difference === 0) {
+                  Cuadra
+                } @else {
+                  Dif {{ c.difference | currency: 'BOB' : 'symbol' : '1.2-2' }}
+                }</span
+              >
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
               <div>
-                <p class="field-label">Apertura</p>
-                <p class="field-value text-sm font-medium">{{ c.openedAt | smartDate }}</p>
-              </div>
-              <div>
-                <p class="field-label">Cierre</p>
-                <p class="field-value text-sm font-medium">{{ c.closedAt ? (c.closedAt | smartDate) : '—' }}</p>
-              </div>
-              <div>
-                <p class="field-label">Abrió</p>
-                <p class="field-value">{{ c.openedByName }}</p>
-              </div>
-              <div>
-                <p class="field-label">Cerró</p>
-                <p class="field-value">{{ c.closedByName || '—' }}</p>
-              </div>
-              <div>
-                <p class="field-label">Monto apertura</p>
-                <p class="field-value">
-                  {{ c.openingBalance | currency: 'BOB' : 'symbol' : '1.2-2' }}
-                </p>
-              </div>
-              <div>
-                <p class="field-label">Total ventas</p>
-                <p class="field-value">{{ c.totalSales | currency: 'BOB' : 'symbol' : '1.2-2' }}</p>
-              </div>
-              <div>
-                <p class="field-label">Ventas efectivo</p>
-                <p class="field-value">{{ c.cashSales | currency: 'BOB' : 'symbol' : '1.2-2' }}</p>
-              </div>
-              <div>
-                <p class="field-label">Total gastos</p>
-                <p class="field-value text-feedback-error-text">
-                  {{ c.totalExpenses | currency: 'BOB' : 'symbol' : '1.2-2' }}
-                </p>
-              </div>
-              <div>
-                <p class="field-label">Saldo esperado</p>
-                <p class="field-value font-semibold">
-                  {{ c.systemSalesAmount | currency: 'BOB' : 'symbol' : '1.2-2' }}
-                </p>
-              </div>
-              <div>
-                <p class="field-label">Monto contado</p>
-                <p class="field-value font-semibold">
-                  {{ c.realCountedAmount | currency: 'BOB' : 'symbol' : '1.2-2' }}
-                </p>
-              </div>
-              <div>
-                <p class="field-label">Diferencia</p>
+                <p class="table-header">Diferencia</p>
                 <p
-                  class="field-value font-bold"
+                  class="text-xl font-black font-mono"
                   [class.text-feedback-success-text]="c.difference === 0"
                   [class.text-feedback-error-text]="c.difference !== 0"
                 >
@@ -113,6 +80,58 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                   } @else {
                     {{ c.difference | currency: 'BOB' : 'symbol' : '1.2-2' }}
                   }
+                </p>
+              </div>
+              <div>
+                <p class="table-header">Total ventas</p>
+                <p class="text-sm font-bold font-mono text-text-main">
+                  {{ c.totalSales | currency: 'BOB' : 'symbol' : '1.2-2' }}
+                </p>
+              </div>
+              <div>
+                <p class="table-header">Ventas efectivo</p>
+                <p class="text-sm font-bold font-mono text-text-main">
+                  {{ c.cashSales | currency: 'BOB' : 'symbol' : '1.2-2' }}
+                </p>
+              </div>
+              <div>
+                <p class="table-header">Total gastos</p>
+                <p class="text-sm font-bold font-mono text-feedback-error-text">
+                  {{ c.totalExpenses | currency: 'BOB' : 'symbol' : '1.2-2' }}
+                </p>
+              </div>
+              <div>
+                <p class="table-header">Apertura</p>
+                <p class="text-sm font-bold text-text-main">{{ c.openedAt | smartDate }}</p>
+              </div>
+              <div>
+                <p class="table-header">Cierre</p>
+                <p class="text-sm font-bold text-text-main">
+                  {{ c.closedAt ? (c.closedAt | smartDate) : '—' }}
+                </p>
+              </div>
+              <div class="min-w-0">
+                <p class="table-header">Turno</p>
+                <p class="text-sm font-bold text-text-main truncate" [title]="c.openedByName + ' → ' + (c.closedByName || '—')">
+                  {{ c.openedByName }} → {{ c.closedByName || '—' }}
+                </p>
+              </div>
+              <div>
+                <p class="table-header">Monto apertura</p>
+                <p class="text-sm font-bold font-mono text-text-main">
+                  {{ c.openingBalance | currency: 'BOB' : 'symbol' : '1.2-2' }}
+                </p>
+              </div>
+              <div>
+                <p class="table-header">Saldo esperado</p>
+                <p class="text-sm font-bold font-mono text-text-main">
+                  {{ c.systemSalesAmount | currency: 'BOB' : 'symbol' : '1.2-2' }}
+                </p>
+              </div>
+              <div>
+                <p class="table-header">Monto contado</p>
+                <p class="text-sm font-bold font-mono text-text-main">
+                  {{ c.realCountedAmount | currency: 'BOB' : 'symbol' : '1.2-2' }}
                 </p>
               </div>
             </div>

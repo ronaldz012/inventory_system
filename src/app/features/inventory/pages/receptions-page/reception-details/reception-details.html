@@ -21,34 +21,45 @@
       </div>
 
       <!-- Info general -->
-      <div class="bg-bg-surface rounded-xl border border-border shadow-xs p-5">
-        <div class="flex items-center justify-between mb-4">
-          <p class="section-title">Información general</p>
-          <span [class]="statusClasses(r.status)">{{ Status[r.status] }}</span>
+      <div class="bg-bg-surface rounded-xl border border-border-strong px-4 py-3">
+        <div class="flex items-center gap-2">
+          <p class="text-sm font-semibold text-text-main">Recepción #{{ r.number }}</p>
+          <span
+            class="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold shrink-0"
+            [class]="statusClasses(r.status)"
+            >{{ Status[r.status] }}</span
+          >
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
           <div>
-            <p class="field-label">Proveedor</p>
-            <p class="field-value">{{ r.providerName }}</p>
-          </div>
-          <div>
-            <p class="field-label">Fecha de recepción</p>
-            <p class="field-value">{{ r.receivedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
-          </div>
-          <div>
-            <p class="field-label">Total</p>
-            <p class="text-sm font-semibold text-text-main">
+            <p class="table-header">Total</p>
+            <p class="text-xl font-black font-mono text-accent-ui">
               {{ r.totalCost | currency: 'BOB' : 'symbol' : '1.2-2' }}
             </p>
           </div>
-          @if (r.notes) {
-            <div class="sm:col-span-2">
-              <p class="field-label">Notas</p>
-              <p class="text-sm text-text-muted bg-bg-muted rounded-lg px-3 py-2">{{ r.notes }}</p>
-            </div>
-          }
+          <div>
+            <p class="table-header">Unidades</p>
+            <p class="text-sm font-bold font-mono text-text-main">
+              {{ totalQuantity }} <span class="text-xs font-bold">u</span>
+            </p>
+          </div>
+          <div class="min-w-0">
+            <p class="table-header">Proveedor</p>
+            <p class="text-sm font-bold text-text-main truncate" [title]="r.providerName">
+              {{ r.providerName }}
+            </p>
+          </div>
+          <div>
+            <p class="table-header">Fecha</p>
+            <p class="text-sm font-bold text-text-main">
+              {{ r.receivedAt | date: 'dd/MM/yyyy HH:mm' }}
+            </p>
+          </div>
         </div>
+        @if (r.notes) {
+          <p class="text-[13px] text-text-muted leading-snug mt-1">{{ r.notes }}</p>
+        }
       </div>
 
       <!-- Productos -->

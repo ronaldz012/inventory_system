@@ -2,6 +2,7 @@ import { ReceptionStatus } from './stock-reception-list-dto';
 
 export interface StockReceptionDetailDto {
   id: GUID;
+  number: number;
   branchId: GUID;
   providerId: GUID;
   providerName: string;

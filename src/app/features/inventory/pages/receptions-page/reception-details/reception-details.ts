@@ -214,7 +214,7 @@ export default class ReceptionDetails implements OnInit {
             })),
           );
           const doc = await this.printService.generatePdfCompact(labels, this.sheetFormat());
-          doc.save(`etiquetas-recepcion-${data.receptionId}-${this.sheetFormat()}.pdf`);
+          doc.save(`etiquetas-recepcion-${data.number ?? data.receptionId}-${this.sheetFormat()}.pdf`);
         } catch (e) {
           console.error('Error generando PDF de etiquetas', e);
         } finally {
