@@ -169,31 +169,9 @@
       <!-- VARIANTES -->
       <section class="space-y-3">
         <div class="flex items-center justify-between gap-2">
-          <h3 class="section-title">
+          <h3 class="section-title !mb-0">
             {{ mode() === 'edit' ? 'Tallas/Colores del pedido' : 'Tallas/Colores disponibles' }}
           </h3>
-          <div class="flex items-center gap-2">
-          @if (itemModel().variants.length > 0) {
-            <div
-              class="flex items-center gap-3 bg-bg-muted/60 px-3 py-1.5 rounded-lg border border-border"
-            >
-              <span class="text-[10px] font-medium text-text-soft uppercase tracking-wider"
-                >Costo único</span
-              >
-              <div class="flex items-center gap-1.5">
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  [value]="masterCost() ?? ''"
-                  (input)="onUniqueCostChange($event.target.value)"
-                  (blur)="masterCost.set(null)"
-                  (keydown)="blockKeys($event)"
-                  class="field-number w-24 px-1.5 py-0.5 border border-border rounded text-[11px] font-mono text-text-main bg-bg-surface focus:outline-none focus:border-accent-ui"
-                />
-                <span class="text-[10px] text-text-soft">Se aplica a todas las filas</span>
-              </div>
-            </div>
-          }
           <button
             type="button"
             (click)="showAddVariant.set(true)"
@@ -202,18 +180,45 @@
             <span class="material-icons text-base leading-none">add</span>
             Variante
           </button>
-          </div>
         </div>
+        @if (itemModel().variants.length > 0) {
+          <div
+            class="flex flex-wrap items-center gap-x-3 gap-y-1.5 bg-bg-muted/60 px-3 py-1.5 rounded-lg border border-border"
+          >
+            <span class="text-[10px] font-medium text-text-soft uppercase tracking-wider"
+              >Precio de compra masivo:</span
+            >
+            <div class="flex items-center gap-1.5">
+              <input
+                type="number"
+                placeholder="0.00"
+                [value]="masterCost() ?? ''"
+                (input)="onUniqueCostChange($event.target.value)"
+                (keydown.enter)="applyMasterCost()"
+                (keydown)="blockKeys($event)"
+                class="field-number w-24 px-1.5 py-0.5 border border-border rounded text-[11px] font-mono text-text-main bg-bg-surface focus:outline-none focus:border-accent-ui"
+              />
+              <button
+                type="button"
+                (click)="applyMasterCost()"
+                [disabled]="masterCost() == null"
+                class="btn btn-secondary btn-sm shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Aplicar a todas
+              </button>
+            </div>
+          </div>
+        }
 
         <div class="border border-border rounded-xl bg-bg-surface shadow-sm">
           <div
-            class="hidden md:grid grid-cols-[88px_64px_72px_76px_76px] bg-bg-muted border-b border-border sticky top-0 z-10"
+            class="hidden md:grid grid-cols-[88px_64px_72px_84px_92px] bg-bg-muted border-b border-border sticky top-0 z-10"
           >
             <div class="px-3 py-1.5 table-header">Código</div>
             <div class="px-3 py-1.5 table-header">Talla</div>
             <div class="px-3 py-1.5 table-header text-right">Cant.</div>
-            <div class="px-3 py-1.5 table-header text-right">Costo U.</div>
-            <div class="px-3 py-1.5 table-header text-right">P. Venta</div>
+            <div class="px-3 py-1.5 table-header text-right whitespace-nowrap">P. Compra</div>
+            <div class="px-3 py-1.5 table-header text-right whitespace-nowrap">P. Venta</div>
           </div>
 
           <!-- Grupos por color (appGridNav: flechas ↑↓ navegan entre filas) -->
@@ -239,7 +244,7 @@
               @for (row of group.rows; track row.variant.id) {
               <div
                 data-nav-row
-                class="flex flex-col md:grid md:grid-cols-[88px_64px_72px_76px_76px] md:items-center border-b border-border last:border-b-0 transition-colors"
+                class="flex flex-col md:grid md:grid-cols-[88px_64px_72px_84px_92px] md:items-center border-b border-border last:border-b-0 transition-colors"
               >
                 <!-- Mobile fila 1: identidad (el color lo da el grupo) -->
                 <div class="flex items-center gap-2 px-3 py-1.5 md:p-0 md:contents">
@@ -292,7 +297,7 @@
 
                   <div class="flex flex-wrap items-center gap-1 flex-1 md:block md:px-2 md:py-1">
                     <span class="text-[9px] font-semibold uppercase text-text-soft md:hidden"
-                      >C.U.</span
+                      >Compra</span
                     >
                     <input
                       type="number"
@@ -323,10 +328,10 @@
                   </div>
 
                   <div class="shrink-0 text-right md:px-3 md:py-1">
-                    <span class="text-[11px] font-mono text-text-main">
+                    <span class="text-[11px] font-mono font-bold text-feedback-success-text">
                       {{
                         row.variant.price != null
-                          ? (row.variant.price | currency: 'BOB' : 'symbol' : '1.2-2')
+                          ? (row.variant.price | number: '1.2-2')
                           : '—'
                       }}
                     </span>
@@ -359,19 +364,19 @@
             <div class="flex flex-col gap-0.5">
               <span class="field-label">Inversión total</span>
               <span class="text-base font-black text-accent-ui font-mono">{{
-                totalInvestment() | currency: 'BOB' : 'symbol' : '1.2-2'
+                totalInvestment() | number: '1.2-2'
               }}</span>
             </div>
             <div class="flex flex-col gap-0.5">
               <span class="field-label">Ventas estimadas</span>
               <span class="text-base font-black text-text-main font-mono">{{
-                totalSales() | currency: 'BOB' : 'symbol' : '1.2-2'
+                totalSales() | number: '1.2-2'
               }}</span>
             </div>
             <div class="flex flex-col gap-0.5">
               <span class="field-label">Ganancia esperada</span>
               <span class="text-base font-black text-feedback-success-text font-mono">{{
-                expectedProfit() | currency: 'BOB' : 'symbol' : '1.2-2'
+                expectedProfit() | number: '1.2-2'
               }}</span>
             </div>
           </section>

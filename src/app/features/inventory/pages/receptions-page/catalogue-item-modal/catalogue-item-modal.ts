@@ -11,7 +11,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { debounceTime, distinctUntilChanged, finalize, Subject, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { applyEach, applyWhen, form, min, required, schema } from '@angular/forms/signals';
@@ -41,7 +41,7 @@ function sortVariants(rows: VariantForm[]): VariantForm[] {
 @Component({
   selector: 'app-catalogue-item-modal',
   standalone: true,
-  imports: [CurrencyPipe, AddVariantModal, GridNavDirective],
+  imports: [DecimalPipe, AddVariantModal, GridNavDirective],
   templateUrl: './catalogue-item-modal.html',
 })
 export default class CatalogueItemModal implements OnInit {
@@ -363,11 +363,14 @@ export default class CatalogueItemModal implements OnInit {
     return state.touched() && state.invalid();
   }
 
+  /** Borrador del masivo: tipear no toca ninguna fila (el masivo es explícito). */
   onUniqueCostChange(value: string): void {
-    const cost = parseAmountInput(value);
-    this.masterCost.set(cost);
-    // En vivo, pero con guarda: vacío/inválido no toca las filas (no borra
-    // costos cargados uno por uno al limpiar el campo).
+    this.masterCost.set(parseAmountInput(value));
+  }
+
+  /** Masivo explícito (botón o Enter): iguala todas las filas; nada si está vacío. */
+  applyMasterCost(): void {
+    const cost = this.masterCost();
     if (cost == null) return;
     this.itemModel.update((current) => ({
       ...current,

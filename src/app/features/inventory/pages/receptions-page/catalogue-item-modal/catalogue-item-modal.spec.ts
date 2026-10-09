@@ -110,20 +110,22 @@ describe('CatalogueItemModal — inclusión por cantidad', () => {
     expect(modal.error()).toBe('Cargá al menos una cantidad.');
   });
 
-  it('el costo único se aplica en vivo a todas las filas', () => {
+  it('tipear el masivo no toca las filas hasta Aplicar', () => {
     const modal = setup();
     modal.onProductSelected(fakeProduct);
 
     modal.onUniqueCostChange('45');
+    expect(modal.itemModel().variants.map((v) => v.unitCost)).toEqual([null, null]);
 
-    const costs = modal.itemModel().variants.map((v) => v.unitCost);
-    expect(costs).toEqual([45, 45]);
+    modal.applyMasterCost();
+    expect(modal.itemModel().variants.map((v) => v.unitCost)).toEqual([45, 45]);
   });
 
-  it('vaciar el costo único no borra los costos por fila', () => {
+  it('vaciar el masivo no borra los costos por fila', () => {
     const modal = setup();
     modal.onProductSelected(fakeProduct);
     modal.onUniqueCostChange('45');
+    modal.applyMasterCost();
     modal.updateVariantField(0, 'unitCost', { target: { value: '50' } } as unknown as Event);
 
     modal.onUniqueCostChange('');
@@ -132,22 +134,33 @@ describe('CatalogueItemModal — inclusión por cantidad', () => {
     expect(costs).toEqual([50, 45]);
   });
 
-  it('al salir del costo único se limpia solo el campo, no las filas', () => {
+  it('Aplicar con el campo vacío no hace nada', () => {
+    const modal = setup();
+    modal.onProductSelected(fakeProduct);
+    modal.updateVariantField(0, 'unitCost', { target: { value: '50' } } as unknown as Event);
+
+    modal.applyMasterCost();
+
+    expect(modal.itemModel().variants.map((v) => v.unitCost)).toEqual([50, null]);
+  });
+
+  it('al salir del campo masivo se conserva el borrador y las filas', () => {
     const fixture = TestBed.createComponent(CatalogueItemModal);
     fixture.detectChanges();
     const modal = fixture.componentInstance;
     const root = fixture.nativeElement as HTMLElement;
     modal.onProductSelected(fakeProduct);
     modal.onUniqueCostChange('45');
+    modal.applyMasterCost();
     fixture.detectChanges();
 
     const master = root.querySelector<HTMLInputElement>('input[placeholder="0.00"]')!;
     master.dispatchEvent(new FocusEvent('blur'));
     fixture.detectChanges();
 
-    expect(modal.masterCost()).toBeNull();
+    expect(modal.masterCost()).toBe(45);
     expect(modal.itemModel().variants.map((v) => v.unitCost)).toEqual([45, 45]);
-    expect(master.value).toBe('');
+    expect(master.value).toBe('45');
   });
 
   describe('crear variante sin refetch', () => {
