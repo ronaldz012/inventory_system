@@ -41,7 +41,8 @@
                   placeholder="0"
                   [value]="openingBalance()"
                   (input)="openingBalance.set(+$event.target.value)"
-                  class="w-full px-4 py-2.5 text-center text-lg font-mono font-bold border border-border rounded-xl bg-bg-surface text-text-main focus:outline-none focus:border-accent-ui [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  (keydown)="blockKeys($event)"
+                  class="field-number w-full px-4 py-2.5 text-center text-lg font-mono font-bold border border-border rounded-xl bg-bg-surface text-text-main focus:outline-none focus:border-accent-ui"
                   autofocus
                 />
               </div>

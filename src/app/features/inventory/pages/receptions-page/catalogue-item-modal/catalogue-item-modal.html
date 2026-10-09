@@ -183,7 +183,7 @@
                   (input)="onUniqueCostChange($event.target.value)"
                   (blur)="masterCost.set(null)"
                   (keydown)="blockKeys($event)"
-                  class="w-24 px-1.5 py-0.5 border border-border rounded text-[11px] font-mono text-text-main bg-bg-surface focus:outline-none focus:border-accent-ui [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  class="field-number w-24 px-1.5 py-0.5 border border-border rounded text-[11px] font-mono text-text-main bg-bg-surface focus:outline-none focus:border-accent-ui"
                 />
                 <span class="text-[10px] text-text-soft">Se aplica a todas las filas</span>
               </div>
@@ -212,10 +212,11 @@
             <div class="px-3 py-1.5 table-header text-right">P. Venta</div>
           </div>
 
-          <!-- Filas -->
-          <div class="flex flex-col">
+          <!-- Filas (appGridNav: flechas ↑↓ navegan entre filas) -->
+          <div class="flex flex-col" appGridNav>
             @for (variant of itemModel().variants; track variant.id; let i = $index) {
               <div
+                data-nav-row
                 class="flex flex-col md:grid md:grid-cols-[88px_1fr_52px_72px_76px_76px] md:items-center border-b border-border last:border-b-0 transition-colors"
               >
                 <!-- Mobile fila 1: identidad -->
@@ -247,13 +248,13 @@
                     >
                     <input
                       type="number"
+                      data-nav-field="qty"
                       [value]="variant.quantityReceived ?? ''"
                       placeholder="0"
                       (input)="updateVariantField(i, 'quantityReceived', $event)"
-                      (keydown)="blockKeys($event)"
                       [class.!border-feedback-error-text]="qtyInvalid(i)"
                       [class.!border-accent-ui]="variant.quantityReceived != null && !qtyInvalid(i)"
-                      class="flex-1 min-w-0 w-full px-1.5 py-0.5 border border-border rounded text-[11px] font-mono text-text-main bg-bg-surface focus:outline-none focus:border-accent-ui [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      class="field-number flex-1 min-w-0 w-full px-1.5 py-0.5 border border-border rounded text-[11px] font-mono text-text-main bg-bg-surface focus:outline-none focus:border-accent-ui"
                     />
                     @if (
                       itemForm.variants[i].quantityReceived().touched() &&
@@ -277,15 +278,15 @@
                     >
                     <input
                       type="number"
+                      data-nav-field="cost"
                       [value]="variant.unitCost ?? ''"
                       placeholder="0.00"
                       (input)="updateVariantField(i, 'unitCost', $event)"
-                      (keydown)="blockKeys($event)"
                       [class.!border-feedback-error-text]="
                         itemForm.variants[i].unitCost().touched() &&
                         itemForm.variants[i].unitCost().invalid()
                       "
-                      class="flex-1 min-w-0 w-full px-1.5 py-0.5 border border-border rounded text-[11px] font-mono text-text-main bg-bg-surface focus:outline-none focus:border-accent-ui [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      class="field-number flex-1 min-w-0 w-full px-1.5 py-0.5 border border-border rounded text-[11px] font-mono text-text-main bg-bg-surface focus:outline-none focus:border-accent-ui"
                     />
                     @if (
                       itemForm.variants[i].unitCost().touched() &&

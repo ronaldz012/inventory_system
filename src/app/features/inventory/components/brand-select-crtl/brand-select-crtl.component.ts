@@ -2,16 +2,19 @@ import {
   Component,
   computed,
   effect,
+  ElementRef,
   inject,
   input,
   output,
   signal,
   untracked,
+  viewChild,
 } from '@angular/core';
 import { Brand } from '@features/inventory/dtos/brands/brand-dto';
 import CreateBrand from '../create-brand/create-brand.component';
 import { FieldState } from '@angular/forms/signals';
 import { BrandService } from '@features/inventory/services/brand-service';
+import { dropMaxHeightFor, dropUpFor } from '@shared/utils/dropdown-position';
 
 @Component({
   selector: 'app-brand-select-ctrl',
@@ -25,6 +28,7 @@ import { BrandService } from '@features/inventory/services/brand-service';
                focus-within:ring-2 focus-within:ring-[--focus-ring] focus-within:border-accent-ui"
       >
         <input
+          #comboInput
           type="text"
           [value]="query()"
           (focus)="isOpen.set(true)"
@@ -62,7 +66,13 @@ import { BrandService } from '@features/inventory/services/brand-service';
 
       <!-- DROPDOWN -->
       @if (isOpen() && (filteredOptions().length > 0 || showCreateOption())) {
-        <ul class="absolute z-100 w-full mt-1.5 bg-bg-elevated border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+        <ul
+          class="absolute z-100 w-full bg-bg-elevated border border-border rounded-md shadow-lg overflow-y-auto"
+          [class.mt-1.5]="!dropUp()"
+          [class.mb-1.5]="dropUp()"
+          [class.bottom-full]="dropUp()"
+          [style.max-height.px]="dropMaxHeight()"
+        >
           @for (opt of filteredOptions(); track opt.id; let i = $index) {
             <li
               (mousedown)="selectOption(opt, $event)"
@@ -153,9 +163,29 @@ export class BrandSelectCtrl {
     this.fieldName().markAsTouched();
   }
 
+  private comboInput = viewChild<ElementRef<HTMLInputElement>>('comboInput');
+
+  /** Dirección y tope del desplegable (los calcula dropDirection al abrir). */
+  dropUp = signal(false);
+  dropMaxHeight = signal<number | null>(null);
+
+  /** Flip: si abajo no hay lugar (filas bajas + footer sticky), abre hacia arriba. */
+  private dropDirection = effect(() => {
+    if (!this.isOpen()) return;
+    const el = this.comboInput()?.nativeElement;
+    untracked(() => {
+      const up = dropUpFor(el);
+      this.dropUp.set(up);
+      this.dropMaxHeight.set(dropMaxHeightFor(el, up));
+    });
+  });
+
   toggleList(event: MouseEvent): void {
     event.preventDefault();
     this.isOpen.update((v) => !v);
+    // El preventDefault bloquea el foco: lo llevamos al input a mano para que
+    // el teclado abra y lo tipeado filtre (comportamiento estándar del combo).
+    this.comboInput()?.nativeElement.focus();
   }
 
   onInput(event: Event): void {
@@ -175,6 +205,7 @@ export class BrandSelectCtrl {
     this.fieldId().value.set('' as GUID);
     this.fieldName().value.set('');
     this.activeIndex.set(0);
+    this.comboInput()?.nativeElement.focus();
   }
 
   selectOption(opt: { id: GUID; displayName: string }, event?: MouseEvent): void {

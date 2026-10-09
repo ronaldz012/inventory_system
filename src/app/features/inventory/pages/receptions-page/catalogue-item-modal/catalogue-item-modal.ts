@@ -18,6 +18,7 @@ import { applyEach, applyWhen, form, min, required, schema } from '@angular/form
 
 import { ProductSearchResult } from '../../../components/product-search/product-search-result.component';
 import AddVariantModal from '../../products-page/product-detail/product-detail-variant/add-variant-modal';
+import { GridNavDirective } from '@shared/directives/grid-nav.directive';
 
 import { ProductService } from '@features/inventory/services/product-service';
 import { SizeService } from '@features/inventory/services/size-service';
@@ -40,7 +41,7 @@ function sortVariants(rows: VariantForm[]): VariantForm[] {
 @Component({
   selector: 'app-catalogue-item-modal',
   standalone: true,
-  imports: [CurrencyPipe, AddVariantModal],
+  imports: [CurrencyPipe, AddVariantModal, GridNavDirective],
   templateUrl: './catalogue-item-modal.html',
 })
 export default class CatalogueItemModal implements OnInit {

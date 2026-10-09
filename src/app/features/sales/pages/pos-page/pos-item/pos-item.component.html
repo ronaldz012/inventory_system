@@ -65,8 +65,9 @@
         type="number"
         inputmode="numeric"
         [formField]="item().quantity"
+        (keydown)="blockKeys($event)"
         aria-label="Cantidad"
-        class="w-8 text-center text-sm font-mono font-bold tabular-nums text-text-main bg-transparent focus:outline-none select-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        class="field-number w-8 text-center text-sm font-mono font-bold tabular-nums text-text-main bg-transparent focus:outline-none select-none"
       />
       <button
         type="button"
@@ -99,9 +100,10 @@
           inputmode="decimal"
           [formField]="item().sellingPrice"
           (input)="onPriceInput($event)"
+          (keydown)="blockKeys($event)"
           step="5"
           aria-label="Precio de venta"
-          class="w-20 text-center text-sm font-black text-accent-ui bg-transparent font-mono focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          class="field-number w-20 text-center text-sm font-black text-accent-ui bg-transparent font-mono focus:outline-none"
         />
         <button
           type="button"

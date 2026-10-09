@@ -1,8 +1,9 @@
-import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { Component, computed, effect, ElementRef, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { FieldState } from '@angular/forms/signals';
 import { Provider } from '@features/inventory/dtos/providers/provider';
 import { ProviderService } from '@features/inventory/services/provider-service';
 import CreateProvider from '../create-provider/create-provider';
+import { dropMaxHeightFor, dropUpFor } from '@shared/utils/dropdown-position';
 
 @Component({
   selector: 'app-provider-select-ctrl',
@@ -64,7 +65,13 @@ import CreateProvider from '../create-provider/create-provider';
 
       <!-- DROPDOWN -->
       @if (isOpen() && (filteredOptions().length > 0 || showCreateOption())) {
-        <ul class="absolute z-100 w-full mt-1.5 bg-bg-elevated border border-border rounded-lg shadow-lg max-h-64 overflow-y-auto">
+        <ul
+          class="absolute z-100 w-full bg-bg-elevated border border-border rounded-lg shadow-lg overflow-y-auto"
+          [class.mt-1.5]="!dropUp()"
+          [class.mb-1.5]="dropUp()"
+          [class.bottom-full]="dropUp()"
+          [style.max-height.px]="dropMaxHeight()"
+        >
           @for (opt of filteredOptions(); track opt.id; let i = $index) {
             <li
               (mousedown)="selectOption(opt, $event)"
@@ -145,9 +152,29 @@ export default class ProviderSelectCtrl {
     this.fieldId().markAsTouched();
   }
 
+  private inputEl = viewChild<ElementRef<HTMLInputElement>>('inputEl');
+
+  /** Dirección y tope del desplegable (los calcula dropDirection al abrir). */
+  dropUp = signal(false);
+  dropMaxHeight = signal<number | null>(null);
+
+  /** Flip: si abajo no hay lugar (filas bajas + footer sticky), abre hacia arriba. */
+  private dropDirection = effect(() => {
+    if (!this.isOpen()) return;
+    const el = this.inputEl()?.nativeElement;
+    untracked(() => {
+      const up = dropUpFor(el);
+      this.dropUp.set(up);
+      this.dropMaxHeight.set(dropMaxHeightFor(el, up, 12, 256));
+    });
+  });
+
   toggleList(event: MouseEvent): void {
     event.preventDefault();
     this.isOpen.update((v) => !v);
+    // El preventDefault bloquea el foco: lo llevamos al input a mano para que
+    // el teclado abra y lo tipeado filtre (comportamiento estándar del combo).
+    this.inputEl()?.nativeElement.focus();
   }
 
   onInput(event: Event): void {
@@ -167,6 +194,7 @@ export default class ProviderSelectCtrl {
     this.fieldId().value.set(null);
     this.fieldName().value.set('');
     this.activeIndex.set(0);
+    this.inputEl()?.nativeElement.focus();
   }
 
   selectOption(
