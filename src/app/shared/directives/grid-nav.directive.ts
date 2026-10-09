@@ -18,6 +18,8 @@ import { shouldBlockNumericKey } from '../utils/list-query';
  *
  * - `ArrowDown`/`ArrowUp` mueven el foco a la misma columna en la fila
  *   vecina (sin fila vecina se queda + preventDefault para no steppear).
+ * - `ArrowLeft`/`ArrowRight` mueven el foco entre columnas de la misma fila
+ *   (en los bordes se deja el nativo: mueve el caret, inofensivo).
  * - El resto de teclas malas (`-`, `+`, `e`) se bloquean igual que blockNonNumericKeys.
  * - La ruedita del mouse no cambia el valor dentro de la grilla.
  * - Fuera de `[data-nav-field]` no hace nada.
@@ -48,6 +50,20 @@ export class GridNavDirective {
         | undefined;
       event.preventDefault();
       dest?.focus();
+      return;
+    }
+
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      const row = field.closest('[data-nav-row]');
+      if (!row) return;
+      const fields = Array.from(row.querySelectorAll('[data-nav-field]'));
+      const dest = fields[fields.indexOf(field) + (event.key === 'ArrowRight' ? 1 : -1)] as
+        | HTMLInputElement
+        | undefined;
+      // En los bordes se deja el nativo (caret); el steppeo solo existe en ↑↓.
+      if (!dest) return;
+      event.preventDefault();
+      dest.focus();
       return;
     }
 
