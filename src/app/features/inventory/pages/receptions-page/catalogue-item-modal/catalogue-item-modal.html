@@ -202,39 +202,50 @@
 
         <div class="border border-border rounded-xl bg-bg-surface shadow-sm">
           <div
-            class="hidden md:grid grid-cols-[88px_1fr_52px_72px_76px_76px] bg-bg-muted border-b border-border sticky top-0 z-10"
+            class="hidden md:grid grid-cols-[88px_64px_72px_76px_76px] bg-bg-muted border-b border-border sticky top-0 z-10"
           >
             <div class="px-3 py-1.5 table-header">Código</div>
-            <div class="px-3 py-1.5 table-header">Color</div>
             <div class="px-3 py-1.5 table-header">Talla</div>
             <div class="px-3 py-1.5 table-header text-right">Cant.</div>
             <div class="px-3 py-1.5 table-header text-right">Costo U.</div>
             <div class="px-3 py-1.5 table-header text-right">P. Venta</div>
           </div>
 
-          <!-- Filas (appGridNav: flechas ↑↓ navegan entre filas) -->
+          <!-- Grupos por color (appGridNav: flechas ↑↓ navegan entre filas) -->
           <div class="flex flex-col" appGridNav>
-            @for (variant of itemModel().variants; track variant.id; let i = $index) {
+            @for (group of rowsByColor(); track group.colorId) {
+              <div
+                class="flex items-center gap-2 px-3 py-1.5 bg-bg-muted/40 border-b border-border"
+              >
+                <span class="text-[12px] font-bold text-text-main truncate">{{
+                  group.colorName
+                }}</span>
+                <span
+                  class="shrink-0 text-[10px] bg-bg-muted px-1.5 py-0.5 rounded text-text-muted font-semibold whitespace-nowrap"
+                >
+                  {{ group.rows.length }} tallas
+                </span>
+                @if (group.units > 0) {
+                  <span class="ml-auto text-[11px] font-mono text-text-muted whitespace-nowrap"
+                    >{{ group.units }} u.</span
+                  >
+                }
+              </div>
+              @for (row of group.rows; track row.variant.id) {
               <div
                 data-nav-row
-                class="flex flex-col md:grid md:grid-cols-[88px_1fr_52px_72px_76px_76px] md:items-center border-b border-border last:border-b-0 transition-colors"
+                class="flex flex-col md:grid md:grid-cols-[88px_64px_72px_76px_76px] md:items-center border-b border-border last:border-b-0 transition-colors"
               >
-                <!-- Mobile fila 1: identidad -->
+                <!-- Mobile fila 1: identidad (el color lo da el grupo) -->
                 <div class="flex items-center gap-2 px-3 py-1.5 md:p-0 md:contents">
                   <div
                     class="text-[11px] font-mono text-text-main truncate min-w-0 flex-1 md:flex-none md:px-3 md:py-1"
                   >
-                    {{ variant.sku }}
-                  </div>
-
-                  <div
-                    class="text-[11px] text-text-main truncate min-w-0 flex-1 md:flex-none md:px-3 md:py-1"
-                  >
-                    {{ variant.colorName }}
+                    {{ row.variant.sku }}
                   </div>
 
                   <div class="text-[11px] text-text-main truncate shrink-0 md:px-3 md:py-1">
-                    {{ variant.sizeName }}
+                    {{ row.variant.sizeName }}
                   </div>
                 </div>
 
@@ -249,21 +260,23 @@
                     <input
                       type="number"
                       data-nav-field="qty"
-                      [value]="variant.quantityReceived ?? ''"
+                      [value]="row.variant.quantityReceived ?? ''"
                       placeholder="0"
-                      (input)="updateVariantField(i, 'quantityReceived', $event)"
-                      [class.!border-feedback-error-text]="qtyInvalid(i)"
-                      [class.!border-accent-ui]="variant.quantityReceived != null && !qtyInvalid(i)"
+                      (input)="updateVariantField(row.index, 'quantityReceived', $event)"
+                      [class.!border-feedback-error-text]="qtyInvalid(row.index)"
+                      [class.!border-accent-ui]="
+                        row.variant.quantityReceived != null && !qtyInvalid(row.index)
+                      "
                       class="field-number flex-1 min-w-0 w-full px-1.5 py-0.5 border border-border rounded text-[11px] font-mono text-text-main bg-bg-surface focus:outline-none focus:border-accent-ui"
                     />
                     @if (
-                      itemForm.variants[i].quantityReceived().touched() &&
-                      itemForm.variants[i].quantityReceived().invalid()
-                    ) {
-                      @for (
-                        error of itemForm.variants[i].quantityReceived().errors();
-                        track error.kind
+                      itemForm.variants[row.index].quantityReceived().touched() &&
+                        itemForm.variants[row.index].quantityReceived().invalid()
                       ) {
+                        @for (
+                          error of itemForm.variants[row.index].quantityReceived().errors();
+                          track error.kind
+                        ) {
                         <span
                           class="w-full text-[9px] text-feedback-error-text font-medium leading-none"
                           >{{ error.message }}</span
@@ -279,20 +292,23 @@
                     <input
                       type="number"
                       data-nav-field="cost"
-                      [value]="variant.unitCost ?? ''"
+                      [value]="row.variant.unitCost ?? ''"
                       placeholder="0.00"
-                      (input)="updateVariantField(i, 'unitCost', $event)"
+                      (input)="updateVariantField(row.index, 'unitCost', $event)"
                       [class.!border-feedback-error-text]="
-                        itemForm.variants[i].unitCost().touched() &&
-                        itemForm.variants[i].unitCost().invalid()
+                        itemForm.variants[row.index].unitCost().touched() &&
+                        itemForm.variants[row.index].unitCost().invalid()
                       "
                       class="field-number flex-1 min-w-0 w-full px-1.5 py-0.5 border border-border rounded text-[11px] font-mono text-text-main bg-bg-surface focus:outline-none focus:border-accent-ui"
                     />
-                    @if (
-                      itemForm.variants[i].unitCost().touched() &&
-                      itemForm.variants[i].unitCost().invalid()
-                    ) {
-                      @for (error of itemForm.variants[i].unitCost().errors(); track error.kind) {
+                      @if (
+                        itemForm.variants[row.index].unitCost().touched() &&
+                        itemForm.variants[row.index].unitCost().invalid()
+                      ) {
+                        @for (
+                          error of itemForm.variants[row.index].unitCost().errors();
+                          track error.kind
+                        ) {
                         <span
                           class="w-full text-[9px] text-feedback-error-text font-medium leading-none"
                           >{{ error.message }}</span
@@ -304,14 +320,15 @@
                   <div class="shrink-0 text-right md:px-3 md:py-1">
                     <span class="text-[11px] font-mono text-text-main">
                       {{
-                        variant.price != null
-                          ? (variant.price | currency: 'BOB' : 'symbol' : '1.2-2')
+                        row.variant.price != null
+                          ? (row.variant.price | currency: 'BOB' : 'symbol' : '1.2-2')
                           : '—'
                       }}
                     </span>
                   </div>
                 </div>
               </div>
+              }
             } @empty {
               <div class="py-8 text-center text-xs italic text-text-soft">
                 @if (selectedProduct()) {

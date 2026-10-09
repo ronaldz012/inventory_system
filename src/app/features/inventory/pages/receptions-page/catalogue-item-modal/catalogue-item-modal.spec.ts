@@ -208,6 +208,40 @@ describe('CatalogueItemModal — inclusión por cantidad', () => {
     });
   });
 
+  describe('agrupado por color', () => {
+    const mixed: ProductSearchResult = {
+      ...fakeProduct,
+      productVariants: [
+        { id: 'v1', sku: 'SKU-1', size: '42', sizeId: 's42', sizeOrder: 3, colorId: 'c-azul', colorName: 'Azul', price: 100 },
+        { id: 'v3', sku: 'SKU-3', size: '43', sizeId: 's43', sizeOrder: 4, colorId: 'c-azul', colorName: 'Azul', price: 100 },
+        { id: 'v2', sku: 'SKU-2', size: '44', sizeId: 's44', sizeOrder: 5, colorId: 'c-rojo', colorName: 'Rojo', price: 100 },
+      ],
+    };
+
+    it('agrupa por color preservando orden e índices planos', () => {
+      const modal = setup();
+      modal.onProductSelected(mixed);
+
+      const groups = modal.rowsByColor();
+      expect(groups.map((g) => g.colorName)).toEqual(['Azul', 'Rojo']);
+      expect(groups[0].rows.map((r) => r.variant.sku)).toEqual(['SKU-1', 'SKU-3']);
+      expect(groups[0].rows.map((r) => r.index)).toEqual([0, 1]);
+      expect(groups[1].rows.map((r) => r.index)).toEqual([2]);
+    });
+
+    it('el índice plano edita la fila correcta y suma unidades por grupo', () => {
+      const modal = setup();
+      modal.onProductSelected(mixed);
+
+      modal.updateVariantField(2, 'quantityReceived', fieldEvent('5'));
+
+      expect(modal.itemModel().variants[2].quantityReceived).toBe(5);
+      expect(modal.itemModel().variants[0].quantityReceived).toBeNull();
+      expect(modal.rowsByColor()[1].units).toBe(5);
+      expect(modal.rowsByColor()[0].units).toBe(0);
+    });
+  });
+
   describe('búsqueda por pasos', () => {
     function setupDom() {
       const fixture = TestBed.createComponent(CatalogueItemModal);

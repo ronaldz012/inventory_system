@@ -173,6 +173,25 @@ export default class CatalogueItemModal implements OnInit {
 
   hasSummary = computed(() => this.selectedVariants().length > 0 && this.totalUnits() > 0);
 
+  /** Filas agrupadas por color (solo vista): cada fila lleva su índice plano
+      para que edición y validación sigan usando itemModel/itemForm. */
+  rowsByColor = computed(() => {
+    const groups = new Map<
+      GUID,
+      { colorId: GUID; colorName: string; units: number; rows: { variant: VariantForm; index: number }[] }
+    >();
+    this.itemModel().variants.forEach((variant, index) => {
+      let g = groups.get(variant.colorId);
+      if (!g) {
+        g = { colorId: variant.colorId, colorName: variant.colorName, units: 0, rows: [] };
+        groups.set(variant.colorId, g);
+      }
+      g.rows.push({ variant, index });
+      g.units += variant.quantityReceived ?? 0;
+    });
+    return [...groups.values()];
+  });
+
   // ── Form ──────────────────────────────────────────────────────────────
   itemModel = signal<ItemForm>({
     product: {
