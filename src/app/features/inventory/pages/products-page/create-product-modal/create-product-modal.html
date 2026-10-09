@@ -121,47 +121,37 @@
       <section class="space-y-3">
         <h3 class="section-title">Talla / Color</h3>
 
-        @if (newProduct().variants.length > 0) {
-          <div
-            class="flex flex-wrap items-center gap-3 bg-bg-muted/60 px-3 py-1.5 rounded-lg border border-border"
+        <div
+          class="flex flex-wrap items-center gap-3 bg-bg-muted/60 px-3 py-1.5 rounded-lg border border-border"
+        >
+          <span class="text-[10px] font-medium text-text-soft uppercase tracking-wider"
+            >Precio de venta por defecto:</span
           >
-            <div class="flex items-center gap-2">
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  class="sr-only peer"
-                  [checked]="newProduct().samePriceForAll"
-                  (change)="onToggleSamePrice($event.target.checked)"
-                />
-                <div
-                  class="w-9 h-5 bg-bg-muted rounded-full peer peer-checked:bg-accent-ui peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"
-                ></div>
-              </label>
-              <span class="text-[10px] font-medium text-text-soft uppercase tracking-wider"
-                >Precio igual</span
-              >
-            </div>
-            @if (newProduct().samePriceForAll) {
-              <div class="flex items-center gap-1.5">
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  [value]="newProduct().uniquePrice ?? ''"
-                  (input)="onUniquePriceChange($event.target.value)"
-                  class="w-24 px-1.5 py-0.5 border border-border rounded text-[11px] font-mono text-text-main bg-bg-surface focus:outline-none focus:border-accent-ui"
-                />
-                <span class="text-[10px] text-text-soft">Todas las filas usan este precio</span>
-              </div>
-            }
+          <div class="flex items-center gap-1.5">
+            <input
+              type="number"
+              placeholder="0.00"
+              [value]="newProduct().defaultPrice ?? ''"
+              (input)="onDefaultPriceChange($event.target.value)"
+              (keydown)="blockKeys($event)"
+              class="field-number w-24 px-1.5 py-0.5 border border-border rounded text-[11px] font-mono text-text-main bg-bg-surface focus:outline-none focus:border-accent-ui"
+            />
+            <button
+              type="button"
+              (click)="applyDefaultToAll()"
+              [disabled]="newProduct().defaultPrice == null"
+              class="btn btn-secondary btn-sm shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Aplicar a todas
+            </button>
           </div>
-        }
+        </div>
 
         <div class="border border-border rounded-xl bg-bg-surface shadow-sm">
           <div class="flex flex-col">
             @for (variant of newProductForm.variants; track $index; let i = $index) {
               <app-create-variant-row
                 [formModel]="newProductForm.variants[$index]"
-                [priceLocked]="priceLocked()"
                 (remove)="removeVariant(i)"
                 [index]="i"
               />
@@ -173,9 +163,20 @@
           </div>
         </div>
 
-        <button type="button" (click)="addVariant()" class="btn btn-secondary btn-sm w-full">
-          + Agregar talla / color
-        </button>
+        <div class="flex gap-2">
+          <button type="button" (click)="addVariant()" class="btn btn-secondary btn-sm flex-1">
+            + Agregar talla / color
+          </button>
+          <button
+            type="button"
+            (click)="duplicateLastVariant()"
+            [disabled]="newProduct().variants.length === 0"
+            title="Copia color y precio de la última fila, solo elegís la talla"
+            class="btn btn-secondary btn-sm flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {{ duplicateLabel() }}
+          </button>
+        </div>
       </section>
 
       @if (error()) {

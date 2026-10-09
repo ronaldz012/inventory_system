@@ -110,20 +110,22 @@ describe('CatalogueItemModal — inclusión por cantidad', () => {
     expect(modal.error()).toBe('Cargá al menos una cantidad.');
   });
 
-  it('el costo único se aplica en vivo a todas las filas', () => {
+  it('tipear el masivo no toca las filas hasta Aplicar', () => {
     const modal = setup();
     modal.onProductSelected(fakeProduct);
 
     modal.onUniqueCostChange('45');
+    expect(modal.itemModel().variants.map((v) => v.unitCost)).toEqual([null, null]);
 
-    const costs = modal.itemModel().variants.map((v) => v.unitCost);
-    expect(costs).toEqual([45, 45]);
+    modal.applyMasterCost();
+    expect(modal.itemModel().variants.map((v) => v.unitCost)).toEqual([45, 45]);
   });
 
-  it('vaciar el costo único no borra los costos por fila', () => {
+  it('vaciar el masivo no borra los costos por fila', () => {
     const modal = setup();
     modal.onProductSelected(fakeProduct);
     modal.onUniqueCostChange('45');
+    modal.applyMasterCost();
     modal.updateVariantField(0, 'unitCost', { target: { value: '50' } } as unknown as Event);
 
     modal.onUniqueCostChange('');
@@ -132,22 +134,33 @@ describe('CatalogueItemModal — inclusión por cantidad', () => {
     expect(costs).toEqual([50, 45]);
   });
 
-  it('al salir del costo único se limpia solo el campo, no las filas', () => {
+  it('Aplicar con el campo vacío no hace nada', () => {
+    const modal = setup();
+    modal.onProductSelected(fakeProduct);
+    modal.updateVariantField(0, 'unitCost', { target: { value: '50' } } as unknown as Event);
+
+    modal.applyMasterCost();
+
+    expect(modal.itemModel().variants.map((v) => v.unitCost)).toEqual([50, null]);
+  });
+
+  it('al salir del campo masivo se conserva el borrador y las filas', () => {
     const fixture = TestBed.createComponent(CatalogueItemModal);
     fixture.detectChanges();
     const modal = fixture.componentInstance;
     const root = fixture.nativeElement as HTMLElement;
     modal.onProductSelected(fakeProduct);
     modal.onUniqueCostChange('45');
+    modal.applyMasterCost();
     fixture.detectChanges();
 
     const master = root.querySelector<HTMLInputElement>('input[placeholder="0.00"]')!;
     master.dispatchEvent(new FocusEvent('blur'));
     fixture.detectChanges();
 
-    expect(modal.masterCost()).toBeNull();
+    expect(modal.masterCost()).toBe(45);
     expect(modal.itemModel().variants.map((v) => v.unitCost)).toEqual([45, 45]);
-    expect(master.value).toBe('');
+    expect(master.value).toBe('45');
   });
 
   describe('crear variante sin refetch', () => {
@@ -205,6 +218,40 @@ describe('CatalogueItemModal — inclusión por cantidad', () => {
 
       expect(modal.itemModel().variants).toHaveLength(2);
       expect(modal.error()).toBe('El backend no devolvió la variante creada.');
+    });
+  });
+
+  describe('agrupado por color', () => {
+    const mixed: ProductSearchResult = {
+      ...fakeProduct,
+      productVariants: [
+        { id: 'v1', sku: 'SKU-1', size: '42', sizeId: 's42', sizeOrder: 3, colorId: 'c-azul', colorName: 'Azul', price: 100 },
+        { id: 'v3', sku: 'SKU-3', size: '43', sizeId: 's43', sizeOrder: 4, colorId: 'c-azul', colorName: 'Azul', price: 100 },
+        { id: 'v2', sku: 'SKU-2', size: '44', sizeId: 's44', sizeOrder: 5, colorId: 'c-rojo', colorName: 'Rojo', price: 100 },
+      ],
+    };
+
+    it('agrupa por color preservando orden e índices planos', () => {
+      const modal = setup();
+      modal.onProductSelected(mixed);
+
+      const groups = modal.rowsByColor();
+      expect(groups.map((g) => g.colorName)).toEqual(['Azul', 'Rojo']);
+      expect(groups[0].rows.map((r) => r.variant.sku)).toEqual(['SKU-1', 'SKU-3']);
+      expect(groups[0].rows.map((r) => r.index)).toEqual([0, 1]);
+      expect(groups[1].rows.map((r) => r.index)).toEqual([2]);
+    });
+
+    it('el índice plano edita la fila correcta y suma unidades por grupo', () => {
+      const modal = setup();
+      modal.onProductSelected(mixed);
+
+      modal.updateVariantField(2, 'quantityReceived', fieldEvent('5'));
+
+      expect(modal.itemModel().variants[2].quantityReceived).toBe(5);
+      expect(modal.itemModel().variants[0].quantityReceived).toBeNull();
+      expect(modal.rowsByColor()[1].units).toBe(5);
+      expect(modal.rowsByColor()[0].units).toBe(0);
     });
   });
 

@@ -2,16 +2,19 @@ import {
   Component,
   computed,
   effect,
+  ElementRef,
   inject,
   input,
   output,
   signal,
   untracked,
+  viewChild,
 } from '@angular/core';
 import { Size } from '../../dtos/sizes/size';
 import { FieldState } from '@angular/forms/signals';
 import CreateSize from '../create-size/create-size.component';
 import { SizeService } from '@features/inventory/services/size-service';
+import { dropMaxHeightFor, dropUpFor } from '@shared/utils/dropdown-position';
 
 @Component({
   selector: 'app-size-select-ctrl',
@@ -25,6 +28,7 @@ import { SizeService } from '@features/inventory/services/size-service';
                focus-within:ring-2 focus-within:ring-[--focus-ring] focus-within:border-accent-ui"
       >
         <input
+          #comboInput
           type="text"
           [value]="query()"
           (focus)="isOpen.set(true)"
@@ -64,7 +68,11 @@ import { SizeService } from '@features/inventory/services/size-service';
       <!-- DROPDOWN -->
       @if (isOpen() && (filteredOptions().length > 0 || showCreateOption())) {
         <ul
-          class="absolute z-100 w-full mt-1 bg-bg-elevated border border-border rounded shadow-lg max-h-48 overflow-y-auto"
+          class="absolute z-100 w-full bg-bg-elevated border border-border rounded shadow-lg overflow-y-auto"
+          [class.mt-1]="!dropUp()"
+          [class.mb-1]="dropUp()"
+          [class.bottom-full]="dropUp()"
+          [style.max-height.px]="dropMaxHeight()"
         >
           @for (opt of filteredOptions(); track opt.id; let i = $index) {
             <li
@@ -156,9 +164,29 @@ export class SizeSelectCtrl {
     this.fieldState().markAsTouched();
   }
 
+  private comboInput = viewChild<ElementRef<HTMLInputElement>>('comboInput');
+
+  /** Dirección y tope del desplegable (los calcula dropDirection al abrir). */
+  dropUp = signal(false);
+  dropMaxHeight = signal<number | null>(null);
+
+  /** Flip: si abajo no hay lugar (filas bajas + footer sticky), abre hacia arriba. */
+  private dropDirection = effect(() => {
+    if (!this.isOpen()) return;
+    const el = this.comboInput()?.nativeElement;
+    untracked(() => {
+      const up = dropUpFor(el);
+      this.dropUp.set(up);
+      this.dropMaxHeight.set(dropMaxHeightFor(el, up));
+    });
+  });
+
   toggleList(event: MouseEvent): void {
     event.preventDefault();
     this.isOpen.update((v) => !v);
+    // El preventDefault bloquea el foco: lo llevamos al input a mano para que
+    // el teclado abra y lo tipeado filtre (comportamiento estándar del combo).
+    this.comboInput()?.nativeElement.focus();
   }
 
   onInput(event: Event): void {
@@ -176,6 +204,7 @@ export class SizeSelectCtrl {
     this.query.set('');
     this.fieldState().value.set('' as GUID);
     this.activeIndex.set(0);
+    this.comboInput()?.nativeElement.focus();
   }
 
   selectOption(opt: { id: GUID; displayName: string }, event?: MouseEvent): void {

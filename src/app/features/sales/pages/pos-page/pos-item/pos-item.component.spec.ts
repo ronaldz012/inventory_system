@@ -103,9 +103,7 @@ describe('PosCartItemCard', () => {
     const price = root(fixture).querySelector<HTMLElement>('input[aria-label="Precio de venta"]')!;
 
     for (const el of [qty, price]) {
-      expect(el.className).toContain('[appearance:textfield]');
-      expect(el.className).toContain('[&::-webkit-inner-spin-button]:appearance-none');
-      expect(el.className).toContain('[&::-webkit-outer-spin-button]:appearance-none');
+      expect(el.className).toContain('field-number');
     }
   });
 });

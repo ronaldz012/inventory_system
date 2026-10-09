@@ -61,6 +61,18 @@
 @utility field-value {
   @apply text-sm font-medium text-text-main;
 }
+
+/* Inputs numéricos: sin spinners nativos (las flechas cambian el valor por
+   accidente: 1 + abajo = 0). El bloqueo de teclas va en blockNonNumericKeys. */
+@utility field-number {
+  appearance: textfield;
+  -moz-appearance: textfield;
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
 @utility section-title {
   @apply text-xs font-semibold text-text-muted uppercase tracking-wide mb-4;
 }

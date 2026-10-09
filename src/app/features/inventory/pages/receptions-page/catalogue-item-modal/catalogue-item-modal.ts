@@ -11,13 +11,14 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { debounceTime, distinctUntilChanged, finalize, Subject, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { applyEach, applyWhen, form, min, required, schema } from '@angular/forms/signals';
 
 import { ProductSearchResult } from '../../../components/product-search/product-search-result.component';
 import AddVariantModal from '../../products-page/product-detail/product-detail-variant/add-variant-modal';
+import { GridNavDirective } from '@shared/directives/grid-nav.directive';
 
 import { ProductService } from '@features/inventory/services/product-service';
 import { SizeService } from '@features/inventory/services/size-service';
@@ -40,7 +41,7 @@ function sortVariants(rows: VariantForm[]): VariantForm[] {
 @Component({
   selector: 'app-catalogue-item-modal',
   standalone: true,
-  imports: [CurrencyPipe, AddVariantModal],
+  imports: [DecimalPipe, AddVariantModal, GridNavDirective],
   templateUrl: './catalogue-item-modal.html',
 })
 export default class CatalogueItemModal implements OnInit {
@@ -171,6 +172,25 @@ export default class CatalogueItemModal implements OnInit {
   expectedProfit = computed(() => this.totalSales() - this.totalInvestment());
 
   hasSummary = computed(() => this.selectedVariants().length > 0 && this.totalUnits() > 0);
+
+  /** Filas agrupadas por color (solo vista): cada fila lleva su índice plano
+      para que edición y validación sigan usando itemModel/itemForm. */
+  rowsByColor = computed(() => {
+    const groups = new Map<
+      GUID,
+      { colorId: GUID; colorName: string; units: number; rows: { variant: VariantForm; index: number }[] }
+    >();
+    this.itemModel().variants.forEach((variant, index) => {
+      let g = groups.get(variant.colorId);
+      if (!g) {
+        g = { colorId: variant.colorId, colorName: variant.colorName, units: 0, rows: [] };
+        groups.set(variant.colorId, g);
+      }
+      g.rows.push({ variant, index });
+      g.units += variant.quantityReceived ?? 0;
+    });
+    return [...groups.values()];
+  });
 
   // ── Form ──────────────────────────────────────────────────────────────
   itemModel = signal<ItemForm>({
@@ -343,11 +363,14 @@ export default class CatalogueItemModal implements OnInit {
     return state.touched() && state.invalid();
   }
 
+  /** Borrador del masivo: tipear no toca ninguna fila (el masivo es explícito). */
   onUniqueCostChange(value: string): void {
-    const cost = parseAmountInput(value);
-    this.masterCost.set(cost);
-    // En vivo, pero con guarda: vacío/inválido no toca las filas (no borra
-    // costos cargados uno por uno al limpiar el campo).
+    this.masterCost.set(parseAmountInput(value));
+  }
+
+  /** Masivo explícito (botón o Enter): iguala todas las filas; nada si está vacío. */
+  applyMasterCost(): void {
+    const cost = this.masterCost();
     if (cost == null) return;
     this.itemModel.update((current) => ({
       ...current,

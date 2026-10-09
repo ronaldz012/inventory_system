@@ -66,10 +66,22 @@ export function parseAmountInput(raw: string | null | undefined): number | null 
   return parsed;
 }
 
-/** Teclas que nunca tienen sentido en cantidades/montos (el `-` y `e` entran igual por pegado). */
-const BLOCKED_NUMERIC_KEYS = new Set(['-', '+', 'e', 'E']);
+/**
+ * Teclas que nunca tienen sentido en cantidades/montos:
+ * - `-`, `+`, `e` (notación y negativos; por pegado entran igual y los frena parseAmountInput).
+ * - `ArrowUp`/`ArrowDown`: en un `type=number` solo steppean el valor
+ *   (1 + abajo = 0 por error). El caret se mueve con Left/Right, intactas.
+ *   Excepción: dentro de `[appGridNav]` las flechas navegan entre filas
+ *   (la directiva las intercepta antes y nunca llegan acá como step).
+ */
+const BLOCKED_NUMERIC_KEYS = new Set(['-', '+', 'e', 'E', 'ArrowUp', 'ArrowDown']);
 
-/** Para `(keydown)` en inputs numéricos: frena `-`, `+`, `e` en el acto. */
+/** ¿Debe frenarse esta tecla en un input numérico? (la usa blockNonNumericKeys y appGridNav). */
+export function shouldBlockNumericKey(key: string): boolean {
+  return BLOCKED_NUMERIC_KEYS.has(key);
+}
+
+/** Para `(keydown)` en inputs numéricos: frena la tecla en el acto. */
 export function blockNonNumericKeys(event: KeyboardEvent): void {
-  if (BLOCKED_NUMERIC_KEYS.has(event.key)) event.preventDefault();
+  if (shouldBlockNumericKey(event.key)) event.preventDefault();
 }

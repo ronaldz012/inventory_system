@@ -1,5 +1,6 @@
 import { Component, input, output, computed, signal } from '@angular/core';
 import { FieldTree, FormField, form, min, validate } from '@angular/forms/signals';
+import { blockNonNumericKeys } from '@shared/utils/list-query';
 import { CommonModule } from '@angular/common';
 import { PosCartItem } from '@features/sales/models/pos-sale-state.model';
 
@@ -10,6 +11,8 @@ import { PosCartItem } from '@features/sales/models/pos-sale-state.model';
   templateUrl: './pos-item.component.html',
 })
 export class PosCartItemCardComponent {
+  /** El template no puede llamar imports: se expone el helper tal cual. */
+  readonly blockKeys = blockNonNumericKeys;
   // Inputs
   item = input.required<FieldTree<PosCartItem>>();
 

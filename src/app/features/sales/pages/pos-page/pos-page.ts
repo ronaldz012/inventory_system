@@ -2,6 +2,7 @@ import { Component, OnInit, ViewChild, signal, inject, computed } from '@angular
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { closeModal, openModal } from '@shared/utils/modal-query';
+import { blockNonNumericKeys } from '@shared/utils/list-query';
 import { SkuInput } from '@shared/components/sku-input/sku-input';
 import {
   isBarcodeApiAvailable,
@@ -39,6 +40,8 @@ import { PermissionService } from '@features/auth/services/permmision-service';
   templateUrl: './pos-page.html',
 })
 export default class PosPage implements OnInit {
+  /** El template no puede llamar imports: se expone el helper tal cual. */
+  readonly blockKeys = blockNonNumericKeys;
   // ── Register state ────────────────────────────────────────────────────
   registerState = signal<'loading' | 'closed' | 'open' | 'error'>('loading');
   registerError = signal<string | null>(null);

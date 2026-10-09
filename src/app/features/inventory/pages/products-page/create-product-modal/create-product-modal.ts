@@ -20,6 +20,7 @@ import { GENDER_OPTIONS, Gender } from '@features/inventory/interfaces/gender';
 import { ProductSearchResult } from '@features/inventory/components/product-search/product-search-result.component';
 import { ToastService } from '@core/services/toast-service';
 import { ColorService } from '@features/inventory/services/color-service';
+import { blockNonNumericKeys } from '@shared/utils/list-query';
 import { closeModal } from '@shared/utils/modal-query';
 
 const createVariantSchema = schema<VariantForm>((v) => {
@@ -36,6 +37,8 @@ const createVariantSchema = schema<VariantForm>((v) => {
 })
 export default class CreateProductModal implements OnInit {
   readonly genderOptions = GENDER_OPTIONS;
+  /** El template no puede llamar imports: se expone el helper tal cual. */
+  readonly blockKeys = blockNonNumericKeys;
 
   private productService = inject(ProductService);
   private colorService = inject(ColorService);
@@ -58,12 +61,9 @@ export default class CreateProductModal implements OnInit {
       brandName: '',
       gender: null,
     },
-    variants: [buildNewVariant()],
-    samePriceForAll: true,
-    uniquePrice: null,
+    variants: [],
+    defaultPrice: null,
   });
-
-  priceLocked = computed(() => this.newProduct().samePriceForAll);
 
   newProductForm = form(this.newProduct, (s) => {
     required(s.newProduct.name, { message: 'Requerido' });
@@ -120,8 +120,8 @@ export default class CreateProductModal implements OnInit {
   addVariant(): void {
     this.newProduct.update((current) => {
       const newVar = buildNewVariant();
-      if (current.samePriceForAll && current.uniquePrice !== undefined) {
-        newVar.price = current.uniquePrice;
+      if (current.defaultPrice != null) {
+        newVar.price = current.defaultPrice;
       }
       return {
         ...current,
@@ -130,6 +130,35 @@ export default class CreateProductModal implements OnInit {
     });
   }
 
+  /** Duplica la última fila heredando color y precio; solo falta elegir la talla. */
+  duplicateLastVariant(): void {
+    this.newProduct.update((current) => {
+      const last = current.variants[current.variants.length - 1];
+      if (!last) return current;
+      return {
+        ...current,
+        variants: [
+          ...current.variants,
+          {
+            ...buildNewVariant(),
+            colorId: last.colorId,
+            price: last.price ?? current.defaultPrice,
+          },
+        ],
+      };
+    });
+  }
+
+  /** "Agregar otro Azul" según el color de la última fila; fallback genérico. */
+  duplicateLabel = computed(() => {
+    const variants = this.newProduct().variants;
+    const last = variants[variants.length - 1];
+    const name = last
+      ? (this.colorService.colors().find((c) => c.id === last.colorId)?.name ?? '').trim()
+      : '';
+    return name ? `+ Agregar otro ${name}` : '⧉ Duplicar última';
+  });
+
   removeVariant(index: number): void {
     this.newProduct.update((current) => ({
       ...current,
@@ -137,33 +166,24 @@ export default class CreateProductModal implements OnInit {
     }));
   }
 
-  onToggleSamePrice(enabled: boolean): void {
-    this.newProduct.update((current) => {
-      if (enabled) {
-        return {
-          ...current,
-          samePriceForAll: true,
-          variants: current.variants.map((v) => ({
-            ...v,
-            price: current.uniquePrice,
-          })),
-        };
-      }
-      return { ...current, samePriceForAll: false };
-    });
-  }
-
-  onUniquePriceChange(value: string): void {
+  /** Default para filas nuevas: solo guarda, nunca toca las filas existentes. */
+  onDefaultPriceChange(value: string): void {
     const parsed = parseFloat(value);
-    const price = isNaN(parsed) ? null : parsed;
-
     this.newProduct.update((current) => ({
       ...current,
-      uniquePrice: price,
-      variants: current.samePriceForAll
-        ? current.variants.map((v) => ({ ...v, price }))
-        : current.variants,
+      defaultPrice: isNaN(parsed) ? null : parsed,
     }));
+  }
+
+  /** Masivo explícito: iguala todas las filas al default (nada si está vacío). */
+  applyDefaultToAll(): void {
+    this.newProduct.update((current) => {
+      if (current.defaultPrice == null) return current;
+      return {
+        ...current,
+        variants: current.variants.map((v) => ({ ...v, price: current.defaultPrice })),
+      };
+    });
   }
 
   onConfirm(): void {

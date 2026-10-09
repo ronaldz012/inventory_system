@@ -12,7 +12,7 @@
       <label class="text-[9px] uppercase tracking-wider text-text-soft leading-none">Color</label>
       <app-color-select-ctrl
         [fieldState]="formModel().colorId()"
-        [colorNameState]="formModel().colorCode()"
+        [colorNameState]="formModel().colorName()"
       />
       @if (formModel().colorId().touched() && formModel().colorId().invalid()) {
         @for (error of formModel().colorId().errors(); track error.kind) {
@@ -44,19 +44,17 @@
       >
       <div class="flex items-center gap-1">
         <span class="text-[10px] font-mono text-text-soft shrink-0">Bs</span>
-        <div class="relative flex-1" [class.opacity-60]="priceLocked()">
+        <div class="relative flex-1">
           <input
             type="number"
             [formField]="formModel().price"
             placeholder="0.00"
+            (keydown)="blockKeys($event)"
             [class.!border-feedback-error-text]="
               formModel().price().touched() && formModel().price().invalid()
             "
-            class="w-full px-2 py-1 border border-border rounded text-[11px] text-right bg-transparent text-feedback-success-text font-bold font-mono focus:outline-none focus:border-accent-ui focus:bg-bg-surface [appearance:textfield] transition-all placeholder:text-text-soft"
+            class="field-number w-full px-2 py-1 border border-border rounded text-[11px] text-right bg-transparent text-feedback-success-text font-bold font-mono focus:outline-none focus:border-accent-ui focus:bg-bg-surface transition-all placeholder:text-text-soft"
           />
-          @if (priceLocked()) {
-            <div class="absolute inset-0 cursor-not-allowed"></div>
-          }
         </div>
       </div>
       @if (formModel().price().touched() && formModel().price().invalid()) {
@@ -96,7 +94,7 @@
         <label class="text-[9px] uppercase tracking-wider text-text-soft leading-none">Color</label>
         <app-color-select-ctrl
           [fieldState]="formModel().colorId()"
-          [colorNameState]="formModel().colorCode()"
+          [colorNameState]="formModel().colorName()"
         />
       </div>
 
@@ -132,19 +130,17 @@
         >
         <div class="flex items-center gap-1">
           <span class="text-[10px] font-mono text-text-soft shrink-0">Bs</span>
-          <div class="relative flex-1" [class.opacity-60]="priceLocked()">
+          <div class="relative flex-1">
             <input
               type="number"
               [formField]="formModel().price"
               placeholder="0.00"
+              (keydown)="blockKeys($event)"
               [class.!border-feedback-error-text]="
                 formModel().price().touched() && formModel().price().invalid()
               "
-              class="w-full px-2 py-1 border border-border rounded text-[11px] text-right bg-transparent text-feedback-success-text font-bold font-mono focus:outline-none focus:border-accent-ui focus:bg-bg-surface [appearance:textfield] transition-all placeholder:text-text-soft"
+              class="field-number w-full px-2 py-1 border border-border rounded text-[11px] text-right bg-transparent text-feedback-success-text font-bold font-mono focus:outline-none focus:border-accent-ui focus:bg-bg-surface transition-all placeholder:text-text-soft"
             />
-            @if (priceLocked()) {
-              <div class="absolute inset-0 cursor-not-allowed"></div>
-            }
           </div>
         </div>
       </div>

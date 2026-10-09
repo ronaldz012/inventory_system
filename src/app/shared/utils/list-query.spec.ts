@@ -123,6 +123,11 @@ describe('list-query', () => {
       expect(keydown('E').prevented).toBe(true);
     });
 
+    it('frena ArrowUp/ArrowDown (steppean el valor por accidente)', () => {
+      expect(keydown('ArrowUp').prevented).toBe(true);
+      expect(keydown('ArrowDown').prevented).toBe(true);
+    });
+
     it('deja pasar dígitos, punto, coma y control', () => {
       for (const key of ['0', '5', '.', ',', 'Backspace', 'ArrowLeft', 'Tab', 'Enter']) {
         expect(keydown(key).prevented).toBe(false);
