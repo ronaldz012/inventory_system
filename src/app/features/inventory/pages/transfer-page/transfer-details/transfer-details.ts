@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { ResolveTransferModal } from '../resolve-transfer-modal/resolve-transfer-modal';
@@ -167,7 +167,40 @@ export default class TransferDetails implements OnInit {
     );
   }
 
-  variantLabel(item: { variantDescription: string; size: string; color: string }): string {
-    return [item.variantDescription, item.size, item.color].filter(Boolean).join(' · ');
-  }
+  /** Items agrupados producto → color (solo vista): preserva el orden del backend. */
+  groupedItems = computed(() => {
+    const items = this.transfer()?.items ?? [];
+    interface SizeRow {
+      size: string;
+      qty: number;
+      sku: string;
+    }
+    interface ColorGroup {
+      color: string;
+      units: number;
+      sizes: SizeRow[];
+    }
+    interface ProductGroup {
+      productName: string;
+      units: number;
+      colors: ColorGroup[];
+    }
+    const products = new Map<string, ProductGroup>();
+    for (const item of items) {
+      let p = products.get(item.productName);
+      if (!p) {
+        p = { productName: item.productName, units: 0, colors: [] };
+        products.set(item.productName, p);
+      }
+      let c = p.colors.find((g) => g.color === item.color);
+      if (!c) {
+        c = { color: item.color, units: 0, sizes: [] };
+        p.colors.push(c);
+      }
+      c.sizes.push({ size: item.size, qty: item.quantityRequested, sku: item.sku });
+      c.units += item.quantityRequested;
+      p.units += item.quantityRequested;
+    }
+    return [...products.values()];
+  });
 }

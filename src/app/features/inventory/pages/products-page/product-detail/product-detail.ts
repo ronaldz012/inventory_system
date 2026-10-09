@@ -275,10 +275,11 @@ import {
                 <span></span>
               </div>
 
-              <ul class="flex flex-col divide-y divide-border-ui">
-                @for (v of sortedVariants(); track v.id) {
+              <ul class="flex flex-col">
+                @for (v of sortedVariants(); track v.id; let i = $index) {
                   <app-product-detail-variant
                     [variant]="v"
+                    [firstOfColor]="isFirstOfColor(i)"
                     [submitting]="submitting()"
                     [branchMap]="branchMap()"
                     [branchKeys]="branchKeys()"
@@ -318,10 +319,11 @@ import {
                 <span class="table-header">Precio</span>
               </div>
             }
-            <ul class="flex flex-col divide-y divide-border-ui sm:hidden">
-              @for (v of sortedVariants(); track v.id) {
+            <ul class="flex flex-col sm:hidden">
+              @for (v of sortedVariants(); track v.id; let i = $index) {
                 <app-product-detail-variant
                   [variant]="v"
+                  [firstOfColor]="isFirstOfColor(i)"
                   [submitting]="submitting()"
                   [branchMap]="branchMap()"
                   [branchKeys]="branchKeys()"
@@ -982,6 +984,13 @@ export default class ProductDetail implements OnInit {
   /** Stock de la variante en una sucursal concreta (0 si no está). */
   stockAt(v: ProductVariantDto, branchId: GUID): number {
     return v.branchStocks.find((s) => s.branchId === branchId)?.stock ?? 0;
+  }
+
+  /** Corte entre colores: true en la primera fila visible de cada color
+      (sirve con buscador y con orden por stock: compara orden visible). */
+  isFirstOfColor(index: number): boolean {
+    const list = this.sortedVariants();
+    return index > 0 && list[index].colorId !== list[index - 1].colorId;
   }
 
   /** Etiqueta de género: `Gender.Unisex` es 0, así que no se puede usar `||`. */

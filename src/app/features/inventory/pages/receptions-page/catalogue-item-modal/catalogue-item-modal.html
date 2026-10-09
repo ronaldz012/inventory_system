@@ -224,9 +224,7 @@
           <!-- Grupos por color (appGridNav: flechas ↑↓ navegan entre filas) -->
           <div class="flex flex-col" appGridNav>
             @for (group of rowsByColor(); track group.colorId) {
-              <div
-                class="flex items-center gap-2 px-3 py-1.5 bg-bg-muted/40 border-b border-border"
-              >
+              <div class="table-group-header">
                 <span class="text-[12px] font-bold text-text-main truncate">{{
                   group.colorName
                 }}</span>

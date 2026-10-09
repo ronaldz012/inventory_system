@@ -10,8 +10,10 @@ import { highlightParts } from '../variant-filter';
   template: `
     <!-- ── Desktop Row: Sku | Color | Talla | Sucs | Total | Precio | [Costo | Margen] | Acciones ── -->
     <li
-      class="hidden sm:grid gap-2 items-center
+      class="hidden sm:grid gap-2 items-center border-t border-border
                px-3 py-3 hover:bg-bg-muted/60 transition-colors text-sm"
+      [class.!border-t-2]="firstOfColor()"
+      [class.!border-border-strong]="firstOfColor()"
       [style.grid-template-columns]="gridColumnsStyle()"
     >
       <span class="font-mono text-xs text-text-muted truncate">
@@ -64,7 +66,11 @@ import { highlightParts } from '../variant-filter';
     </li>
 
     <!-- ── Mobile Card compacta: color/talla + SKU + stock activa + precio ─── -->
-    <li class="flex sm:hidden flex-col">
+    <li
+      class="flex sm:hidden flex-col border-t border-border"
+      [class.!border-t-2]="firstOfColor()"
+      [class.!border-border-strong]="firstOfColor()"
+    >
       <button
         type="button"
         (click)="toggleExpand.emit()"
@@ -150,6 +156,8 @@ export class ProductDetailVariant {
   gridColumnsStyle = input<string>('');
   highlightTokens = input<string[]>([]);
   expanded = input(false);
+  /** Corte entre colores: raya fuerte arriba cuando abre un color nuevo. */
+  firstOfColor = input(false);
 
   editVariant = output<ProductVariantDto>();
   deleteVariant = output<ProductVariantDto>();
