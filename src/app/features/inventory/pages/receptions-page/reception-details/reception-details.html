@@ -80,11 +80,13 @@
         </div>
 
         <div class="flex flex-col">
-          @for (product of groupedItems(); track product.productName) {
+          @for (product of groupedItems(); track product.productId) {
             <div class="py-2 border-b border-border last:border-b-0">
               <div class="flex items-baseline justify-between gap-2">
                 <p class="text-sm font-bold text-text-main truncate">
-                  {{ product.productName }}
+                  @if (product.brandName) {
+                    <span>{{ product.brandName }} · </span>
+                  }{{ product.productName }}
                   <span class="font-normal text-text-soft">· {{ product.units }} uds</span>
                 </p>
                 <p class="shrink-0 text-sm font-semibold text-text-main tabular-nums">

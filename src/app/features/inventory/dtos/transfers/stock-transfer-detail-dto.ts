@@ -18,8 +18,10 @@ export interface StockTransferDetailDto {
 export interface StockTransferItemDetailDto
 {
   productVariantId: GUID;
+  productId: GUID;
   sku  :string;
   productName :string;
+  brandName :string;
   variantDescription  :string;
   size :string;
   color   :string;

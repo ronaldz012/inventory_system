@@ -154,17 +154,19 @@ export default class ReceptionDetails implements OnInit {
       sizes: SizeRow[];
     }
     interface ProductGroup {
+      productId: GUID;
       productName: string;
+      brandName: string;
       units: number;
       subtotal: number;
       colors: ColorGroup[];
     }
-    const products = new Map<string, ProductGroup>();
+    const products = new Map<GUID, ProductGroup>();
     for (const item of items) {
-      let p = products.get(item.productName);
+      let p = products.get(item.productId);
       if (!p) {
-        p = { productName: item.productName, units: 0, subtotal: 0, colors: [] };
-        products.set(item.productName, p);
+        p = { productId: item.productId, productName: item.productName, brandName: item.brandName, units: 0, subtotal: 0, colors: [] };
+        products.set(item.productId, p);
       }
       let c = p.colors.find((g) => g.color === item.color);
       if (!c) {

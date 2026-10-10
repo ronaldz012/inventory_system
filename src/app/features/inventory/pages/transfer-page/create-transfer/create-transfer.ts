@@ -39,6 +39,13 @@ export default class CreateTransfer implements OnInit {
 
   items = signal<TransferItem[]>([]);
 
+  /** Notas colapsadas por defecto (ahorra ~120px en mobile). */
+  notesOpen = signal(false);
+
+  /** Fila resaltada tras agregar/sumar (se limpia sola, sin mover la vista). */
+  lastAddedId = signal<GUID | null>(null);
+  private flashTimer: ReturnType<typeof setTimeout> | null = null;
+
   form = signal<TransferForm>({
     toBranchId: null,
     notes: '',
@@ -116,29 +123,50 @@ export default class CreateTransfer implements OnInit {
     const existing = this.items().find((i) => i.variantId === variant.id);
     if (existing) {
       if (existing.quantity >= variant.availableStockInBranch) return;
+      const qty = existing.quantity + 1;
       this.items.update((items) =>
-        items.map((i) => (i.variantId === variant.id ? { ...i, quantity: i.quantity + 1 } : i)),
+        items.map((i) => (i.variantId === variant.id ? { ...i, quantity: qty } : i)),
       );
+      const parts = [variant.brandName, variant.productName, variant.colorName, variant.size].filter(
+        Boolean,
+      );
+      this.toastService.success(`${parts.join(' · ')} ×${qty}`);
+      this.flashAdded(variant.id);
     } else {
       if (variant.availableStockInBranch <= 0) {
         this.toastService.warning(`${variant.displayName} no tiene stock en la sucursal de origen`);
         return;
       }
+      // Prepend: lo nuevo queda pegado al scanner, siempre visible.
       this.items.update((items) => [
-        ...items,
         {
           variantId: variant.id,
+          productId: variant.productId,
           sku: variant.sku,
           productName: variant.productName,
-          brandName: variant.branchName ?? '',
+          brandName: variant.brandName ?? '',
           variantLabel: variant.displayName,
           size: variant.size,
           colorName: variant.colorName,
           quantity: 1,
           maxQuantity: variant.availableStockInBranch,
         },
+        ...items,
       ]);
+      const parts = [variant.brandName, variant.productName, variant.colorName, variant.size].filter(
+        Boolean,
+      );
+      this.toastService.success(`${parts.join(' · ')} agregada`);
+      this.flashAdded(variant.id);
     }
+  }
+
+  private flashAdded(variantId: GUID): void {
+    this.lastAddedId.set(variantId);
+    if (this.flashTimer) clearTimeout(this.flashTimer);
+    this.flashTimer = setTimeout(() => {
+      if (this.lastAddedId() === variantId) this.lastAddedId.set(null);
+    }, 1500);
   }
 
   // @deprecated - mantener compatibilidad hasta eliminar ProductVariantSearch
@@ -183,10 +211,10 @@ export default class CreateTransfer implements OnInit {
 
     this.isSubmitting.set(true);
     this.transferService.createTransfer(payload).subscribe({
-      next: () => {
+      next: (id) => {
         this.isSubmitting.set(false);
         this.toastService.success('Transferencia creada');
-        this.router.navigate(['inventory', 'transfers']);
+        this.router.navigate(['inventory', 'transfers', id]);
       },
       error: (err: unknown) => {
         this.isSubmitting.set(false);

@@ -27,6 +27,11 @@ export class QrScannerModal implements OnDestroy {
   private mediaStream: MediaStream | null = null;
   private animationFrameId: number | null = null;
   private detector: any = null;
+
+  /** Cámara tibia: tras leer, el hardware sigue vivo este tiempo para que el
+      siguiente tap abra instantáneo (flujo de escaneos seguidos). */
+  private warmTimer: ReturnType<typeof setTimeout> | null = null;
+  private static readonly WARM_MS = 10000;
   
   // NUEVO: Guardamos el elemento de video cuando Angular lo dibuja
   private videoNode: HTMLVideoElement | null = null;
@@ -43,12 +48,22 @@ export class QrScannerModal implements OnDestroy {
   }
 
   async open(): Promise<void> {
+    this.clearWarmTimer();
     this.errorMsg.set(null);
     this.isOpen.set(true);
     if (typeof window !== 'undefined') {
       history.pushState({ qr: true }, '', window.location.href);
       window.addEventListener('popstate', this.popHandler);
     }
+
+    // Cámara tibia: el stream sigue vivo, solo hay que re-bindear el video
+    // (el @ViewChild lo hace al renderizar). Sin getUserMedia = instantáneo.
+    if (this.mediaStream?.active && this.detector) {
+      this.isInitializing.set(false);
+      return;
+    }
+    this.mediaStream = null;
+    this.detector = null;
     this.isInitializing.set(true); // Muestra el spinner de "Iniciando cámara..."
 
     try {
@@ -109,8 +124,7 @@ export class QrScannerModal implements OnDestroy {
         try {
           const results = await this.detector.detect(video);
           if (results.length > 0) {
-            this.scanned.emit(results[0].rawValue);
-            this.close();
+            this.onScanSuccess(results[0].rawValue);
             return;
           }
         } catch {
@@ -124,13 +138,39 @@ export class QrScannerModal implements OnDestroy {
   }
 
   close(fromPop = false): void {
+    this.clearWarmTimer();
     this.stopHardware();
+    this.detector = null;
+    this.hideUI(fromPop);
+  }
+
+  /** Lectura exitosa: se emite y se oculta la UI, pero el hardware queda
+      tibio por si viene otro escaneo enseguida. */
+  private onScanSuccess(value: string): void {
+    this.scanned.emit(value);
+    this.hideUI(false);
+    this.clearWarmTimer();
+    this.warmTimer = setTimeout(() => {
+      this.warmTimer = null;
+      this.stopHardware();
+      this.detector = null;
+    }, QrScannerModal.WARM_MS);
+  }
+
+  private hideUI(fromPop = false): void {
     this.isOpen.set(false);
     if (typeof window !== 'undefined') {
       window.removeEventListener('popstate', this.popHandler);
       if (!fromPop && history.state?.qr) history.back();
     }
     this.closed.emit();
+  }
+
+  private clearWarmTimer(): void {
+    if (this.warmTimer) {
+      clearTimeout(this.warmTimer);
+      this.warmTimer = null;
+    }
   }
 
   private stopHardware(): void {
@@ -147,6 +187,7 @@ export class QrScannerModal implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.clearWarmTimer();
     this.stopHardware();
   }
 }

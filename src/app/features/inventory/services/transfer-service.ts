@@ -15,8 +15,8 @@ export class TransferService {
   private readonly URL:string = environment.BACKEND_URL+'/api/StockTransfer';
 
 
-  createTransfer(form : TransferForm): Observable<boolean>{
-    return this.http.post<boolean>(this.URL, form)
+  createTransfer(form : TransferForm): Observable<GUID>{
+    return this.http.post<GUID>(this.URL, form)
   }
 
   cancelTransfer(id: GUID) {
