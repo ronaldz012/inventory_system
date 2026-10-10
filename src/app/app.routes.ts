@@ -108,6 +108,7 @@ export const routes: Routes = [
                 path: ':id',
                 title: 'Detalle de Recepción',
                 canActivate: [featureGuard],
+                canDeactivate: [modalGuard],
                 data: { module: 'inventory', feature: 'receptions' },
                 loadComponent: () =>
                   import('@features/inventory/pages/receptions-page/reception-details/reception-details'),
@@ -138,6 +139,7 @@ export const routes: Routes = [
                 path: ':id',
                 title: 'Detalle de Transferencia',
                 canActivate: [featureGuard],
+                canDeactivate: [modalGuard],
                 data: { module: 'inventory', feature: 'transfers' },
                 loadComponent: () =>
                   import('@features/inventory/pages/transfer-page/transfer-details/transfer-details'),

@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { ResolveTransferModal } from '../resolve-transfer-modal/resolve-transfer-modal';
@@ -9,8 +9,8 @@ import { TransferDirection, TransferStatus } from '../../../dtos/transfers/trans
 import { StockTransferDetailDto } from '../../../dtos/transfers/stock-transfer-detail-dto';
 import { PermissionService } from '@features/auth/services/permmision-service';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
-import { closeModal, openModal } from '@shared/utils/modal-query';
 import { ToastService } from '@core/services/toast-service';
+import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 
 @Component({
   selector: 'app-transfer-details',
@@ -32,10 +32,11 @@ import { ToastService } from '@core/services/toast-service';
     }
   `,
 })
-export default class TransferDetails implements OnInit {
+export default class TransferDetails implements OnInit, OnDestroy {
   private transferService = inject(TransferService);
   private toast = inject(ToastService);
   private route = inject(ActivatedRoute);
+  private stack = inject(ModalStackService);
   readonly router = inject(Router);
   readonly perm = inject(PermissionService);
 
@@ -49,6 +50,8 @@ export default class TransferDetails implements OnInit {
   showResolveModal = signal(false);
   showCancelModal = signal(false);
   submitting = signal(false);
+  private resolveModal = useStackedModal(this.stack, this.showResolveModal, () => !this.submitting());
+  private cancelModal = useStackedModal(this.stack, this.showCancelModal, () => !this.submitting());
 
   goBack(): void {
     if (window.history.length > 1) {
@@ -61,12 +64,11 @@ export default class TransferDetails implements OnInit {
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id') ?? '';
     this.loadDetail(id);
+  }
 
-    this.route.queryParamMap.subscribe((params) => {
-      const modal = params.get('modal');
-      this.showResolveModal.set(modal === 'resolve');
-      this.showCancelModal.set(modal === 'cancel');
-    });
+  ngOnDestroy(): void {
+    this.resolveModal.destroy();
+    this.cancelModal.destroy();
   }
 
   private loadDetail(id: GUID): void {
@@ -85,21 +87,23 @@ export default class TransferDetails implements OnInit {
   }
 
   openResolveModal(): void {
-    openModal(this.router, this.route, 'resolve');
+    this.resolveModal.open();
   }
   closeResolveModal(): void {
-    closeModal(this.router, this.route);
+    this.resolveModal.close();
   }
 
   onResolveConfirm(action: 'complete' | 'reject'): void {
     const id = this.transfer()?.id;
-    if (!id) return;
+    if (!id || this.submitting()) return;
     this.submitting.set(true);
     this.transferService.resolveTransfer(id, action).subscribe({
       next: () => {
         this.submitting.set(false);
         this.toast.success(action === 'complete' ? 'Transferencia completada' : 'Transferencia rechazada');
-        this.router.navigate(['inventory', 'transfers']);
+        // Retorno al origen (colapsa el detalle): cerrar antes para que el guard deje pasar el pop.
+        this.closeResolveModal();
+        this.goBack();
       },
       error: (err: unknown) => {
         this.submitting.set(false);
@@ -111,21 +115,22 @@ export default class TransferDetails implements OnInit {
 
   // ── Modal: Cancel ─────────────────────────────────────────────────────────
   openCancelModal(): void {
-    openModal(this.router, this.route, 'cancel');
+    this.cancelModal.open();
   }
   closeCancelModal(): void {
-    closeModal(this.router, this.route);
+    this.cancelModal.close();
   }
 
   onCancelConfirm(): void {
     const id = this.transfer()?.id;
-    if (!id) return;
+    if (!id || this.submitting()) return;
     this.submitting.set(true);
     this.transferService.cancelTransfer(id).subscribe({
       next: () => {
         this.submitting.set(false);
         this.toast.success('Transferencia cancelada');
-        this.router.navigate(['inventory', 'transfers']);
+        this.closeCancelModal();
+        this.goBack();
       },
       error: (err: unknown) => {
         this.submitting.set(false);
