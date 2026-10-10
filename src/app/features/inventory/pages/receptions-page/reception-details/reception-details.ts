@@ -1,6 +1,6 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { Observable, map, throwError } from 'rxjs';
 import {
   CheckActionResult,
@@ -14,13 +14,12 @@ import { ReceptionLabelsDto } from '../../../dtos/receptions/reception-labels-dt
 import { ReceptionStatus } from '../../../dtos/receptions/stock-reception-list-dto';
 import {
   StockReceptionDetailDto,
-  StockReceptionItemDetailDto,
 } from '../../../dtos/receptions/stock-reception-details-dto';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 
 @Component({
   selector: 'app-reception-details',
-  imports: [DatePipe, CurrencyPipe, SkeletonList, VerifyActionModal],
+  imports: [DatePipe, CurrencyPipe, DecimalPipe, SkeletonList, VerifyActionModal],
   templateUrl: './reception-details.html',
   styles: `
     @keyframes fade-up {
@@ -135,9 +134,60 @@ export default class ReceptionDetails implements OnInit {
     return map[s];
   }
 
-  variantLabel(item: StockReceptionItemDetailDto): string {
-    return [item.variantDescription, item.size, item.color].filter(Boolean).join(' · ');
-  }
+  /** Items agrupados producto → color (solo vista): preserva el orden del backend. */
+  groupedItems = computed(() => {
+    const items = this.reception()?.items ?? [];
+    interface SizeRow {
+      size: string;
+      qty: number;
+      unitCost: number;
+      subtotal: number;
+      sku: string;
+    }
+    interface ColorGroup {
+      color: string;
+      units: number;
+      subtotal: number;
+      unitCost: number | null;
+      summary: string;
+      skus: string;
+      sizes: SizeRow[];
+    }
+    interface ProductGroup {
+      productId: GUID;
+      productName: string;
+      brandName: string;
+      units: number;
+      subtotal: number;
+      colors: ColorGroup[];
+    }
+    const products = new Map<GUID, ProductGroup>();
+    for (const item of items) {
+      let p = products.get(item.productId);
+      if (!p) {
+        p = { productId: item.productId, productName: item.productName, brandName: item.brandName, units: 0, subtotal: 0, colors: [] };
+        products.set(item.productId, p);
+      }
+      let c = p.colors.find((g) => g.color === item.color);
+      if (!c) {
+        c = { color: item.color, units: 0, subtotal: 0, unitCost: item.unitCost, summary: '', skus: '', sizes: [] };
+        p.colors.push(c);
+      }
+      if (c.unitCost !== item.unitCost) c.unitCost = null;
+      c.sizes.push({ size: item.size, qty: item.quantityReceived, unitCost: item.unitCost, subtotal: item.subtotal, sku: item.sku });
+      c.units += item.quantityReceived;
+      c.subtotal += item.subtotal;
+      p.units += item.quantityReceived;
+      p.subtotal += item.subtotal;
+    }
+    for (const p of products.values()) {
+      for (const c of p.colors) {
+        c.summary = c.sizes.map((s) => `${s.size} ×${s.qty}`).join(' · ');
+        c.skus = [...new Set(c.sizes.map((s) => s.sku))].join(' · ');
+      }
+    }
+    return [...products.values()];
+  });
 
   get totalQuantity(): number {
     return this.reception()?.items.reduce((sum, i) => sum + i.quantityReceived, 0) ?? 0;
@@ -166,7 +216,7 @@ export default class ReceptionDetails implements OnInit {
             })),
           );
           const doc = await this.printService.generatePdfCompact(labels, this.sheetFormat());
-          doc.save(`etiquetas-recepcion-${data.receptionId}-${this.sheetFormat()}.pdf`);
+          doc.save(`etiquetas-recepcion-${data.number ?? data.receptionId}-${this.sheetFormat()}.pdf`);
         } catch (e) {
           console.error('Error generando PDF de etiquetas', e);
         } finally {

@@ -56,6 +56,7 @@ export interface SaleRefundDto {
 
 export interface SaleDetailDto {
   id: GUID;
+  number: number;
   branchId: GUID;
   soldById: GUID;
   soldByName: string;

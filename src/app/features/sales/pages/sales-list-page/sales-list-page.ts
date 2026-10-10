@@ -68,7 +68,10 @@ import { SaleType, isReturnType } from '@features/sales/dtos/sale-detail-dto';
         </div>
       } @else {
         <div class="bg-bg-surface rounded-xl border border-border shadow-xs overflow-hidden">
-          <div class="hidden lg:grid lg:grid-cols-[10rem_1fr_6rem_6rem_7rem_8rem_7rem] px-4 py-3 bg-bg-muted border-b border-border table-header">
+          <div class="hidden lg:grid px-4 py-3 bg-bg-muted border-b border-border table-header"
+            [style.grid-template-columns]="gridCols"
+          >
+            <span>Nº</span>
             <span>Fecha</span>
             <span>Producto</span>
             <span class="text-center">Tipo</span>
@@ -90,6 +93,8 @@ import { SaleType, isReturnType } from '@features/sales/dtos/sale-detail-dto';
                 <div class="flex items-center gap-4 px-4 py-3.5 lg:hidden">
                   <div class="flex flex-col min-w-0 flex-1">
                     <p class="flex items-center gap-1.5 truncate font-inter text-sm font-bold leading-tight text-text-main">
+                      <span class="font-mono">#{{ sale.number }}</span>
+                      ·
                       {{ sale.createdAt | smartDate }}
                       @if (isReturnType(sale.type)) {
                         <span class="px-1.5 py-0.5 rounded text-[10px] font-black bg-feedback-warning/15 text-feedback-warning-text border border-feedback-warning/30">Devolución</span>
@@ -117,7 +122,12 @@ import { SaleType, isReturnType } from '@features/sales/dtos/sale-detail-dto';
                 </div>
 
                 <!-- DESKTOP -->
-                <div class="group hidden lg:grid lg:grid-cols-[10rem_1fr_6rem_6rem_7rem_8rem_7rem] items-center px-4 py-3 transition-colors duration-150 hover:bg-bg-muted">
+                <div class="group hidden lg:grid items-center px-4 py-3 transition-colors duration-150 hover:bg-bg-muted"
+                  [style.grid-template-columns]="gridCols"
+                >
+                  <span class="font-mono text-[13px] font-bold text-text-main">
+                    #{{ sale.number }}
+                  </span>
                   <span class="text-[13px] font-medium text-text-main">{{ sale.createdAt | smartDate }}</span>
                   <span class="text-xs text-text-main font-medium truncate pr-2" [title]="sale.firstItemDisplayName">{{ sale.firstItemDisplayName || '—' }}</span>
                   <span class="flex justify-center">
@@ -164,6 +174,8 @@ export default class SalesListPage implements OnInit {
 
   SaleType = SaleType;
   protected isReturnType = isReturnType;
+  /** Columnas del grid desktop: header y filas comparten esta única fuente. */
+  readonly gridCols = '5rem 10rem 1fr 6rem 6rem 7rem 8rem 7rem';
 
   sales = signal<SaleListDto[]>([]);
   totalItems = signal(0);

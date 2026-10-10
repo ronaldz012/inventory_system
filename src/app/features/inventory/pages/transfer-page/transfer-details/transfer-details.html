@@ -22,8 +22,8 @@
 
       <!-- Información general -->
       <div class="bg-bg-surface rounded-xl border border-border shadow-xs p-4">
-        <div class="flex items-center justify-between gap-3 mb-3">
-          <p class="section-title mb-0">Información general</p>
+        <div class="flex items-center gap-2 mb-3">
+          <p class="text-sm font-semibold text-text-main">Transferencia #{{ t.number }}</p>
           <span
             class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium shrink-0"
             [class]="statusClasses(t.status)"
@@ -69,56 +69,52 @@
       <!-- Productos -->
       <div class="bg-bg-surface rounded-xl border border-border shadow-xs p-5">
         <p class="section-title">
-          Productos · {{ t.items.length }} {{ t.items.length === 1 ? 'ítem' : 'ítems' }}
+          Productos · {{ groupedItems().length }}
+          {{ groupedItems().length === 1 ? 'producto' : 'productos' }}
         </p>
 
-        <!-- MOBILE -->
-        <ul class="flex flex-col divide-y divide-border md:hidden">
-          @for (item of t.items; track item.productVariantId) {
-            <li class="flex items-center gap-3 py-3">
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-text-main truncate">{{ item.productName }}</p>
-                <p class="field-label">
-                  <span class="font-mono text-text-muted">{{ item.sku }}</span>
-                </p>
-                <p class="field-label">{{ variantLabel(item) }}</p>
-              </div>
-              <div class="shrink-0 text-right">
-                <p class="text-sm font-semibold tabular-nums text-text-main">
-                  {{ item.quantityRequested }}
-                  <span class="text-xs font-normal text-text-soft">uds</span>
-                </p>
-              </div>
-            </li>
-          }
-        </ul>
+        <div
+          class="hidden md:grid grid-cols-[1fr_80px_90px] gap-3 bg-bg-muted border-b border-border"
+        >
+          <div class="py-1.5 table-header">SKU</div>
+          <div class="py-1.5 table-header">Talla</div>
+          <div class="py-1.5 table-header text-right">Cant.</div>
+        </div>
 
-        <!-- DESKTOP -->
-        <div class="hidden md:block overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr
-                class="text-[10px] font-bold uppercase tracking-wider text-text-soft border-b border-border"
-              >
-                <th class="text-left py-2 pr-4">SKU</th>
-                <th class="text-left py-2 pr-4">Producto</th>
-                <th class="text-left py-2 pr-4">Variante</th>
-                <th class="text-right py-2 px-4">Cant.</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-              @for (item of t.items; track item.productVariantId) {
-                <tr>
-                  <td class="py-2.5 pr-4 font-mono text-xs text-text-muted">{{ item.sku }}</td>
-                  <td class="py-2.5 pr-4 text-text-main font-medium">{{ item.productName }}</td>
-                  <td class="py-2.5 pr-4 text-text-muted">{{ variantLabel(item) }}</td>
-                  <td class="py-2.5 px-4 text-right text-text-main font-mono tabular-nums">
-                    {{ item.quantityRequested }} <span class="text-xs text-text-soft">uds</span>
-                  </td>
-                </tr>
+        <div class="flex flex-col">
+          @for (product of groupedItems(); track product.productId) {
+            <div class="py-2 border-b border-border last:border-b-0">
+              <p class="text-sm font-bold text-text-main truncate">
+                @if (product.brandName) {
+                  <span>{{ product.brandName }} · </span>
+                }{{ product.productName }}
+                <span class="font-normal text-text-soft">· {{ product.units }} uds</span>
+              </p>
+              @for (color of product.colors; track color.color) {
+                <div class="table-group-header mt-1">
+                  <span class="table-header">{{ color.color }}</span>
+                </div>
+                @for (s of color.sizes; track s.sku) {
+                  <div
+                    class="flex items-center gap-2 py-1 odd:bg-bg-muted/30 hover:bg-accent-ui/5 rounded px-1 -mx-1 md:grid md:grid-cols-[1fr_80px_90px] md:gap-3"
+                  >
+                    <span
+                      class="flex-1 min-w-0 font-mono text-[11px] text-text-muted truncate md:max-w-[220px]"
+                      [title]="s.sku"
+                      >{{ s.sku }}</span
+                    >
+                    <span class="shrink-0 w-10 text-[12px] text-text-main md:w-auto">{{
+                      s.size
+                    }}</span>
+                    <span
+                      class="shrink-0 w-14 text-right text-[12px] tabular-nums text-text-main md:w-auto"
+                      >×{{ s.qty }}</span
+                    >
+                  </div>
+                }
               }
-            </tbody>
-          </table>
+            </div>
+          }
         </div>
 
         <div class="pt-3 mt-1 border-t border-border flex justify-between items-center">

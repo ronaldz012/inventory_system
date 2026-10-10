@@ -51,11 +51,27 @@ describe('CreateTransfer confirm flow', () => {
             createTransfer: (p: unknown) => {
               createSpy.calls++;
               createSpy.payload = p;
-              return of(void 0);
+              return of('t1');
             },
           },
         },
-        { provide: ProductService, useValue: {} },
+        {
+          provide: ProductService,
+          useValue: {
+            getVariantBySku: () =>
+              of({
+                id: 'v2',
+                productId: 'p1',
+                sku: 'SKU-2',
+                productName: 'Zapato',
+                brandName: 'Nike',
+                displayName: 'Talle 36 · Azul',
+                size: '36',
+                colorName: 'Azul',
+                availableStockInBranch: 5,
+              }),
+          },
+        },
         {
           provide: BranchContextService,
           useValue: {
@@ -79,7 +95,7 @@ describe('CreateTransfer confirm flow', () => {
     page.form.set({ toBranchId: 'b2', notes: '', items: [] });
     page.items.set([
       {
-        variantId: 'v1', sku: 'SKU-1', productName: 'Zapato', brandName: 'Nike',
+        variantId: 'v1', productId: 'p1', sku: 'SKU-1', productName: 'Zapato', brandName: 'Nike',
         variantLabel: 'Talle 35 · Rojo', size: '35', colorName: 'Rojo',
         quantity: 2, maxQuantity: 5,
       },
@@ -105,14 +121,20 @@ describe('CreateTransfer confirm flow', () => {
     expect(page.showConfirm()).toBe(false);
   });
 
-  it('executeCreate envía el payload y navega a transfers', () => {
+  it('executeCreate envía el payload y navega al detalle creado', () => {
     const { page } = setup();
     page.executeCreate();
     expect(createSpy.calls).toBe(1);
-    expect(navigateSpy.calls).toContainEqual(['inventory', 'transfers']);
+    expect(navigateSpy.calls).toContainEqual(['inventory', 'transfers', 't1']);
     const payload = createSpy.payload as { toBranchId: string; items: { productVariantId: string; quantityRequested: number }[] };
     expect(payload.toBranchId).toBe('b2');
     expect(payload.items).toEqual([{ productVariantId: 'v1', quantityRequested: 2 }]);
+  });
+
+  it('agrega la variante nueva al inicio (prepend), no al fondo', () => {
+    const { page } = setup();
+    page.onSkuSubmit('SKU-2');
+    expect(page.items().map((i) => i.variantId)).toEqual(['v2', 'v1']);
   });
 
   it('sin destino no abre el confirm', () => {

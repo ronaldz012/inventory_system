@@ -15,6 +15,7 @@ export interface ReceptionLabelItemDto {
 
 export interface ReceptionLabelsDto {
   receptionId: GUID;
+  number: number;
   receptionDate: string; // ISO date string
   items: ReceptionLabelItemDto[];
 }

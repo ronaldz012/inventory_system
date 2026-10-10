@@ -1,5 +1,6 @@
 export interface ClosureListDto {
   id: GUID;
+  number: number;
   openedAt: string;
   closedAt: string | null;
   openedByName: string;

@@ -1,6 +1,6 @@
-<div class="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+<div class="max-w-5xl mx-auto px-4 sm:px-6 pt-2 pb-6">
   <!-- Destino compacto (solo mobile): contexto antes de escanear -->
-  <div class="md:hidden mb-4 flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-bg-surface">
+  <div class="md:hidden mb-3 flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-bg-surface">
     <span class="text-xs text-text-soft shrink-0">De:</span>
     <span class="text-xs font-bold text-text-main truncate">{{ originName() }}</span>
     <span class="material-icons text-base text-accent-ui shrink-0">arrow_forward</span>
@@ -20,10 +20,7 @@
   <div class="grid grid-cols-1 md:grid-cols-[1fr_360px] gap-6 items-start">
     <!-- Columna izquierda: scanner + lista -->
     <div class="flex flex-col gap-4">
-      <div class="bg-bg-surface rounded-xl border border-border shadow-sm p-4">
-        <p class="text-xs font-medium text-text-soft uppercase tracking-wide mb-3">
-          Agregar producto
-        </p>
+      <div class="bg-bg-surface rounded-xl border border-border shadow-sm p-3">
         <div class="flex items-center gap-2">
           <app-sku-input class="flex-1" placeholder="Escanear o ingresar SKU..." (skuSubmit)="onSkuSubmit($event)" />
           @if (scannerAvailable()) {
@@ -41,7 +38,7 @@
         }
       </div>
 
-      <app-create-transfer-item-list [items]="items()" (itemsChange)="items.set($event)" />
+      <app-create-transfer-item-list [items]="items()" [lastAddedId]="lastAddedId()" (itemsChange)="items.set($event)" />
     </div>
 
     <!-- Columna derecha: configuración -->
@@ -73,27 +70,35 @@
         </div>
       </div>
 
-      <div class="bg-bg-surface rounded-xl border border-border shadow-sm p-4">
-        <p class="text-xs font-medium text-text-soft uppercase tracking-wide mb-3">Notas</p>
-        <textarea
-          [value]="form().notes"
-          (input)="patchNotes($any($event.target).value)"
-          rows="3"
-          placeholder="Ej: urgente, para reposición..."
-          class="w-full px-3 py-2.5 text-sm rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-accent-ui/20 focus:border-accent-ui resize-none placeholder:text-text-soft bg-bg-surface text-text-main"
-        ></textarea>
-      </div>
-
-      @if (items().length > 0) {
-        <div
-          class="bg-feedback-info text-feedback-info-text rounded-xl border border-feedback-info-text/20 p-4 flex justify-between text-sm"
+      <div class="bg-bg-surface rounded-xl border border-border shadow-sm">
+        <button
+          type="button"
+          (click)="notesOpen.set(!notesOpen())"
+          [attr.aria-expanded]="notesOpen()"
+          class="w-full flex items-center justify-between px-4 py-3"
         >
-          <span> {{ items().length }} {{ items().length === 1 ? 'producto' : 'productos' }} </span>
-          <span class="font-medium">{{ totalUnits() }} unidades</span>
-        </div>
-      }
-
-      <div class="flex gap-3">
+          <span class="text-xs font-medium text-text-soft uppercase tracking-wide"
+            >Notas <span class="normal-case font-normal">(opcional)</span></span
+          >
+          <span
+            class="material-icons text-base text-text-soft transition-transform duration-200"
+            [class.rotate-180]="notesOpen()"
+            >expand_more</span
+          >
+        </button>
+        @if (notesOpen()) {
+          <div class="px-4 pb-4">
+            <textarea
+              [value]="form().notes"
+              (input)="patchNotes($any($event.target).value)"
+              rows="2"
+              placeholder="Ej: urgente, para reposición..."
+              class="w-full px-3 py-2.5 text-sm rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-accent-ui/20 focus:border-accent-ui resize-none placeholder:text-text-soft bg-bg-surface text-text-main"
+            ></textarea>
+          </div>
+        }
+      </div>
+      <div class="hidden md:flex gap-3">
         <button (click)="cancel()" class="btn btn-secondary flex-1 py-3">Cancelar</button>
         <button
           (click)="submit()"
@@ -103,6 +108,27 @@
           Crear transferencia
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- Barra sticky solo mobile: siempre visible (con lista vacía Crear va deshabilitado) -->
+  <div
+    class="md:hidden sticky bottom-0 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-bg-main via-bg-main to-transparent"
+  >
+    <div
+      class="flex items-center gap-2 bg-bg-surface border border-border rounded-xl p-2 shadow-lg"
+    >
+      <span class="flex-1 min-w-0 text-xs text-text-muted truncate px-1"
+        >{{ items().length }} prod · {{ totalUnits() }} uds</span
+      >
+      <button (click)="cancel()" class="btn btn-secondary btn-sm shrink-0">Cancelar</button>
+      <button
+        (click)="submit()"
+        [disabled]="!canSubmit()"
+        class="btn btn-primary btn-sm shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        Crear
+      </button>
     </div>
   </div>
 

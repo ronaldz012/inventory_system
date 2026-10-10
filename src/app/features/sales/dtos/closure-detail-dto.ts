@@ -45,6 +45,7 @@ export interface ClosureMovementDto {
 
 export interface ClosureDetailDto {
   id: GUID;
+  number: number;
   branchId: GUID;
   openedAt: string;
   closedAt: string | null;

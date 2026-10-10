@@ -3,6 +3,10 @@ import { StockTransferListDto } from '../../../../../dtos/transfers/stock-transf
 import { TransferDirection, TransferStatus } from '../../../../../dtos/transfers/transfer-enums';
 import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
 
+/** Columnas del grid desktop: header y filas comparten esta única fuente. */
+export const TRANSFER_LIST_GRID =
+  '5rem 5.5rem 5rem 6rem 1fr 8rem 4.5rem 5.5rem 9rem';
+
 @Component({
   selector: 'app-transfer-list-item',
   imports: [SmartDatePipe],
@@ -11,6 +15,8 @@ import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
 })
 export class TransferListItem {
   transfer = input.required<StockTransferListDto>();
+  /** El template no puede llamar imports: se expone la constante tal cual. */
+  readonly gridCols = TRANSFER_LIST_GRID;
   index = input<GUID>('');
 
   viewDetail = output<GUID>();

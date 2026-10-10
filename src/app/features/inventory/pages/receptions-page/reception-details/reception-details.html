@@ -21,108 +21,111 @@
       </div>
 
       <!-- Info general -->
-      <div class="bg-bg-surface rounded-xl border border-border shadow-xs p-5">
-        <div class="flex items-center justify-between mb-4">
-          <p class="section-title">Información general</p>
-          <span [class]="statusClasses(r.status)">{{ Status[r.status] }}</span>
+      <div class="bg-bg-surface rounded-xl border border-border-strong px-4 py-3">
+        <div class="flex items-center gap-2">
+          <p class="text-sm font-semibold text-text-main">Recepción #{{ r.number }}</p>
+          <span
+            class="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold shrink-0"
+            [class]="statusClasses(r.status)"
+            >{{ Status[r.status] }}</span
+          >
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
           <div>
-            <p class="field-label">Proveedor</p>
-            <p class="field-value">{{ r.providerName }}</p>
-          </div>
-          <div>
-            <p class="field-label">Fecha de recepción</p>
-            <p class="field-value">{{ r.receivedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
-          </div>
-          <div>
-            <p class="field-label">Total</p>
-            <p class="text-sm font-semibold text-text-main">
+            <p class="table-header">Total</p>
+            <p class="text-xl font-black font-mono text-accent-ui">
               {{ r.totalCost | currency: 'BOB' : 'symbol' : '1.2-2' }}
             </p>
           </div>
-          @if (r.notes) {
-            <div class="sm:col-span-2">
-              <p class="field-label">Notas</p>
-              <p class="text-sm text-text-muted bg-bg-muted rounded-lg px-3 py-2">{{ r.notes }}</p>
-            </div>
-          }
+          <div>
+            <p class="table-header">Unidades</p>
+            <p class="text-sm font-bold font-mono text-text-main">
+              {{ totalQuantity }} <span class="text-xs font-bold">u</span>
+            </p>
+          </div>
+          <div class="min-w-0">
+            <p class="table-header">Proveedor</p>
+            <p class="text-sm font-bold text-text-main truncate" [title]="r.providerName">
+              {{ r.providerName }}
+            </p>
+          </div>
+          <div>
+            <p class="table-header">Fecha</p>
+            <p class="text-sm font-bold text-text-main">
+              {{ r.receivedAt | date: 'dd/MM/yyyy HH:mm' }}
+            </p>
+          </div>
         </div>
+        @if (r.notes) {
+          <p class="text-[13px] text-text-muted leading-snug mt-1">{{ r.notes }}</p>
+        }
       </div>
 
       <!-- Productos -->
       <div class="bg-bg-surface rounded-xl border border-border shadow-xs p-5">
         <p class="section-title">
-          Productos · {{ r.items.length }} {{ r.items.length === 1 ? 'ítem' : 'ítems' }}
+          Productos · {{ groupedItems().length }}
+          {{ groupedItems().length === 1 ? 'producto' : 'productos' }}
         </p>
 
-        <!-- MOBILE -->
-        <ul class="flex flex-col divide-y divide-border md:hidden">
-          @for (item of r.items; track item.id) {
-            <li class="flex items-center gap-3 py-3">
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-text-main truncate">{{ item.productName }}</p>
-                <p class="field-label">
-                  <span class="font-mono text-text-muted">{{ item.sku }}</span>
-                </p>
-                <p class="field-label">{{ variantLabel(item) }}</p>
-              </div>
-              <div class="shrink-0 text-right">
-                <p class="text-sm font-semibold tabular-nums text-text-main">
-                  {{ item.quantityReceived }}
-                  <span class="text-xs font-normal text-text-soft">uds</span>
-                </p>
-                <p class="field-label tabular-nums">
-                  {{ item.unitCost | currency: 'BOB' : 'symbol' : '1.2-2' }} c/u
-                </p>
-              </div>
-              <div class="shrink-0 text-right w-20 hidden sm:block">
-                <p class="text-sm tabular-nums text-text-muted">
-                  {{ item.subtotal | currency: 'BOB' : 'symbol' : '1.2-2' }}
-                </p>
-                <p class="field-label">subtotal</p>
-              </div>
-            </li>
-          }
-        </ul>
+        <div
+          class="hidden md:grid grid-cols-[1fr_80px_90px_110px_110px] gap-3 bg-bg-muted border-b border-border"
+        >
+          <div class="py-1.5 table-header">SKU</div>
+          <div class="py-1.5 table-header">Talla</div>
+          <div class="py-1.5 table-header text-right">Cant.</div>
+          <div class="py-1.5 table-header text-right">P. Compra</div>
+          <div class="py-1.5 table-header text-right">Subtotal</div>
+        </div>
 
-        <!-- DESKTOP -->
-        <div class="hidden md:block overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr
-                class="table-header border-b border-border"
-              >
-                <th class="text-left py-2 pr-4">SKU</th>
-                <th class="text-left py-2 pr-4">Producto</th>
-                <th class="text-left py-2 pr-4">Variante</th>
-                <th class="text-right py-2 px-4">Cant.</th>
-                <th class="text-right py-2 px-4">Costo U.</th>
-                <th class="text-right py-2 pl-4">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-              @for (item of r.items; track item.id) {
-                <tr>
-                  <td class="py-2.5 pr-4 font-mono text-xs text-text-muted">{{ item.sku }}</td>
-                  <td class="py-2.5 pr-4 text-text-main font-medium">{{ item.productName }}</td>
-                  <td class="py-2.5 pr-4 text-text-muted">{{ variantLabel(item) }}</td>
-                  <td class="py-2.5 px-4 text-right text-text-main font-mono tabular-nums">
-                    {{ item.quantityReceived }} <span class="text-xs text-text-soft">uds</span>
-                  </td>
-                  <td class="py-2.5 px-4 text-right text-text-muted font-mono tabular-nums">
-                    {{ item.unitCost | currency: 'BOB' : 'symbol' : '1.2-2' }}
-                  </td>
-                  <td
-                    class="py-2.5 pl-4 text-right font-mono font-bold text-text-main tabular-nums"
+        <div class="flex flex-col">
+          @for (product of groupedItems(); track product.productId) {
+            <div class="py-2 border-b border-border last:border-b-0">
+              <div class="flex items-baseline justify-between gap-2">
+                <p class="text-sm font-bold text-text-main truncate">
+                  @if (product.brandName) {
+                    <span>{{ product.brandName }} · </span>
+                  }{{ product.productName }}
+                  <span class="font-normal text-text-soft">· {{ product.units }} uds</span>
+                </p>
+                <p class="shrink-0 text-sm font-semibold text-text-main tabular-nums">
+                  {{ product.subtotal | currency: 'BOB' : 'symbol' : '1.2-2' }}
+                </p>
+              </div>
+              @for (color of product.colors; track color.color) {
+                <div class="table-group-header">
+                  <span class="table-header">{{ color.color }}</span>
+                </div>
+                @for (s of color.sizes; track s.sku) {
+                  <div
+                    class="flex items-center gap-2 py-1 odd:bg-bg-muted/30 hover:bg-accent-ui/5 rounded px-1 -mx-1 md:grid md:grid-cols-[1fr_80px_90px_110px_110px] md:gap-3"
                   >
-                    {{ item.subtotal | currency: 'BOB' : 'symbol' : '1.2-2' }}
-                  </td>
-                </tr>
+                    <span
+                      class="flex-1 min-w-0 font-mono text-[11px] text-text-muted truncate md:max-w-[220px]"
+                      [title]="s.sku"
+                      >{{ s.sku }}</span
+                    >
+                    <span class="shrink-0 w-10 text-[12px] text-text-main md:w-auto">{{
+                      s.size
+                    }}</span>
+                    <span
+                      class="shrink-0 w-14 text-right text-[12px] tabular-nums text-text-main md:w-auto"
+                      >×{{ s.qty }}</span
+                    >
+                    <span
+                      class="shrink-0 w-16 text-right text-[12px] tabular-nums text-text-muted md:w-auto"
+                      >{{ s.unitCost | number: '1.2-2' }}</span
+                    >
+                    <span
+                      class="shrink-0 w-20 text-right text-[12px] font-semibold tabular-nums text-text-main md:w-auto"
+                      >{{ s.subtotal | number: '1.2-2' }}</span
+                    >
+                  </div>
+                }
               }
-            </tbody>
-          </table>
+            </div>
+          }
         </div>
 
         <div

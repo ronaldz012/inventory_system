@@ -1,67 +1,51 @@
 @if (items().length === 0) {
   <p class="text-sm text-text-soft text-center py-6">Escaneá un producto para comenzar</p>
 } @else {
-  <ul class="flex flex-col gap-2">
-    @for (item of items(); track item.variantId) {
-      <li class="bg-bg-surface border border-border rounded-xl px-3 py-2.5 flex flex-col gap-1.5">
-        <div class="flex items-center gap-2">
-          <p class="flex-1 min-w-0 font-mono text-[11px] font-bold tracking-wide text-accent-ui truncate">{{ item.sku }}</p>
-          <button
-            type="button"
-            (click)="remove(item.variantId)"
-            class="md:hidden shrink-0 action-text action-text--delete"
+  <div class="flex flex-col gap-3">
+    @for (group of groupedItems(); track group.productId) {
+      <div class="bg-bg-surface border border-border rounded-xl overflow-hidden">
+        <div class="flex items-baseline justify-between gap-2 px-3 py-1.5 bg-bg-muted/40 border-b border-border">
+          <p class="text-[13px] font-bold text-text-main truncate">
+            @if (group.brandName) {
+              <span>{{ group.brandName }} · </span>
+            }{{ group.productName }}
+          </p>
+          <span class="shrink-0 text-[11px] font-mono text-text-muted whitespace-nowrap"
+            >{{ group.units }} uds</span
           >
-            Eliminar
-          </button>
-          <button
-            type="button"
-            (click)="remove(item.variantId)"
-            aria-label="Quitar producto"
-            class="hidden md:flex shrink-0 w-8 h-8 rounded-lg text-text-soft items-center justify-center hover:bg-feedback-error hover:text-feedback-error-text transition-colors"
-          >
-            <span class="material-icons text-base">delete</span>
-          </button>
         </div>
-
-        <p class="text-sm font-semibold text-text-main break-words leading-snug">
-          @if (item.brandName) {
-            <span>{{ item.brandName }} · </span>
-          }{{ item.productName }}
-        </p>
-
-        <div class="flex items-center gap-2">
-          <div class="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap">
-            <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-accent-ui/10 border border-accent-ui/20 text-[11px] font-bold text-accent-ui">{{ item.colorName }}</span>
-            <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-bg-muted border border-border text-[11px] font-bold text-text-main">#{{ item.size }}</span>
-            <span class="text-[11px] text-text-soft tabular-nums">{{ item.maxQuantity }} disp.</span>
-          </div>
-          <div class="flex items-center gap-1 shrink-0">
-            <button
-              type="button"
-              (click)="decrement(item)"
-              [disabled]="item.quantity <= 1"
-              aria-label="Quitar uno"
-              class="w-8 h-8 rounded-lg border border-border bg-bg-muted text-text-main flex items-center justify-center text-base font-bold leading-none disabled:opacity-30 disabled:cursor-not-allowed hover:bg-bg-elevated active:scale-95 transition-all"
+        <ul class="flex flex-col divide-y divide-border">
+          @for (item of group.rows; track item.variantId) {
+            <li
+              class="px-3 py-1.5 transition-colors"
+              [class.bg-accent-ui/10]="item.variantId === lastAddedId()"
             >
-              −
-            </button>
-            <span class="w-8 text-center text-sm font-mono font-bold tabular-nums">
-              {{ item.quantity }}
-            </span>
-            <button
-              type="button"
-              (click)="increment(item)"
-              [disabled]="item.quantity >= item.maxQuantity"
-              aria-label="Agregar uno"
-              class="w-8 h-8 rounded-lg border border-border bg-bg-muted text-text-main flex items-center justify-center text-base font-bold leading-none disabled:opacity-30 disabled:cursor-not-allowed hover:bg-bg-elevated active:scale-95 transition-all"
-            >
-              +
-            </button>
-          </div>
-        </div>
-      </li>
+              <button
+                type="button"
+                (click)="editingId.set(item.variantId)"
+                class="w-full flex items-center gap-2 text-left"
+              >
+                <span class="flex-1 min-w-0 font-mono text-[10px] text-text-soft truncate">{{
+                  item.sku
+                }}</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-accent-ui/10 border border-accent-ui/20 text-[11px] font-bold text-accent-ui shrink-0">{{ item.colorName }}</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-bg-muted border border-border text-[11px] font-bold text-text-main shrink-0">#{{ item.size }}</span>
+                <span class="text-sm font-mono font-bold tabular-nums text-text-main shrink-0"
+                  >×{{ item.quantity }}</span
+                >
+                <span class="text-[10px] text-text-soft tabular-nums shrink-0 hidden sm:inline"
+                  >{{ item.maxQuantity }} disp.</span
+                >
+                <span class="material-icons text-base text-text-soft shrink-0"
+                  >chevron_right</span
+                >
+              </button>
+            </li>
+          }
+        </ul>
+      </div>
     }
-  </ul>
+  </div>
 
   <div class="flex justify-between items-center pt-3 mt-1 border-t border-border">
     <span class="text-xs text-text-muted">
@@ -69,4 +53,15 @@
     </span>
     <span class="text-xs font-medium text-text-muted"> {{ totalUnits() }} unidades en total </span>
   </div>
+
+  @if (editingId(); as eid) {
+    @if (findItem(eid); as it) {
+      <app-transfer-row-sheet
+        [item]="it"
+        (save)="setQty(eid, $event)"
+        (remove)="remove(eid); editingId.set(null)"
+        (close)="editingId.set(null)"
+      />
+    }
+  }
 }

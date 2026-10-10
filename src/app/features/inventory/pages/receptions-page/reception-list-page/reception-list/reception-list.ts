@@ -1,7 +1,7 @@
 import {Component, inject, input, OnInit, output, signal} from '@angular/core';
 import {CurrencyPipe, DatePipe, KeyValuePipe} from '@angular/common';
 import {StockReceptionListDto} from '../../../../dtos/receptions/stock-reception-list-dto';
-import {ReceptionListItem} from './reception-list-item/reception-list-item';
+import {ReceptionListItem, RECEPTION_LIST_GRID} from './reception-list-item/reception-list-item';
 import {ReceptionService} from '../../../../services/reception-service';
 import {Router} from '@angular/router';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
@@ -26,14 +26,15 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
         <div
           class="hidden px-4 py-3 border-b border-border bg-bg-muted lg:grid
                  font-inter text-xs font-semibold uppercase tracking-wider text-text-soft"
-          style="grid-template-columns: 7rem 9rem 1fr 6rem 5rem 7rem 5.5rem 3.5rem;"
+          [style.grid-template-columns]="gridCols"
         >
+          <span>Nº</span>
           <span>Fecha</span>
           <span>Proveedor</span>
           <span>Marcas</span>
           <span class="pr-4 text-right">Talla/Color</span>
           <span class="pr-4 text-right">Uds</span>
-          <span class="pr-4 text-right">Costo total</span>
+          <span class="pr-4 text-right">Costo total (Bs)</span>
           <span>Estado</span>
           <span></span>
         </div>
@@ -60,8 +61,9 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
   `,
 })
 export default class ReceptionList {
-
   router = inject(Router);
+  /** El template no puede llamar imports: se expone la constante tal cual. */
+  readonly gridCols = RECEPTION_LIST_GRID;
   receptions = input.required<StockReceptionListDto[]>();
   loading    = input<boolean>(false);
   goToDetails = output<GUID>();

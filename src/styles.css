@@ -219,7 +219,8 @@
 @theme inline {
   /* Typography */
   --font-sora: "Sora", sans-serif;
-  --font-inter: "Inter", sans-serif;
+  --font-inter: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* Surfaces */
   --color-bg-main:     var(--bg-main);
