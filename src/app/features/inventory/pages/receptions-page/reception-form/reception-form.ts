@@ -1,6 +1,6 @@
 import { CurrencyPipe } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { form, required } from '@angular/forms/signals';
 import { ReceptionItem } from './reception-item/reception-item';
 import { ReceptionConfirmModal } from './reception-confirm-modal';
@@ -15,8 +15,8 @@ import { ProviderService } from '@features/inventory/services/provider-service';
 import { ItemForm, Reception, VariantForm } from '@features/inventory/models/variant-form.model';
 import { ProductSearchResult } from '@features/inventory/components/product-search/product-search-result.component';
 import ProviderSelectCtrl from '@features/inventory/components/provider-select-ctrl/provider-select-ctrl';
-import { closeModal, getModalId, openModal, swapModal } from '@shared/utils/modal-query';
 import { ToastService } from '@core/services/toast-service';
+import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 import { BranchContextService } from '@core/services/branch-context-service';
 
 @Component({
@@ -31,7 +31,7 @@ import { BranchContextService } from '@core/services/branch-context-service';
   ],
   templateUrl: './reception-form.html',
 })
-export default class ReceptionForm implements OnInit {
+export default class ReceptionForm implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.categoryService.load();
     this.colorService.load();
@@ -39,14 +39,21 @@ export default class ReceptionForm implements OnInit {
     this.providerService.load();
   }
 
+  ngOnDestroy(): void {
+    this.catalogueModal.destroy();
+    this.editModal.destroy();
+    this.productModal.destroy();
+    this.confirmModal.destroy();
+  }
+
   private receptionService = inject(ReceptionService);
   private categoryService = inject(CategoryService);
   private colorService = inject(ColorService);
   private brandService = inject(BrandService);
   private providerService = inject(ProviderService);
-  private route = inject(ActivatedRoute);
   private toast = inject(ToastService);
   private router = inject(Router);
+  private stack = inject(ModalStackService);
   readonly branchContext = inject(BranchContextService);
 
   providerModel = signal<{ id: GUID | null; name: string }>({ id: null, name: '' });
@@ -56,13 +63,16 @@ export default class ReceptionForm implements OnInit {
 
   isSubmitting = signal(false);
   submitError = signal<string | null>(null);
+  /** Nivel 1 por signals (sin URL): catalogue, edit, crear-producto, confirm. */
   showConfirm = signal(false);
-  /** Entradas de historial con ?modal= pusheadas y pendientes de consumir. */
-  private modalEntries = signal(0);
   showAddCatalogueModal = signal(false);
   showEditModal = signal(false);
-  editingItem = signal<{ index: number; item: ItemForm } | null>(null);
   showCreateProductModal = signal(false);
+  private catalogueModal = useStackedModal(this.stack, this.showAddCatalogueModal);
+  private editModal = useStackedModal(this.stack, this.showEditModal);
+  private productModal = useStackedModal(this.stack, this.showCreateProductModal);
+  private confirmModal = useStackedModal(this.stack, this.showConfirm, () => !this.isSubmitting());
+  editingItem = signal<{ index: number; item: ItemForm } | null>(null);
   pendingProduct = signal<ProductSearchResult | null>(null);
   pendingName = signal('');
   creatingFromEdit = signal(false);
@@ -91,56 +101,38 @@ export default class ReceptionForm implements OnInit {
       .reduce((sum: number, v: VariantForm) => sum + (v.quantityReceived ?? 0), 0),
   );
 
-  constructor() {
-    this.route.queryParamMap.subscribe((params) => {
-      const modal = params.get('modal');
-      // Sin ?modal= no hay entradas nuestras por consumir (atrás manual o recarga)
-      if (!modal) this.modalEntries.set(0);
-      this.showAddCatalogueModal.set(modal === 'catalogue');
-      this.showCreateProductModal.set(modal === 'product');
-      // El confirm solo vive si hay ítems (ej. recarga con ?modal=confirm no abre vacío)
-      this.showConfirm.set(modal === 'confirm' && this.reception().items.length > 0);
-
-      const editId = getModalId(modal, 'edit');
-      if (editId) {
-        const idx = parseInt(editId, 10);
-        const item = this.reception().items[idx] ?? null;
-        this.editingItem.set(item ? { index: idx, item } : null);
-        this.showEditModal.set(!!item);
-      } else {
-        this.editingItem.set(null);
-        this.showEditModal.set(false);
-      }
-    });
+  // ── Nivel 1: abrir/cerrar + registro en la pila (el atrás cierra el tope) ──
+  private openCatalogue(): void {
+    this.catalogueModal.open();
   }
 
-  /**
-   * Página → modal: push + contador (el atrás cierra sin salir).
-   */
-  private pushModal(modal: string): void {
-    this.modalEntries.update((n) => n + 1);
-    openModal(this.router, this.route, modal);
+  closeCatalogue(): void {
+    this.catalogueModal.close();
   }
 
-  /**
-   * Modal → modal: reutiliza la entrada (el atrás no reabre intermedios).
-   */
-  private swapModal(modal: string): void {
-    swapModal(this.router, this.route, modal);
+  private openEdit(): void {
+    this.editModal.open();
   }
 
-  /**
-   * Cierra el modal abierto dejando el historial intacto: consume con
-   * back() la entrada pusheada. Fallback al helper solo si no hay entrada
-   * que consumir (ej. recarga con ?modal= en URL).
-   */
-  closeModal(): void {
-    if (this.modalEntries() > 0) {
-      this.modalEntries.update((n) => n - 1);
-      history.back();
-    } else {
-      closeModal(this.router, this.route);
-    }
+  closeEdit(): void {
+    this.editModal.close();
+  }
+
+  private openProduct(): void {
+    this.productModal.open();
+  }
+
+  closeProduct(): void {
+    this.productModal.close();
+  }
+
+  private openConfirm(): void {
+    this.confirmModal.open();
+  }
+
+  /** Cierra el confirm (bloqueado durante el POST; el atrás reintenta). */
+  closeConfirm(): void {
+    this.confirmModal.close();
   }
 
   updateNotes(event: Event): void {
@@ -158,7 +150,7 @@ export default class ReceptionForm implements OnInit {
     }
     this.reception.update((r) => ({ ...r, items: [...r.items, group.item] }));
     this.pendingProduct.set(null);
-    this.closeModal();
+    this.closeCatalogue();
   }
 
   updateItem(itemToUpdate: { index: number | null; item: ItemForm }): void {
@@ -168,7 +160,7 @@ export default class ReceptionForm implements OnInit {
       return { ...r, items };
     });
     this.pendingCreated.set(null);
-    this.closeModal();
+    this.closeEdit();
   }
 
   removeGroup(index: number): void {
@@ -188,12 +180,7 @@ export default class ReceptionForm implements OnInit {
     }
 
     this.submitError.set(null);
-    this.pushModal('confirm');
-  }
-
-  closeConfirm(): void {
-    if (this.isSubmitting()) return;
-    this.closeModal();
+    this.openConfirm();
   }
 
   executeCreate(): void {
@@ -217,11 +204,13 @@ export default class ReceptionForm implements OnInit {
     this.receptionService.create(payload).subscribe({
       next: (result) => {
         this.isSubmitting.set(false);
-        this.router.navigate(['inventory', 'receptions', result.id]);
+        // El confirm nunca tocó el historial: un replace basta (atrás → lista).
+        this.closeConfirm();
+        this.router.navigate(['inventory', 'receptions', result.id], { replaceUrl: true });
       },
       error: (err: unknown) => {
         this.isSubmitting.set(false);
-        this.closeModal();
+        // El modal queda abierto para reintentar; el error se muestra arriba.
         const e = err as { error?: { detail?: string; title?: string }; message?: string };
         const msg = e?.error?.detail || e?.error?.title || e?.message || 'Error al guardar la recepción. Intentá de nuevo.';
         this.submitError.set(msg);
@@ -236,37 +225,43 @@ export default class ReceptionForm implements OnInit {
 
   editGroup(index: number) {
     this.pendingCreated.set(null);
-    this.pushModal(`edit:${index}`);
+    const item = this.reception().items[index] ?? null;
+    this.editingItem.set(item ? { index, item } : null);
+    if (item) this.openEdit();
   }
 
   onNotFound(query: string): void {
     this.creatingFromEdit.set(this.showEditModal());
     this.pendingName.set(query);
-    this.swapModal('product');
+    if (this.showEditModal()) this.closeEdit();
+    if (this.showAddCatalogueModal()) this.closeCatalogue();
+    this.openProduct();
   }
 
   onProductCreated(product: ProductSearchResult): void {
     this.pendingProduct.set(product);
+    this.closeProduct();
     if (this.creatingFromEdit()) {
       this.creatingFromEdit.set(false);
       this.pendingCreated.set(product);
-      this.swapModal('edit:' + this.editingItem()!.index);
+      this.openEdit();
     } else {
-      this.swapModal('catalogue');
+      this.openCatalogue();
     }
   }
 
   onCreateProductCancelled(): void {
+    this.closeProduct();
     if (this.creatingFromEdit()) {
       this.creatingFromEdit.set(false);
-      this.swapModal('edit:' + this.editingItem()!.index);
+      this.openEdit();
     } else {
-      this.swapModal('catalogue');
+      this.openCatalogue();
     }
   }
 
   openAddCatalogueModal(): void {
     this.pendingProduct.set(null);
-    this.pushModal('catalogue');
+    this.openCatalogue();
   }
 }

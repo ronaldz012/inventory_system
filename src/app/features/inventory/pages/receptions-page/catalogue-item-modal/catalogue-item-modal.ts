@@ -6,6 +6,7 @@ import {
   ElementRef,
   inject,
   input,
+  OnDestroy,
   OnInit,
   output,
   signal,
@@ -30,6 +31,7 @@ import {
 } from '@features/inventory/models/variant-form.model';
 import { CreateProductVariantDto } from '@features/inventory/dtos/products/create-product-variant-dto';
 import { blockNonNumericKeys, parseAmountInput } from '@shared/utils/list-query';
+import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 
 /** Réplica del orden backend (Color.Name, Size.SortOrder). Sort estable. */
 function sortVariants(rows: VariantForm[]): VariantForm[] {
@@ -44,9 +46,10 @@ function sortVariants(rows: VariantForm[]): VariantForm[] {
   imports: [DecimalPipe, AddVariantModal, GridNavDirective],
   templateUrl: './catalogue-item-modal.html',
 })
-export default class CatalogueItemModal implements OnInit {
+export default class CatalogueItemModal implements OnInit, OnDestroy {
   private productService = inject(ProductService);
   private sizeService = inject(SizeService);
+  private stack = inject(ModalStackService);
   private destroyRef = inject(DestroyRef);
   private search$ = new Subject<string>();
   private searchInput = viewChild<ElementRef<HTMLInputElement>>('catalogueSearchInput');
@@ -70,6 +73,19 @@ export default class CatalogueItemModal implements OnInit {
   /** Modal anidado para crear una variante nueva sin salir del panel. */
   showAddVariant = signal(false);
   addVariantSaving = signal(false);
+  private addVariantModal = useStackedModal(this.stack, this.showAddVariant);
+
+  ngOnDestroy(): void {
+    this.addVariantModal.destroy();
+  }
+
+  openAddVariant(): void {
+    this.addVariantModal.open();
+  }
+
+  closeAddVariant(): void {
+    this.addVariantModal.close();
+  }
 
   // ── Búsqueda por pasos (sin dropdown): paso 1 buscar, paso 2 variantes ──
   searchQuery = signal('');
@@ -411,7 +427,7 @@ export default class CatalogueItemModal implements OnInit {
           sku: first.sku,
         };
         this.itemModel.update((m) => ({ ...m, variants: sortVariants([...m.variants, row]) }));
-        this.showAddVariant.set(false);
+        this.closeAddVariant();
       },
       error: () => {
         this.addVariantSaving.set(false);

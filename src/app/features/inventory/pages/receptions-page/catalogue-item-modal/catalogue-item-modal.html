@@ -174,7 +174,7 @@
           </h3>
           <button
             type="button"
-            (click)="showAddVariant.set(true)"
+            (click)="openAddVariant()"
             class="btn btn-secondary btn-sm shrink-0"
           >
             <span class="material-icons text-base leading-none">add</span>
@@ -403,7 +403,7 @@
       [existingVariants]="itemModel().variants"
       [submitting]="addVariantSaving()"
       (save)="onSaveAddVariant($event)"
-      (close)="showAddVariant.set(false)"
+      (close)="closeAddVariant()"
     />
   }
 </div>

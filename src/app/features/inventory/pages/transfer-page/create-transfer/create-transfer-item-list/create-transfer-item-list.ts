@@ -1,6 +1,7 @@
-import { Component, computed, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, OnDestroy, output, signal } from '@angular/core';
 import { TransferItem } from '../../../../interfaces/transfer-item';
 import { TransferRowSheet } from './transfer-row-sheet';
+import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 
 @Component({
   selector: 'app-create-transfer-item-list',
@@ -8,7 +9,8 @@ import { TransferRowSheet } from './transfer-row-sheet';
   templateUrl: './create-transfer-item-list.html',
   styles: ``,
 })
-export class CreateTransferItemList {
+export class CreateTransferItemList implements OnDestroy {
+  private stack = inject(ModalStackService);
   items = input.required<TransferItem[]>();
   itemsChange = output<TransferItem[]>();
   /** Fila resaltada tras agregar/sumar (la pone el padre, se limpia sola). */
@@ -19,6 +21,22 @@ export class CreateTransferItemList {
 
   /** Fila abierta en el sheet de edición (tap en la fila). */
   editingId = signal<GUID | null>(null);
+  private unregisterSheet = () => {};
+
+  ngOnDestroy(): void {
+    this.unregisterSheet();
+  }
+
+  openSheet(variantId: GUID): void {
+    if (this.editingId() === variantId) return;
+    this.editingId.set(variantId);
+    this.unregisterSheet = this.stack.push(() => this.closeSheet());
+  }
+
+  closeSheet(): void {
+    this.unregisterSheet();
+    this.editingId.set(null);
+  }
 
   findItem(variantId: GUID): TransferItem | null {
     return this.items().find((i) => i.variantId === variantId) ?? null;

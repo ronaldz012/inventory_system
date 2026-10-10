@@ -116,7 +116,7 @@
       [initialProduct]="pendingProduct()"
       [existingProductIds]="existingProductIds()"
       (confirm)="addGroup($event)"
-      (close)="closeModal()"
+      (close)="closeCatalogue()"
       (notFound)="onNotFound($event)"
     />
   }
@@ -128,7 +128,7 @@
       [index]="editingItem()!.index"
       [initialProduct]="pendingCreated()"
       (confirm)="updateItem($event)"
-      (close)="closeModal()"
+      (close)="closeEdit()"
       (notFound)="onNotFound($event)"
     />
   }

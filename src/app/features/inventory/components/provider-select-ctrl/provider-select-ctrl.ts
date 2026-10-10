@@ -1,9 +1,10 @@
-import { Component, computed, effect, ElementRef, inject, input, output, signal, untracked, viewChild } from '@angular/core';
+import { Component, computed, effect, ElementRef, inject, input, OnDestroy, output, signal, untracked, viewChild } from '@angular/core';
 import { FieldState } from '@angular/forms/signals';
 import { Provider } from '@features/inventory/dtos/providers/provider';
 import { ProviderService } from '@features/inventory/services/provider-service';
 import CreateProvider from '../create-provider/create-provider';
 import { dropMaxHeightFor, dropUpFor } from '@shared/utils/dropdown-position';
+import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 
 @Component({
   selector: 'app-provider-select-ctrl',
@@ -110,8 +111,9 @@ import { dropMaxHeightFor, dropUpFor } from '@shared/utils/dropdown-position';
     </div>
   `,
 })
-export default class ProviderSelectCtrl {
+export default class ProviderSelectCtrl implements OnDestroy {
   private providerService = inject(ProviderService);
+  private stack = inject(ModalStackService);
 
   fieldId = input.required<FieldState<GUID | null>>();
   fieldName = input.required<FieldState<string>>();
@@ -125,6 +127,7 @@ export default class ProviderSelectCtrl {
 
   showCreate = signal(false);
   createQuery = signal('');
+  private createModal = useStackedModal(this.stack, this.showCreate);
 
   query = signal('');
   isOpen = signal(false);
@@ -214,13 +217,17 @@ export default class ProviderSelectCtrl {
     if (event) event.preventDefault();
     if (!this.query().trim()) return;
     this.createQuery.set(this.query().trim());
-    this.showCreate.set(true);
+    this.createModal.open();
     this.isOpen.set(false);
   }
 
   closeInlineCreate(): void {
-    this.showCreate.set(false);
+    this.createModal.close();
     this.createQuery.set('');
+  }
+
+  ngOnDestroy(): void {
+    this.createModal.destroy();
   }
 
   onCreated(provider: Provider): void {
