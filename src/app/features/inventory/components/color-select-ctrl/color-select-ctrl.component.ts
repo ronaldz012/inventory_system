@@ -5,6 +5,7 @@ import {
   ElementRef,
   inject,
   input,
+  OnDestroy,
   output,
   signal,
   untracked,
@@ -15,6 +16,7 @@ import { FieldState } from '@angular/forms/signals';
 import CreateColor from '../create-color/create-color.component';
 import { ColorService } from '@features/inventory/services/color-service';
 import { dropMaxHeightFor, dropUpFor } from '@shared/utils/dropdown-position';
+import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 
 @Component({
   selector: 'app-color-select-ctrl',
@@ -111,8 +113,9 @@ import { dropMaxHeightFor, dropUpFor } from '@shared/utils/dropdown-position';
     </div>
   `,
 })
-export class ColorSelectCtrl {
+export class ColorSelectCtrl implements OnDestroy {
   service = inject(ColorService);
+  private stack = inject(ModalStackService);
 
   fieldState = input.required<FieldState<GUID>>();
   colorNameState = input.required<FieldState<GUID>>();
@@ -126,6 +129,7 @@ export class ColorSelectCtrl {
 
   showCreate = signal(false);
   createQuery = signal('');
+  private createModal = useStackedModal(this.stack, this.showCreate);
 
   query = signal('');
   isOpen = signal(false);
@@ -219,13 +223,17 @@ export class ColorSelectCtrl {
     if (event) event.preventDefault();
     if (!this.query().trim()) return;
     this.createQuery.set(this.query().trim());
-    this.showCreate.set(true);
+    this.createModal.open();
     this.isOpen.set(false);
   }
 
   closeInlineCreate(): void {
-    this.showCreate.set(false);
+    this.createModal.close();
     this.createQuery.set('');
+  }
+
+  ngOnDestroy(): void {
+    this.createModal.destroy();
   }
 
   onCreated(color: Color): void {

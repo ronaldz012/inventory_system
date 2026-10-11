@@ -22,7 +22,7 @@
             >
               <button
                 type="button"
-                (click)="editingId.set(item.variantId)"
+                (click)="openSheet(item.variantId)"
                 class="w-full flex items-center gap-2 text-left"
               >
                 <span class="flex-1 min-w-0 font-mono text-[10px] text-text-soft truncate">{{
@@ -59,8 +59,8 @@
       <app-transfer-row-sheet
         [item]="it"
         (save)="setQty(eid, $event)"
-        (remove)="remove(eid); editingId.set(null)"
-        (close)="editingId.set(null)"
+        (remove)="remove(eid); closeSheet()"
+        (close)="closeSheet()"
       />
     }
   }

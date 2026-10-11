@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard } from '@core/auth/auth-guard';
 import { featureGuard } from '@core/auth/feature-guard';
 import { adminGuard } from '@core/auth/admin-guard';
+import { modalGuard } from '@core/modal-guard';
 
 export const routes: Routes = [
   {
@@ -92,6 +93,7 @@ export const routes: Routes = [
                 path: 'new',
                 title: 'Nueva Recepción',
                 canActivate: [featureGuard],
+                canDeactivate: [modalGuard],
                 data: { module: 'inventory', feature: 'receptions', permission: 'create' },
                 loadComponent: () =>
                   import('@features/inventory/pages/receptions-page/reception-form/reception-form'),
@@ -106,6 +108,7 @@ export const routes: Routes = [
                 path: ':id',
                 title: 'Detalle de Recepción',
                 canActivate: [featureGuard],
+                canDeactivate: [modalGuard],
                 data: { module: 'inventory', feature: 'receptions' },
                 loadComponent: () =>
                   import('@features/inventory/pages/receptions-page/reception-details/reception-details'),
@@ -127,6 +130,7 @@ export const routes: Routes = [
                 path: 'new',
                 title: 'Nueva Transferencia',
                 canActivate: [featureGuard],
+                canDeactivate: [modalGuard],
                 data: { module: 'inventory', feature: 'transfers', permission: 'create' },
                 loadComponent: () =>
                   import('@features/inventory/pages/transfer-page/create-transfer/create-transfer'),
@@ -135,6 +139,7 @@ export const routes: Routes = [
                 path: ':id',
                 title: 'Detalle de Transferencia',
                 canActivate: [featureGuard],
+                canDeactivate: [modalGuard],
                 data: { module: 'inventory', feature: 'transfers' },
                 loadComponent: () =>
                   import('@features/inventory/pages/transfer-page/transfer-details/transfer-details'),

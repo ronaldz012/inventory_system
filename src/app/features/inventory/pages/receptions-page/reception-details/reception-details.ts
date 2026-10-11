@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { Observable, map, throwError } from 'rxjs';
@@ -16,6 +16,7 @@ import {
   StockReceptionDetailDto,
 } from '../../../dtos/receptions/stock-reception-details-dto';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
+import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 
 @Component({
   selector: 'app-reception-details',
@@ -37,9 +38,10 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
     }
   `,
 })
-export default class ReceptionDetails implements OnInit {
+export default class ReceptionDetails implements OnInit, OnDestroy {
   private receptionService = inject(ReceptionService);
   private route = inject(ActivatedRoute);
+  private stack = inject(ModalStackService);
   readonly router = inject(Router);
 
   readonly Status = ReceptionStatus;
@@ -49,6 +51,7 @@ export default class ReceptionDetails implements OnInit {
   error = signal<string | null>(null);
 
   rollbackModalOpen = signal(false);
+  private rollbackModal = useStackedModal(this.stack, this.rollbackModalOpen);
   private printService = inject(LabelPrintService);
 
   sheetFormat = signal<SheetFormat>('a4');
@@ -75,6 +78,10 @@ export default class ReceptionDetails implements OnInit {
     this.loadDetail(id);
   }
 
+  ngOnDestroy(): void {
+    this.rollbackModal.destroy();
+  }
+
   private loadDetail(id: GUID): void {
     this.loading.set(true);
     this.error.set(null);
@@ -92,15 +99,15 @@ export default class ReceptionDetails implements OnInit {
 
   // ── Modal: Rollback ───────────────────────────────────────────────────────
   openRollbackModal(): void {
-    this.rollbackModalOpen.set(true);
+    this.rollbackModal.open();
   }
   closeRollbackModal(): void {
-    this.rollbackModalOpen.set(false);
+    this.rollbackModal.close();
   }
 
   onRollbackSuccess(): void {
     this.closeRollbackModal();
-    this.router.navigate(['inventory', 'receptions']);
+    this.goBack();
   }
 
   readonly rollbackReasonMessages: Record<string, string> = {

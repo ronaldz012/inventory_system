@@ -7,6 +7,7 @@ import { TransferService } from '../../../services/transfer-service';
 import { ProductService } from '@features/inventory/services/product-service';
 import { BranchContextService } from '@core/services/branch-context-service';
 import { ToastService } from '@core/services/toast-service';
+import { ModalStackService } from '@core/modal-stack-service';
 
 @Component({
   standalone: true,
@@ -103,22 +104,24 @@ describe('CreateTransfer confirm flow', () => {
     return { fixture, page };
   }
 
-  it('submit abre el confirm vía URL sin llamar al backend', () => {
+  it('submit abre el confirm por signal y lo registra en la pila', () => {
     const { page } = setup();
+    const stack = TestBed.inject(ModalStackService);
     page.submit();
-    expect(navigateSpy.calls).toContain('confirm');
+    expect(navigateSpy.calls).toEqual([]);
     expect(page.showConfirm()).toBe(true);
+    expect(stack.isEmpty()).toBe(false);
     expect(createSpy.calls).toBe(0);
   });
 
-  it('closeConfirm consume con back() sin duplicar', () => {
+  it('closeConfirm cierra por estado sin tocar el historial', () => {
     const { page } = setup();
     page.submit();
+    expect(page.showConfirm()).toBe(true);
     page.closeConfirm();
-    expect(backSpy.calls).toBe(1);
-    expect(navigateSpy.calls).not.toContain(null);
-    params$.next({ get: () => null });
     expect(page.showConfirm()).toBe(false);
+    expect(backSpy.calls).toBe(0);
+    expect(navigateSpy.calls).toEqual([]);
   });
 
   it('executeCreate envía el payload y navega al detalle creado', () => {

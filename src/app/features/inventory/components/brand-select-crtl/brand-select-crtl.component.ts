@@ -5,6 +5,7 @@ import {
   ElementRef,
   inject,
   input,
+  OnDestroy,
   output,
   signal,
   untracked,
@@ -15,6 +16,7 @@ import CreateBrand from '../create-brand/create-brand.component';
 import { FieldState } from '@angular/forms/signals';
 import { BrandService } from '@features/inventory/services/brand-service';
 import { dropMaxHeightFor, dropUpFor } from '@shared/utils/dropdown-position';
+import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 
 @Component({
   selector: 'app-brand-select-ctrl',
@@ -111,8 +113,9 @@ import { dropMaxHeightFor, dropUpFor } from '@shared/utils/dropdown-position';
     </div>
   `,
 })
-export class BrandSelectCtrl {
+export class BrandSelectCtrl implements OnDestroy {
   private service = inject(BrandService);
+  private stack = inject(ModalStackService);
 
   fieldId = input.required<FieldState<GUID>>();
   fieldName = input.required<FieldState<string>>();
@@ -124,6 +127,7 @@ export class BrandSelectCtrl {
 
   showCreate = signal(false);
   createQuery = signal('');
+  private createModal = useStackedModal(this.stack, this.showCreate);
 
   query = signal('');
   isOpen = signal(false);
@@ -222,13 +226,17 @@ export class BrandSelectCtrl {
     if (event) event.preventDefault();
     if (!this.query().trim()) return;
     this.createQuery.set(this.query().trim());
-    this.showCreate.set(true);
+    this.createModal.open();
     this.isOpen.set(false);
   }
 
   closeInlineCreate(): void {
-    this.showCreate.set(false);
+    this.createModal.close();
     this.createQuery.set('');
+  }
+
+  ngOnDestroy(): void {
+    this.createModal.destroy();
   }
 
   onCreated(brand: Brand): void {

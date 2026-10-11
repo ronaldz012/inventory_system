@@ -10,6 +10,7 @@ import { BrandService } from '../../../services/brand-service';
 import { ProviderService } from '../../../services/provider-service';
 import { ToastService } from '@core/services/toast-service';
 import { BranchContextService } from '@core/services/branch-context-service';
+import { ModalStackService } from '@core/modal-stack-service';
 import { ItemForm } from '../../../models/variant-form.model';
 
 const item: ItemForm = {
@@ -32,7 +33,8 @@ class Host {}
 
 describe('ReceptionForm confirm flow', () => {
   const createSpy = { calls: 0, fail: false };
-  // Emula el historial: navegar con ?modal=X emite el param; con modal:null lo limpia
+  // Los modales son signals: el router mock solo registra navigates reales
+  // (detalle creado, cancelar). params$ simula ?modal= residual para probar que se ignora.
   const params$ = new BehaviorSubject<{ get: (k: string) => string | null }>({
     get: () => null,
   });
@@ -119,17 +121,19 @@ describe('ReceptionForm confirm flow', () => {
     form.onSubmit();
   }
 
-  it('onSubmit con datos válidos abre el confirm vía URL sin llamar al backend', () => {
+  it('onSubmit con datos válidos abre el confirm por signal sin tocar la URL', () => {
     const { form } = setup();
     form.providerModel.set({ id: 'prov1', name: 'Proveedor 1' });
     form.reception.set({ notes: '', items: [item] });
     form.onSubmit();
-    expect(navigateSpy.calls).toContain('confirm');
+    expect(navigateSpy.calls).not.toContain('confirm');
+    expect(navigateSpy.paths).toEqual([]);
     expect(form.showConfirm()).toBe(true);
+    expect(TestBed.inject(ModalStackService).isEmpty()).toBe(false);
     expect(createSpy.calls).toBe(0);
   });
 
-  it('executeCreate envía el payload y navega al detalle creado', () => {
+  it('executeCreate envía el payload y navega al detalle creado con replace', () => {
     const { form } = setup();
     form.providerModel.set({ id: 'prov1', name: 'Proveedor 1' });
     form.reception.set({ notes: '', items: [item] });
@@ -137,6 +141,7 @@ describe('ReceptionForm confirm flow', () => {
     expect(createSpy.calls).toBe(1);
     expect(form.isSubmitting()).toBe(false);
     expect(navigateSpy.paths).toContainEqual(['inventory', 'receptions', 'r1']);
+    expect(navigateSpy.flags).toContain(true);
   });
 
   it('sin proveedor no abre el confirm y muestra error', () => {
@@ -148,68 +153,69 @@ describe('ReceptionForm confirm flow', () => {
     expect(createSpy.calls).toBe(0);
   });
 
-  it('closeConfirm no cierra mientras se está enviando', () => {
+  it('closeConfirm no cierra mientras se está enviando y no toca el historial', () => {
     const { form } = setup();
     openConfirm(form);
     expect(form.showConfirm()).toBe(true);
     form.isSubmitting.set(true);
     form.closeConfirm();
     expect(form.showConfirm()).toBe(true);
-    expect(backSpy.calls).toBe(0);
     form.isSubmitting.set(false);
     form.closeConfirm();
-    // Consume la entrada con back(): sin navigate(null), sin duplicadas
-    expect(backSpy.calls).toBe(1);
-    expect(navigateSpy.calls).not.toContain(null);
-    // La suscripción cierra al limpiar la URL (emula el pop)
-    params$.next({ get: () => null });
+    // Cierre puro estado: sin back(), sin navigate
     expect(form.showConfirm()).toBe(false);
+    expect(backSpy.calls).toBe(0);
+    expect(navigateSpy.paths).toEqual([]);
   });
 
-  it('error del POST cierra vía back() y muestra el error sin duplicar', () => {
+  it('error del POST mantiene el modal abierto y muestra el error para reintentar', () => {
     const { form } = setup();
     openConfirm(form);
     createSpy.fail = true;
     form.executeCreate();
     expect(createSpy.calls).toBe(1);
-    expect(backSpy.calls).toBe(1);
-    expect(navigateSpy.calls).not.toContain(null);
+    expect(form.showConfirm()).toBe(true);
+    expect(backSpy.calls).toBe(0);
     expect(form.submitError()).toContain('Falla');
-    // Al limpiar la URL (pop) el modal cierra y el error queda visible
-    params$.next({ get: () => null });
-    expect(form.showConfirm()).toBe(false);
+    // Reintento sin reabrir: el backend ahora responde bien
+    createSpy.fail = false;
+    form.executeCreate();
+    expect(createSpy.calls).toBe(2);
+    expect(navigateSpy.paths).toContainEqual(['inventory', 'receptions', 'r1']);
   });
 
-  it('si el modal ya se cerró por atrás manual, no se toca el historial', () => {
+  it('closeConfirm con el modal ya cerrado no toca nada', () => {
     const { form } = setup();
     openConfirm(form);
-    // Usuario presionó atrás: URL limpia, modal cerrado
-    params$.next({ get: () => null });
+    form.closeConfirm();
     expect(form.showConfirm()).toBe(false);
     form.closeConfirm();
-    // Sin back() (saldría del form); solo replace no-op del helper
+    // Sin back() (saldría del form) ni navigates
     expect(backSpy.calls).toBe(0);
+    expect(navigateSpy.paths).toEqual([]);
     expect(form.showConfirm()).toBe(false);
   });
 
-  it('apertura página→modal hace push (sin replaceUrl)', () => {
+  it('openAddCatalogueModal abre por signal sin tocar URL ni historial', () => {
     const { form } = setup();
     form.openAddCatalogueModal();
-    expect(navigateSpy.calls).toContain('catalogue');
-    expect(navigateSpy.flags[navigateSpy.flags.length - 1]).toBeFalsy();
     expect(form.showAddCatalogueModal()).toBe(true);
+    expect(navigateSpy.paths).toEqual([]);
+    expect(backSpy.calls).toBe(0);
   });
 
-  it('transición modal→modal reutiliza la entrada (replaceUrl)', () => {
+  it('notFound cambia de catalogue a crear-producto sin historial', () => {
     const { form } = setup();
     form.openAddCatalogueModal();
     form.onNotFound('zapato');
-    expect(navigateSpy.calls).toContain('product');
-    expect(navigateSpy.flags[navigateSpy.flags.length - 1]).toBe(true);
+    expect(form.showAddCatalogueModal()).toBe(false);
     expect(form.showCreateProductModal()).toBe(true);
+    expect(form.pendingName()).toBe('zapato');
+    expect(navigateSpy.paths).toEqual([]);
+    expect(backSpy.calls).toBe(0);
   });
 
-  it('cadena catalogue→product→catalogue→add cierra con un solo back()', () => {
+  it('cadena catalogue→product→catalogue→add cierra directo sin back()', () => {
     const { form } = setup();
     form.openAddCatalogueModal();
     form.onNotFound('zapato');
@@ -219,32 +225,41 @@ describe('ReceptionForm confirm flow', () => {
       gender: 0, productVariants: [],
     } as never);
     expect(form.showAddCatalogueModal()).toBe(true);
+    expect(form.showCreateProductModal()).toBe(false);
     form.addGroup({ index: null, item });
-    // Un solo back() consume la única entrada; nada de navigate(null)
-    expect(backSpy.calls).toBe(1);
-    expect(navigateSpy.calls).not.toContain(null);
-    params$.next({ get: () => null });
     expect(form.showAddCatalogueModal()).toBe(false);
+    expect(form.reception().items.length).toBe(1);
+    expect(backSpy.calls).toBe(0);
+    expect(navigateSpy.paths).toEqual([]);
   });
 
-  it('recarga con ?modal= en URL cierra por helper sin tocar historial', () => {
+  it('?modal= en URL se ignora: los modales solo abren por signals', () => {
     const { form } = setup();
     params$.next({ get: () => 'catalogue' });
-    expect(form.showAddCatalogueModal()).toBe(true);
-    form.closeModal();
-    expect(backSpy.calls).toBe(0);
-    expect(navigateSpy.calls).toContain(null);
+    expect(form.showAddCatalogueModal()).toBe(false);
+    expect(form.showConfirm()).toBe(false);
   });
 
-  it('atrás del navegador (URL sin modal) cierra el confirm sin salir del form', () => {
+  it('editGroup abre el edit con el ítem por signal', () => {
     const { form } = setup();
-    form.providerModel.set({ id: 'prov1', name: 'Proveedor 1' });
     form.reception.set({ notes: '', items: [item] });
-    form.onSubmit();
-    expect(form.showConfirm()).toBe(true);
-    // Simula popstate: la URL vuelve a no tener ?modal=
-    params$.next({ get: () => null });
+    form.editGroup(0);
+    expect(form.showEditModal()).toBe(true);
+    expect(form.editingItem()?.index).toBe(0);
+    expect(navigateSpy.paths).toEqual([]);
+    expect(backSpy.calls).toBe(0);
+  });
+
+  it('el confirm se registra en la pila y closeTop lo cierra sin navegar', () => {
+    const { form } = setup();
+    const stack = TestBed.inject(ModalStackService);
+    expect(stack.isEmpty()).toBe(true);
+    openConfirm(form);
+    expect(stack.isEmpty()).toBe(false);
+    expect(stack.closeTop()).toBe(true);
     expect(form.showConfirm()).toBe(false);
+    expect(stack.isEmpty()).toBe(true);
+    expect(navigateSpy.paths).toEqual([]);
     expect(createSpy.calls).toBe(0);
   });
 

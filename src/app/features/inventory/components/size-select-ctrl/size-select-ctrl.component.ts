@@ -5,6 +5,7 @@ import {
   ElementRef,
   inject,
   input,
+  OnDestroy,
   output,
   signal,
   untracked,
@@ -15,6 +16,7 @@ import { FieldState } from '@angular/forms/signals';
 import CreateSize from '../create-size/create-size.component';
 import { SizeService } from '@features/inventory/services/size-service';
 import { dropMaxHeightFor, dropUpFor } from '@shared/utils/dropdown-position';
+import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 
 @Component({
   selector: 'app-size-select-ctrl',
@@ -112,8 +114,9 @@ import { dropMaxHeightFor, dropUpFor } from '@shared/utils/dropdown-position';
     </div>
   `,
 })
-export class SizeSelectCtrl {
+export class SizeSelectCtrl implements OnDestroy {
   service = inject(SizeService);
+  private stack = inject(ModalStackService);
 
   fieldState = input.required<FieldState<GUID>>();
   sizeNameState = input.required<FieldState<string>>();
@@ -125,6 +128,7 @@ export class SizeSelectCtrl {
 
   showCreate = signal(false);
   createQuery = signal('');
+  private createModal = useStackedModal(this.stack, this.showCreate);
 
   query = signal('');
   isOpen = signal(false);
@@ -220,13 +224,17 @@ export class SizeSelectCtrl {
     if (event) event.preventDefault();
     if (!this.query().trim()) return;
     this.createQuery.set(this.query().trim());
-    this.showCreate.set(true);
+    this.createModal.open();
     this.isOpen.set(false);
   }
 
   closeInlineCreate(): void {
-    this.showCreate.set(false);
+    this.createModal.close();
     this.createQuery.set('');
+  }
+
+  ngOnDestroy(): void {
+    this.createModal.destroy();
   }
 
   onCreated(size: Size): void {

@@ -1,4 +1,5 @@
-import { Component, ElementRef, OnDestroy, output, signal, ViewChild } from '@angular/core';
+import { Component, ElementRef, inject, OnDestroy, output, signal, ViewChild } from '@angular/core';
+import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 
 @Component({
   selector: 'app-qr-scanner-modal',
@@ -13,6 +14,7 @@ import { Component, ElementRef, OnDestroy, output, signal, ViewChild } from '@an
   `,
 })
 export class QrScannerModal implements OnDestroy {
+  private stack = inject(ModalStackService);
 
   scanned = output<string>();
   closed = output<void>();
@@ -20,9 +22,8 @@ export class QrScannerModal implements OnDestroy {
   isOpen = signal(false);
   isInitializing = signal(false);
   errorMsg = signal<string | null>(null);
-  private popHandler = () => {
-    if (this.isOpen()) this.close(true);
-  };
+  /** En la pila como cualquier modal: el atrás lo cierra sin salir. */
+  private scannerModal = useStackedModal(this.stack, this.isOpen);
 
   private mediaStream: MediaStream | null = null;
   private animationFrameId: number | null = null;
@@ -50,11 +51,7 @@ export class QrScannerModal implements OnDestroy {
   async open(): Promise<void> {
     this.clearWarmTimer();
     this.errorMsg.set(null);
-    this.isOpen.set(true);
-    if (typeof window !== 'undefined') {
-      history.pushState({ qr: true }, '', window.location.href);
-      window.addEventListener('popstate', this.popHandler);
-    }
+    this.scannerModal.open();
 
     // Cámara tibia: el stream sigue vivo, solo hay que re-bindear el video
     // (el @ViewChild lo hace al renderizar). Sin getUserMedia = instantáneo.
@@ -137,18 +134,21 @@ export class QrScannerModal implements OnDestroy {
     this.animationFrameId = requestAnimationFrame(scan);
   }
 
-  close(fromPop = false): void {
+  /** Cierre total: apaga hardware, oculta UI y sale de la pila. */
+  close(): void {
     this.clearWarmTimer();
     this.stopHardware();
     this.detector = null;
-    this.hideUI(fromPop);
+    this.scannerModal.close();
+    this.hideUI();
   }
 
   /** Lectura exitosa: se emite y se oculta la UI, pero el hardware queda
       tibio por si viene otro escaneo enseguida. */
   private onScanSuccess(value: string): void {
     this.scanned.emit(value);
-    this.hideUI(false);
+    this.scannerModal.close();
+    this.hideUI();
     this.clearWarmTimer();
     this.warmTimer = setTimeout(() => {
       this.warmTimer = null;
@@ -157,12 +157,8 @@ export class QrScannerModal implements OnDestroy {
     }, QrScannerModal.WARM_MS);
   }
 
-  private hideUI(fromPop = false): void {
+  private hideUI(): void {
     this.isOpen.set(false);
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('popstate', this.popHandler);
-      if (!fromPop && history.state?.qr) history.back();
-    }
     this.closed.emit();
   }
 
@@ -187,6 +183,7 @@ export class QrScannerModal implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.scannerModal.destroy();
     this.clearWarmTimer();
     this.stopHardware();
   }

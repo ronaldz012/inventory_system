@@ -1,11 +1,10 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SkuInput } from '@shared/components/sku-input/sku-input';
 import { QrScannerModal, isBarcodeApiAvailable } from '@features/sales/components/qr-scanner-modal/qr-scanner-modal';
 import { CreateTransferItemList } from './create-transfer-item-list/create-transfer-item-list';
 import { TransferConfirmModal } from './transfer-confirm-modal';
-import { closeModal, openModal } from '@shared/utils/modal-query';
 import { TransferService } from '../../../services/transfer-service';
 import { ProductService } from '@features/inventory/services/product-service';
 
@@ -16,18 +15,19 @@ import { BranchContextService } from '@core/services/branch-context-service';
 import { BranchDto } from '@core/interfaces/branch.model';
 import { BranchSelectorDestination } from '@shared/components/branch-selector-destination/branch-selector-destination';
 import { ToastService } from '@core/services/toast-service';
+import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 
 @Component({
   selector: 'app-create-transfer',
   imports: [SkuInput, QrScannerModal, CreateTransferItemList, FormsModule, BranchSelectorDestination, TransferConfirmModal],
   templateUrl: './create-transfer.html',
 })
-export default class CreateTransfer implements OnInit {
+export default class CreateTransfer implements OnInit, OnDestroy {
   private transferService = inject(TransferService);
   private productService = inject(ProductService);
   private branchService = inject(BranchContextService);
   private toastService = inject(ToastService);
-  private route = inject(ActivatedRoute);
+  private stack = inject(ModalStackService);
   readonly router = inject(Router);
 
   searchingSku = signal(false);
@@ -64,18 +64,15 @@ export default class CreateTransfer implements OnInit {
 
   showConfirm = signal(false);
   isSubmitting = signal(false);
-  /** Entrada de historial con ?modal=confirm por consumir. */
-  private confirmEntryPushed = signal(false);
+  private confirmModal = useStackedModal(this.stack, this.showConfirm, () => !this.isSubmitting());
 
   async ngOnInit(): Promise<void> {
-    this.route.queryParamMap.subscribe((params) => {
-      const open = params.get('modal') === 'confirm';
-      // Sin ítems o destino no hay nada que confirmar (ej. recarga con el param)
-      this.showConfirm.set(open && this.items().length > 0 && this.form().toBranchId !== null);
-      if (!open) this.confirmEntryPushed.set(false);
-    });
     this.scannerAvailable.set(await isBarcodeApiAvailable());
     this.loadBranches();
+  }
+
+  ngOnDestroy(): void {
+    this.confirmModal.destroy();
   }
 
   openScanner(scanner: QrScannerModal): void {
@@ -176,26 +173,12 @@ export default class CreateTransfer implements OnInit {
 
   submit(): void {
     if (!this.canSubmit() || this.isSubmitting()) return;
-    this.confirmEntryPushed.set(true);
-    openModal(this.router, this.route, 'confirm');
+    this.confirmModal.open();
   }
 
+  /** Cierra el confirm (bloqueado durante el POST; el atrás reintenta). */
   closeConfirm(): void {
-    if (this.isSubmitting()) return;
-    this.dismissConfirm();
-  }
-
-  /**
-   * Cierra el confirm dejando el historial intacto: consume con back() la
-   * entrada que abrió el modal. Si ya no está abierto, no toca el historial.
-   */
-  private dismissConfirm(): void {
-    if (this.showConfirm() && this.confirmEntryPushed()) {
-      this.confirmEntryPushed.set(false);
-      history.back();
-    } else {
-      closeModal(this.router, this.route);
-    }
+    this.confirmModal.close();
   }
 
   executeCreate(): void {
@@ -214,11 +197,12 @@ export default class CreateTransfer implements OnInit {
       next: (id) => {
         this.isSubmitting.set(false);
         this.toastService.success('Transferencia creada');
-        this.router.navigate(['inventory', 'transfers', id]);
+        // El modal nunca tocó el historial: un replace basta (atrás → lista).
+        this.closeConfirm();
+        this.router.navigate(['inventory', 'transfers', id], { replaceUrl: true });
       },
       error: (err: unknown) => {
         this.isSubmitting.set(false);
-        this.dismissConfirm();
         const e = err as { error?: { detail?: string; title?: string }; message?: string };
         this.toastService.error(e?.error?.detail || e?.error?.title || e?.message || 'Error al crear la transferencia.');
       },
