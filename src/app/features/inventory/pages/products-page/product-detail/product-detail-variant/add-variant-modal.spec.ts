@@ -42,14 +42,14 @@ describe('AddVariantModal — precios del producto', () => {
     const { root } = setup();
 
     expect(root.textContent).toContain('Precios del producto:');
-    expect(chips(root).map((b) => b.textContent?.trim())).toEqual(['Bs 120', 'Bs 150']);
+    expect(chips(root).map((b) => b.textContent?.trim())).toEqual(['Bs 120.00', 'Bs 150.00']);
   });
 
   it('un tap aplica el precio y resalta el chip', () => {
     const { fixture, modal, root } = setup();
 
     chips(root)
-      .find((b) => b.textContent?.includes('Bs 150'))!
+      .find((b) => b.textContent?.includes('Bs 150.00'))!
       .click();
     fixture.detectChanges();
 

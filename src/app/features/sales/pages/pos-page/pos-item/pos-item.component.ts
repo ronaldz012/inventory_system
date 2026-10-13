@@ -2,12 +2,13 @@ import { Component, input, output, computed, signal } from '@angular/core';
 import { FieldTree, FormField, form, min, validate } from '@angular/forms/signals';
 import { blockNonNumericKeys } from '@shared/utils/list-query';
 import { CommonModule } from '@angular/common';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { PosCartItem } from '@features/sales/models/pos-sale-state.model';
 
 @Component({
   selector: 'app-pos-cart-item-card',
   standalone: true,
-  imports: [CommonModule, FormField],
+  imports: [CommonModule, FormField, MoneyPipe],
   templateUrl: './pos-item.component.html',
 })
 export class PosCartItemCardComponent {

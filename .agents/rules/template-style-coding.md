@@ -132,3 +132,18 @@ Every element follows this sequence — no exceptions:
 ## Sidebar Note
 
 The sidebar uses `bg-layout-sidebar` (`#111827` navy) in **both light and dark mode**. It never changes. It is the constant brand anchor.
+
+---
+
+## Dinero (MoneyPipe canónico)
+
+Toda cifra de dinero usa `MoneyPipe` (`@shared/pipes/money-pipe`) + `font-mono` (cifras tabulares):
+
+- `{{ v | money }}` → número pelado con 2 decimales (`1,234.50`). El símbolo nunca va
+  inline en tablas: el header lleva la moneda (`Precio (Bs)`).
+- `{{ v | money: 'symbol' }}` → `Bs 1,234.50`. Solo para totales sueltos sin header
+  cercano (botón de pago POS, dashboard, confirmaciones).
+- En código TS (labels calculados): `formatMoney(v, inject(LOCALE_ID))` del mismo archivo.
+
+Prohibido: `currency: 'BOB'`, `| number` para dinero, prefijos `Bs`/`BOB` hardcodeados
+(excepto el modo `'symbol'` del pipe y prefijos de input con `Bs`).

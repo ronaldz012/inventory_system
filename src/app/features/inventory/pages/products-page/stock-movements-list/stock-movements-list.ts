@@ -10,12 +10,13 @@ import { ProductService } from '@features/inventory/services/product-service';
 import { PermissionService } from '@features/auth/services/permmision-service';
 import SkeletonList from '../../../../../shared/ui/skeleton-list/skeleton-list';
 import { Paginator } from '@shared/components/app-paginator/app-paginator';
-import { CurrencyPipe, NgClass } from '@angular/common';
+import { NgClass } from '@angular/common';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
 
 @Component({
   selector: 'app-stock-movements-list',
-  imports: [SkeletonList, Paginator, NgClass, SmartDatePipe, CurrencyPipe],
+  imports: [SkeletonList, Paginator, NgClass, SmartDatePipe, MoneyPipe],
   templateUrl: './stock-movements-list.html',
   styles: [
     `

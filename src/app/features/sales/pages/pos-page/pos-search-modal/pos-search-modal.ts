@@ -9,8 +9,8 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
 import { debounceTime, distinctUntilChanged, finalize, Subject, switchMap } from 'rxjs';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { ProductService } from '@features/inventory/services/product-service';
@@ -19,7 +19,7 @@ import { ProductVariantSearchDto } from '@features/inventory/dtos/products/produ
 @Component({
   selector: 'app-pos-search-modal',
   standalone: true,
-  imports: [CurrencyPipe],
+  imports: [MoneyPipe],
   templateUrl: './pos-search-modal.html',
   styles: `
     @keyframes modal-in {

@@ -116,7 +116,7 @@
       </div>
       @if (hasDiscount()) {
         <span class="text-[11px] line-through text-text-soft font-mono tabular-nums"
-          >Bs {{ item().originalPrice().value() | number: '1.2-2' }}</span
+          >Bs {{ item().originalPrice().value() | money }}</span
         >
       }
     </div>
@@ -125,12 +125,12 @@
         >Subtotal</span
       >
       <span class="text-base font-black text-accent-ui tabular-nums">{{
-        subtotal() | currency: 'BOB' : 'symbol' : '1.2-2'
+        subtotal() | money: 'symbol'
       }}</span>
       @if (hasDiscount()) {
         <span
           class="pill-success text-[10px] font-mono px-1.5 py-0.5 rounded-md font-bold block w-fit ml-auto mt-0.5"
-          >−Bs {{ item().discountAmount().value() | number: '1.2-2' }}</span
+          >−Bs {{ item().discountAmount().value() | money }}</span
         >
       }
     </div>

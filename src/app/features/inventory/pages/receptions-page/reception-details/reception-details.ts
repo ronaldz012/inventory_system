@@ -1,6 +1,7 @@
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { Observable, map, throwError } from 'rxjs';
 import {
   CheckActionResult,
@@ -20,7 +21,7 @@ import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 
 @Component({
   selector: 'app-reception-details',
-  imports: [DatePipe, CurrencyPipe, DecimalPipe, SkeletonList, VerifyActionModal],
+  imports: [DatePipe, MoneyPipe, SkeletonList, VerifyActionModal],
   templateUrl: './reception-details.html',
   styles: `
     @keyframes fade-up {

@@ -1,5 +1,5 @@
-import { DecimalPipe } from '@angular/common';
 import { Component, input, output, computed } from '@angular/core';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { ItemForm, VariantForm } from '@features/inventory/models/variant-form.model';
 
 interface ColorRow {
@@ -12,7 +12,7 @@ interface ColorRow {
 @Component({
   selector: 'app-reception-item',
   standalone: true,
-  imports: [DecimalPipe],
+  imports: [MoneyPipe],
   templateUrl: './reception-item.html',
 })
 export class ReceptionItem {

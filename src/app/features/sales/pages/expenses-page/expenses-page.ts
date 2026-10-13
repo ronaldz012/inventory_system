@@ -2,7 +2,8 @@ import { Component, OnInit, signal, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CashRegisterService } from '@features/sales/services/cash-register-service';
 import { MovementListDto } from '@features/sales/dtos/movement-list-dto';
-import { DatePipe, CurrencyPipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 import CreateExpenseModal from './create-expense-modal';
 import EditExpenseModal from './edit-expense-modal';
 import { ConfirmActionModal } from '@features/inventory/pages/transfer-page/confirm-action-modal/confirm-action-modal';
@@ -12,7 +13,7 @@ import { ToastService } from '@core/services/toast-service';
 @Component({
   selector: 'app-expenses-page',
   standalone: true,
-  imports: [RouterLink, DatePipe, CurrencyPipe, CreateExpenseModal, EditExpenseModal, ConfirmActionModal],
+  imports: [RouterLink, DatePipe, MoneyPipe, CreateExpenseModal, EditExpenseModal, ConfirmActionModal],
   template: `
     <div class="w-full max-w-7xl mx-auto p-4 md:py-6 space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -77,7 +78,7 @@ import { ToastService } from '@core/services/toast-service';
                   <span class="text-[13px] font-medium text-text-main mt-1">{{ movement.description }}</span>
                   <div class="flex items-center justify-between mt-1">
                     <span class="text-[12px] font-mono font-bold" [class.text-feedback-error-text]="movement.type === 'Outflow'" [class.text-feedback-success-text]="movement.type === 'Inflow'">
-                      {{ (movement.type === 'Outflow' ? -movement.amount : movement.amount) | currency:'BOB':'symbol':'1.2-2' }}
+                      {{ (movement.type === 'Outflow' ? -movement.amount : movement.amount) | money: 'symbol' }}
                     </span>
                     <span class="text-[11px] text-text-soft">{{ movement.createdAt | date:'HH:mm' }}</span>
                   </div>
@@ -96,7 +97,7 @@ import { ToastService } from '@core/services/toast-service';
                 <div class="hidden md:block text-[13px] font-medium text-text-main truncate">{{ movement.description }}</div>
 
                 <div class="hidden md:block text-right text-[13px] font-mono font-bold" [class.text-feedback-error-text]="movement.type === 'Outflow'" [class.text-feedback-success-text]="movement.type === 'Inflow'">
-                  {{ (movement.type === 'Outflow' ? -movement.amount : movement.amount) | currency:'BOB':'symbol':'1.2-2' }}
+                  {{ (movement.type === 'Outflow' ? -movement.amount : movement.amount) | money: 'symbol' }}
                 </div>
 
                 <div class="hidden md:block text-right text-[12px] text-text-soft">{{ movement.createdAt | date:'HH:mm' }}</div>

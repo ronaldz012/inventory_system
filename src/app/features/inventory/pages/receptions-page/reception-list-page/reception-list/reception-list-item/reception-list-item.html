@@ -23,7 +23,7 @@
         {{ reception().productVariantsCount === 1 ? 'talla/color' : 'tallas/colores' }}
         · {{ reception().totalItems }} uds
         · <span class="font-bold text-accent-ui">
-            {{ reception().totalCost | number: '1.2-2' }}
+            {{ reception().totalCost | money }}
           </span>
         · <span class="font-medium text-text-main">
             {{ reception().receivedAt | smartDate }}
@@ -69,7 +69,7 @@
     </span>
 
     <span class="pr-4 text-right font-inter text-[13px] font-bold text-accent-ui">
-      {{ reception().totalCost | number: '1.2-2' }}
+      {{ reception().totalCost | money }}
     </span>
 
     <span

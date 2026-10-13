@@ -1,10 +1,15 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, ParamMap, Router } from '@angular/router';
+import { signal } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import ProductList from './product-list';
 import { ProductService } from '../../../services/product-service';
 import { PermissionService } from '@features/auth/services/permmision-service';
+import { ToastService } from '@core/services/toast-service';
+import { ModalStackService } from '@core/modal-stack-service';
+import { CategoryService } from '../../../services/category-service';
 import { ListProductDto } from '../../../dtos/products/list-product-dto';
+import { ProductDetailDto } from '../../../dtos/products/product-detail-dto';
 import { Gender } from '../../../interfaces/gender';
 import { ProductSortBy } from '../../../dtos/products/product-dto';
 
@@ -25,6 +30,9 @@ describe('ProductList — estado en la URL', () => {
       totalStock: 10,
       basePrice: 100,
       isActive: true,
+      minPrice: 100,
+      maxPrice: 150,
+      colors: ['Negro', 'Oliva'],
     },
   ];
 
@@ -32,6 +40,26 @@ describe('ProductList — estado en la URL', () => {
   let calls: NavigateCall[];
   let requested: unknown[];
   let canCreate: boolean;
+  let updateCalls: unknown[];
+  let getByIdFail: boolean;
+  let toastSuccess: unknown[];
+  let toastErrors: unknown[];
+
+  const detail: ProductDetailDto = {
+    id: 'p1',
+    name: 'Zapato',
+    internalCode: 'ZAP',
+    description: '',
+    basePrice: 100,
+    gender: Gender.Unisex,
+    categoryId: 'c1',
+    categoryName: 'Calzado',
+    brandId: 'b1',
+    brandName: 'Nike',
+    totalAvailable: 10,
+    isActive: true,
+    variants: [],
+  };
 
   const setParams = (raw: Record<string, string>) => {
     params$.next(convertToParamMap(raw));
@@ -46,6 +74,10 @@ describe('ProductList — estado en la URL', () => {
     calls = [];
     requested = [];
     canCreate = true;
+    updateCalls = [];
+    getByIdFail = false;
+    toastSuccess = [];
+    toastErrors = [];
 
     await TestBed.configureTestingModule({
       imports: [ProductList],
@@ -70,9 +102,30 @@ describe('ProductList — estado en la URL', () => {
                   next({ items, totalCount: 1, page: 1, pageSize: 10, totalPages: 1 }),
               };
             },
+            getById: () => ({
+              subscribe: ({
+                next,
+                error,
+              }: {
+                next: (d: unknown) => void;
+                error: (e: unknown) => void;
+              }) => (getByIdFail ? error({ message: 'Falla' }) : next(detail)),
+            }),
+            update: (id: unknown, dto: unknown) => {
+              updateCalls.push({ id, dto });
+              return { subscribe: ({ next }: { next: () => void }) => next() };
+            },
           },
         },
-        { provide: PermissionService, useValue: { canCreate: () => canCreate } },
+        { provide: PermissionService, useValue: { canCreate: () => canCreate, can: () => true } },
+        {
+          provide: ToastService,
+          useValue: {
+            success: (m: unknown) => void toastSuccess.push(m),
+            error: (m: unknown) => void toastErrors.push(m),
+          },
+        },
+        { provide: CategoryService, useValue: { load: () => {}, categories: signal([]) } },
       ],
     }).compileComponents();
   });
@@ -178,38 +231,67 @@ describe('ProductList — estado en la URL', () => {
     });
 
     it('abrir/cerrar el modal NO vuelve a pedir productos', () => {
-      const { fixture, list } = setup();
+      const { list } = setup();
       expect(requested.length).toBe(1);
-
-      setParams({ modal: 'create' });
-      fixture.detectChanges();
+      list.openCreateModal();
       expect(list.showCreateModal()).toBe(true);
       expect(requested.length).toBe(1);
-
-      setParams({});
-      fixture.detectChanges();
+      list.closeCreateModal();
       expect(list.showCreateModal()).toBe(false);
       expect(requested.length).toBe(1);
     });
   });
 
-  describe('modal de crear producto (?modal=create)', () => {
-    it('openCreateModal empuja la entrada con modal=create', () => {
+  describe('modales por signals', () => {
+    it('openCreateModal/closeCreateModal no tocan la URL', () => {
       const { list } = setup();
       calls = [];
       list.openCreateModal();
-      expect(lastCall().extras['queryParams']).toEqual({ modal: 'create' });
-      expect(lastCall().extras['queryParamsHandling']).toBe('merge');
-      // abrir un modal SÍ crea entrada: tiene que poder cerrarse con "atrás"
-      expect(lastCall().extras['replaceUrl']).toBeUndefined();
+      expect(list.showCreateModal()).toBe(true);
+      expect(calls).toEqual([]);
+      list.closeCreateModal();
+      expect(list.showCreateModal()).toBe(false);
+      expect(calls).toEqual([]);
     });
 
-    it('closeCreateModal limpia el param conservando los filtros', () => {
+    it('goToEdit trae el detalle y abre el panel in-place registrado en la pila', () => {
       const { list } = setup();
+      const stack = TestBed.inject(ModalStackService);
       calls = [];
-      list.closeCreateModal();
-      expect(lastCall().extras['queryParams']).toEqual({ modal: null });
-      expect(lastCall().extras['replaceUrl']).toBe(true);
+      list.goToEdit('p1');
+      expect(list.editingProduct()?.id).toBe('p1');
+      expect(stack.isEmpty()).toBe(false);
+      expect(calls).toEqual([]);
+    });
+
+    it('goToEdit con error no abre y avisa con toast', () => {
+      getByIdFail = true;
+      const { list } = setup();
+      list.goToEdit('p1');
+      expect(list.editingProduct()).toBeNull();
+      expect(toastErrors.length).toBe(1);
+    });
+
+    it('onEditSave actualiza, cierra, avisa y recarga la lista', () => {
+      const { list } = setup();
+      list.goToEdit('p1');
+      const before = requested.length;
+      list.onEditSave({ name: 'Zapato X' } as never);
+      expect(updateCalls.length).toBe(1);
+      expect(list.editingProduct()).toBeNull();
+      expect(list.editSubmitting()).toBe(false);
+      expect(toastSuccess.length).toBe(1);
+      expect(requested.length).toBe(before + 1);
+    });
+
+    it('closeTop con edición abierta la cierra sin navegar', () => {
+      const { list } = setup();
+      const stack = TestBed.inject(ModalStackService);
+      calls = [];
+      list.goToEdit('p1');
+      expect(stack.closeTop()).toBe(true);
+      expect(list.editingProduct()).toBeNull();
+      expect(calls).toEqual([]);
     });
 
     it('el botón "Nuevo producto" se muestra con permiso create', () => {

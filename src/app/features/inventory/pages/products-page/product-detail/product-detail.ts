@@ -4,14 +4,13 @@ import {
   ElementRef,
   HostListener,
   inject,
+  OnDestroy,
   OnInit,
   signal,
   viewChild,
   viewChildren,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { map } from 'rxjs';
 import { ProductService } from '../../../services/product-service';
 import { ProductDetailDto, ProductVariantDto } from '../../../dtos/products/product-detail-dto';
 import { GENDER_LABELS, Gender } from '../../../interfaces/gender';
@@ -23,7 +22,6 @@ import { UpdateVariantModal } from './product-detail-variant/update-variant-moda
 import { AdjustStockModal } from './product-detail-variant/adjust-stock-modal';
 import AddVariantModal from './product-detail-variant/add-variant-modal';
 import { ConfirmActionModal } from '../../transfer-page/confirm-action-modal/confirm-action-modal';
-import { UpdateProductModal } from './update-product-modal';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 import { UpdateProductDto } from '../../../dtos/products/update-product-dto';
 import { UpdateProductVariantDto } from '../../../dtos/products/update-product-variant-dto';
@@ -33,7 +31,7 @@ import { ProductEditPanel } from './product-edit-panel/product-edit-panel';
 import { CreateProductVariantDto } from '../../../dtos/products/create-product-variant-dto';
 import { ToastService } from '@core/services/toast-service';
 import { PermissionService } from '@features/auth/services/permmision-service';
-import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
+import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 import {
   matchesVariant,
   sortBranchIds,
@@ -46,7 +44,6 @@ import {
   selector: 'app-product-detail',
   imports: [
     ProductDetailVariant,
-    UpdateProductModal,
     UpdateVariantModal,
     AdjustStockModal,
     AddVariantModal,
@@ -346,16 +343,6 @@ import {
 
     <!-- ── Modales ─────────────────────────────────────────────────────────── -->
 
-    <!-- Editar producto -->
-    @if (showUpdateProduct() && product()) {
-      <app-update-product-modal
-        [product]="product()!"
-        [submitting]="submitting()"
-        (save)="onFullSave($event)"
-        (close)="closeModal()"
-      />
-    }
-
     <!-- Eliminar producto -->
     @if (showDeleteProduct()) {
       <app-confirm-action-modal
@@ -366,7 +353,7 @@ import {
         confirmButtonClass="bg-red-500 hover:bg-red-600"
         [submitting]="submitting()"
         (confirm)="onDeleteProduct()"
-        (close)="closeModal()"
+        (close)="closeDeleteProduct()"
       />
     }
 
@@ -383,7 +370,7 @@ import {
         submittingLabel="Guardando..."
         [submitting]="submitting()"
         (confirm)="onToggleStatus()"
-        (close)="closeModal()"
+        (close)="closeToggleStatus()"
       />
     }
 
@@ -393,7 +380,7 @@ import {
         [variant]="editingVariant()!"
         [submitting]="submitting()"
         (save)="onUpdateVariant($event)"
-        (close)="closeModal()"
+        (close)="closeEditVariant()"
       />
     }
 
@@ -403,7 +390,7 @@ import {
         [variants]="product()!.variants"
         [submitting]="submitting()"
         (save)="onBulkPricesSave($event)"
-        (close)="closeModal()"
+        (close)="closeBulkPrices()"
       />
     }
 
@@ -413,7 +400,7 @@ import {
         [product]="product()!"
         [submitting]="submitting()"
         (save)="onFullSave($event)"
-        (close)="closeModal()"
+        (close)="closeFullEdit()"
       />
     }
 
@@ -429,7 +416,7 @@ import {
         confirmButtonClass="bg-red-500 hover:bg-red-600"
         [submitting]="submitting()"
         (confirm)="onConfirmDeleteVariant()"
-        (close)="closeModal()"
+        (close)="closeDeleteVariant()"
       />
     }
 
@@ -441,7 +428,7 @@ import {
         [currentBranchName]="activeBranchName()"
         [submitting]="submitting()"
         (save)="onSaveStockAdjust($event)"
-        (close)="closeModal()"
+        (close)="closeAdjustStock()"
       />
     }
 
@@ -451,7 +438,7 @@ import {
         [existingVariants]="product()!.variants"
         [submitting]="submitting()"
         (save)="onAddVariantSave($event)"
-        (close)="closeModal()"
+        (close)="closeAddVariant()"
       />
     }
   `,
@@ -471,9 +458,10 @@ import {
     }
   `,
 })
-export default class ProductDetail implements OnInit {
+export default class ProductDetail implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private stack = inject(ModalStackService);
   private productService = inject(ProductService);
   private branchContext = inject(BranchContextService);
   private toastService = inject(ToastService);
@@ -684,42 +672,90 @@ export default class ProductDetail implements OnInit {
     return sortVariantsByStock(this.filteredVariants(), mode, (v) => this.stockAt(v, branchId));
   });
 
-  // ── Modales por query param (?modal=...) ─────────────────────────────────
-  /** El query param `modal` como señal: toda la visibilidad se deriva de él. */
-  private readonly modalParam = toSignal(
-    this.route.queryParamMap.pipe(map((p) => p.get('modal'))),
-    { initialValue: null },
-  );
+  // ── Modales por signals (sin URL): el atrás cierra solo el tope ──────────
+  showDeleteProduct = signal(false);
+  showToggleStatus = signal(false);
+  showAddVariant = signal(false);
+  showBulkPrices = signal(false);
+  showFullEdit = signal(false);
+  /** Variante en edición / por borrar / en ajuste — null = modal cerrado */
+  editingVariant = signal<ProductVariantDto | null>(null);
+  deletingVariant = signal<ProductVariantDto | null>(null);
+  adjustingStockVariant = signal<ProductVariantDto | null>(null);
 
-  private readonly isModal = (name: string) => computed(() => this.modalParam() === name);
+  private deleteProductModal = useStackedModal(this.stack, this.showDeleteProduct);
+  private toggleStatusModal = useStackedModal(this.stack, this.showToggleStatus);
+  private addVariantModal = useStackedModal(this.stack, this.showAddVariant);
+  private bulkPricesModal = useStackedModal(this.stack, this.showBulkPrices);
+  private fullEditModal = useStackedModal(this.stack, this.showFullEdit);
+  private unregisterEditVariant = () => {};
+  private unregisterDeleteVariant = () => {};
+  private unregisterAdjustVariant = () => {};
 
-  showUpdateProduct = this.isModal('product');
-  showDeleteProduct = this.isModal('delete-product');
-  showToggleStatus = this.isModal('toggle-status');
-  /** Modal de agregar talla/color abierto o no */
-  showAddVariant = this.isModal('add-variant');
-  /** Modal de edición masiva de precios abierto o no */
-  showBulkPrices = this.isModal('bulk-prices');
-  /** Panel de edición completa (datos + precios) abierto o no */
-  showFullEdit = this.isModal('edit-full');
+  ngOnDestroy(): void {
+    this.deleteProductModal.destroy();
+    this.toggleStatusModal.destroy();
+    this.addVariantModal.destroy();
+    this.bulkPricesModal.destroy();
+    this.fullEditModal.destroy();
+    this.unregisterEditVariant();
+    this.unregisterDeleteVariant();
+    this.unregisterAdjustVariant();
+  }
 
-  /**
-   * Variante de ?modal=<prefix>:<id>. Se resuelve contra `product()`, así que
-   * también abre al recargar con el modal en la URL: el producto llega después
-   * del query param y el computed vuelve a evaluarse.
-   */
-  private readonly variantFor = (prefix: string) =>
-    computed(() => {
-      const id = getModalId(this.modalParam(), prefix);
-      return id ? this.findVariant(id) : null;
-    });
+  openDeleteProduct(): void {
+    this.deleteProductModal.open();
+  }
+  closeDeleteProduct(): void {
+    this.deleteProductModal.close();
+  }
 
-  /** Variante actualmente en edición — null = modal cerrado */
-  editingVariant = this.variantFor('edit');
-  /** Variante pendiente de borrar — null = modal cerrado */
-  deletingVariant = this.variantFor('delete');
-  /** Variante cuyo stock se está ajustando — null = modal cerrado */
-  adjustingStockVariant = this.variantFor('adjust');
+  openToggleStatus(): void {
+    this.toggleStatusModal.open();
+  }
+  closeToggleStatus(): void {
+    this.toggleStatusModal.close();
+  }
+
+  openAddVariant(): void {
+    this.addVariantModal.open();
+  }
+  closeAddVariant(): void {
+    this.addVariantModal.close();
+  }
+
+  openFullEdit(): void {
+    this.fullEditModal.open();
+  }
+  closeFullEdit(): void {
+    this.fullEditModal.close();
+  }
+
+  openBulkPrices(): void {
+    this.bulkPricesModal.open();
+  }
+  closeBulkPrices(): void {
+    this.bulkPricesModal.close();
+  }
+
+  onEditVariant(v: ProductVariantDto): void {
+    this.editingVariant.set(v);
+    this.unregisterEditVariant = this.stack.push(() => this.closeEditVariant());
+  }
+  closeEditVariant(): void {
+    this.unregisterEditVariant();
+    this.editingVariant.set(null);
+  }
+
+  closeDeleteVariant(): void {
+    this.unregisterDeleteVariant();
+    this.deletingVariant.set(null);
+  }
+
+  closeAdjustStock(): void {
+    this.unregisterAdjustVariant();
+    this.adjustingStockVariant.set(null);
+  }
 
   activeBranchStock = computed(() => {
     const v = this.adjustingStockVariant();
@@ -737,14 +773,6 @@ export default class ProductDetail implements OnInit {
     if (!branchId) return null;
     return v.branchStocks.find((s) => s.branchId === branchId)?.branchName ?? null;
   });
-
-  private findVariant(id: GUID): ProductVariantDto | null {
-    return this.product()?.variants.find((v) => v.id === id) ?? null;
-  }
-
-  closeModal(): void {
-    closeModal(this.router, this.route);
-  }
 
   ngOnInit(): void {
     const idParam = this.route.snapshot.paramMap.get('id');
@@ -778,27 +806,7 @@ export default class ProductDetail implements OnInit {
     this.toastService.error(e?.error?.detail || e?.error?.title || e?.message || fallback);
   }
 
-  // ── Child output handlers ───────────────────────────────────────────────
-  openDeleteProduct(): void {
-    openModal(this.router, this.route, 'delete-product');
-  }
-
-  openToggleStatus(): void {
-    openModal(this.router, this.route, 'toggle-status');
-  }
-
-  openAddVariant(): void {
-    openModal(this.router, this.route, 'add-variant');
-  }
-
-  openFullEdit(): void {
-    openModal(this.router, this.route, 'edit-full');
-  }
-
-  onEditVariant(v: ProductVariantDto): void {
-    openModal(this.router, this.route, `edit:${v.id}`);
-  }
-
+  // ── Child output handlers (aperturas en el bloque de modales) ─────────────
   onDeleteVariant(v: ProductVariantDto): void {
     this.submitting.set(true);
     this.productService.canDeleteVariant(v.id).subscribe({
@@ -814,7 +822,8 @@ export default class ProductDetail implements OnInit {
           );
           return;
         }
-        openModal(this.router, this.route, `delete:${v.id}`);
+        this.deletingVariant.set(v);
+        this.unregisterDeleteVariant = this.stack.push(() => this.closeDeleteVariant());
       },
       error: () => {
         this.submitting.set(false);
@@ -824,7 +833,8 @@ export default class ProductDetail implements OnInit {
   }
 
   onAdjustStock(v: ProductVariantDto): void {
-    openModal(this.router, this.route, `adjust:${v.id}`);
+    this.adjustingStockVariant.set(v);
+    this.unregisterAdjustVariant = this.stack.push(() => this.closeAdjustStock());
   }
 
   onAddVariantSave(dto: CreateProductVariantDto): void {
@@ -832,7 +842,7 @@ export default class ProductDetail implements OnInit {
     this.productService.createVariants(this.productId, { variants: [dto] }).subscribe({
       next: () => {
         this.submitting.set(false);
-        this.closeModal();
+        this.closeAddVariant();
         this.toastService.success('Talla/color agregada');
         this.loadProduct(this.productId);
       },
@@ -843,13 +853,13 @@ export default class ProductDetail implements OnInit {
   }
 
   // ── API calls ────────────────────────────────────────────────────────────
-  /** Un único camino de guardado para el producto: ?modal=edit-full y ?modal=product. */
+  /** Un único camino de guardado para el producto (panel de edición completa). */
   onFullSave(dto: UpdateProductDto): void {
     this.submitting.set(true);
     this.productService.update(this.productId, dto).subscribe({
       next: () => {
         this.submitting.set(false);
-        this.closeModal();
+        this.closeFullEdit();
         this.toastService.success('Producto actualizado');
         this.loadProduct(this.productId);
       },
@@ -865,7 +875,9 @@ export default class ProductDetail implements OnInit {
       next: () => {
         this.submitting.set(false);
         this.toastService.success('Producto eliminado');
-        this.router.navigate(['inventory', 'products']);
+        // Retorno al origen (el recurso ya no existe): cerrar antes del pop.
+        this.closeDeleteProduct();
+        this.goBack();
       },
       error: (err: unknown) => {
         this.handleApiError(err, 'Error al eliminar el producto.');
@@ -880,7 +892,7 @@ export default class ProductDetail implements OnInit {
     this.productService.updateStatus(p.id, !p.isActive).subscribe({
       next: () => {
         this.submitting.set(false);
-        this.closeModal();
+        this.closeToggleStatus();
         this.toastService.success(p.isActive ? 'Producto desactivado' : 'Producto activado');
         this.loadProduct(p.id);
       },
@@ -895,7 +907,7 @@ export default class ProductDetail implements OnInit {
     this.productService.updateVariantPrices(this.productId, items).subscribe({
       next: () => {
         this.submitting.set(false);
-        this.closeModal();
+        this.closeBulkPrices();
         this.toastService.success(
           items.length === 1 ? 'Precio actualizado' : `Precios actualizados (${items.length})`,
         );
@@ -913,7 +925,7 @@ export default class ProductDetail implements OnInit {
     this.productService.updateVariant(this.productId, variantId, dto).subscribe({
       next: () => {
         this.submitting.set(false);
-        this.closeModal();
+        this.closeEditVariant();
         this.loadProduct(this.productId);
       },
       error: (err: unknown) => {
@@ -928,7 +940,7 @@ export default class ProductDetail implements OnInit {
     this.productService.deleteVariant(this.productId, variantId).subscribe({
       next: () => {
         this.submitting.set(false);
-        this.closeModal();
+        this.closeDeleteVariant();
         this.toastService.success('Talla/color eliminada');
         this.loadProduct(this.productId);
       },
@@ -945,7 +957,7 @@ export default class ProductDetail implements OnInit {
               e.error?.title ||
               'Esta variante está asociada a movimientos o transferencias y no se puede eliminar.',
           );
-          this.closeModal();
+          this.closeDeleteVariant();
           return;
         }
         this.handleApiError(err, 'Error al eliminar la talla/color.');
@@ -959,7 +971,7 @@ export default class ProductDetail implements OnInit {
     this.productService.adjustVariantStock(this.productId, variantId, dto).subscribe({
       next: () => {
         this.submitting.set(false);
-        this.closeModal();
+        this.closeAdjustStock();
         this.toastService.success('Stock ajustado');
         this.loadProduct(this.productId);
       },

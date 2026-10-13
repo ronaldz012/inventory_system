@@ -1,11 +1,11 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { SaleService } from '@features/sales/services/sale-service';
 import { SaleListDto } from '@features/sales/dtos/sale-list-dto';
 import { SalesQueryDto } from '@features/sales/dtos/sales-query-dto';
 import { DateRangeFilter, DateRange } from '@shared/components/date-range-filter/date-range-filter';
 import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { Paginator } from '@shared/components/app-paginator/app-paginator';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 import { SaleType, isReturnType } from '@features/sales/dtos/sale-detail-dto';
@@ -13,7 +13,7 @@ import { SaleType, isReturnType } from '@features/sales/dtos/sale-detail-dto';
 @Component({
   selector: 'app-sales-list-page',
   standalone: true,
-  imports: [CurrencyPipe, RouterLink, DateRangeFilter, SmartDatePipe, Paginator, SkeletonList],
+  imports: [MoneyPipe, RouterLink, DateRangeFilter, SmartDatePipe, Paginator, SkeletonList],
   template: `
     <div class="flex flex-col gap-4 w-full">
       <div class="flex items-center justify-between gap-3">
@@ -105,10 +105,10 @@ import { SaleType, isReturnType } from '@features/sales/dtos/sale-detail-dto';
                     </p>
                     <p class="truncate text-xs text-text-muted mt-0.5">{{ sale.firstItemDisplayName || '—' }}</p>
                     <p class="mt-1 font-inter text-xs text-text-muted flex flex-wrap items-center gap-1.5">
-                      <span class="font-bold" [class.text-accent-ui]="!isReturnType(sale.type)" [class.text-feedback-warning-text]="isReturnType(sale.type)">{{ sale.totalAmount | currency: 'BOB' : 'symbol' : '1.2-2' }}</span>
+                      <span class="font-bold" [class.text-accent-ui]="!isReturnType(sale.type)" [class.text-feedback-warning-text]="isReturnType(sale.type)">{{ sale.totalAmount | money: 'symbol' }}</span>
                       <span class="font-bold text-accent-ui bg-accent-ui/10 px-1.5 py-0.5 rounded text-[11px]">{{ sale.totalDistinctItems }} art. · {{ sale.totalQuantity }} unid.</span>
                       @if (sale.hasReturn) {
-                        <span class="text-feedback-warning-text bg-feedback-warning/10 px-1.5 py-0.5 rounded text-[11px]">Dev. {{ sale.returnedAmount | currency: 'BOB' : 'symbol' : '1.2-2' }}</span>
+                        <span class="text-feedback-warning-text bg-feedback-warning/10 px-1.5 py-0.5 rounded text-[11px]">Dev. {{ sale.returnedAmount | money: 'symbol' }}</span>
                       }
                       <span class="truncate">· {{ sale.soldByName }}</span>
                     </p>
@@ -140,10 +140,10 @@ import { SaleType, isReturnType } from '@features/sales/dtos/sale-detail-dto';
                   <span class="text-center">
                     <span class="text-xs font-bold font-mono text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md">{{ sale.totalDistinctItems }} · {{ sale.totalQuantity }}</span>
                   </span>
-                  <span class="text-right text-[13px] font-mono font-bold" [class.text-feedback-warning-text]="isReturnType(sale.type)" [class.text-text-main]="!isReturnType(sale.type)">{{ sale.totalAmount | currency: 'BOB' : 'symbol' : '1.2-2' }}</span>
+                  <span class="text-right text-[13px] font-mono font-bold" [class.text-feedback-warning-text]="isReturnType(sale.type)" [class.text-text-main]="!isReturnType(sale.type)">{{ sale.totalAmount | money: 'symbol' }}</span>
                   <span class="text-center">
                     @if (sale.hasReturn) {
-                      <span class="text-xs font-bold text-feedback-warning-text bg-feedback-warning/10 px-2 py-0.5 rounded-md">{{ sale.returnedAmount | currency: 'BOB' : 'symbol' : '1.2-2' }}</span>
+                      <span class="text-xs font-bold text-feedback-warning-text bg-feedback-warning/10 px-2 py-0.5 rounded-md">{{ sale.returnedAmount | money: 'symbol' }}</span>
                     } @else if (isReturnType(sale.type)) {
                       <span class="text-xs text-text-soft">—</span>
                     } @else {

@@ -113,7 +113,7 @@
                   </span>
                   <span class="shrink-0 text-right font-mono">
                     <span class="block text-[13px] font-bold text-accent-ui">
-                      {{ v.price | currency: 'BOB' : 'symbol' : '1.2-2' }}
+                      {{ v.price | money: 'symbol' }}
                     </span>
                     <span class="block text-xs font-bold" [class]="stockClass(v.availableStockInBranch)">
                       {{ v.availableStockInBranch }}u

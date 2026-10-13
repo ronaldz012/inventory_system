@@ -50,6 +50,7 @@ export const routes: Routes = [
                 path: '',
                 title: 'Productos',
                 canActivate: [featureGuard],
+                canDeactivate: [modalGuard],
                 data: { module: 'inventory', feature: 'products' },
                 loadComponent: () =>
                   import('@features/inventory/pages/products-page/product-list/product-list'),
@@ -58,6 +59,7 @@ export const routes: Routes = [
                 path: ':id/detail',
                 title: 'Detalle de Producto',
                 canActivate: [featureGuard],
+                canDeactivate: [modalGuard],
                 data: { module: 'inventory', feature: 'products' },
                 loadComponent: () =>
                   import('@features/inventory/pages/products-page/product-detail/product-detail'),

@@ -1,8 +1,10 @@
-import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Component, computed, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ProductService } from '../../../services/product-service';
 import { ListProductDto } from '../../../dtos/products/list-product-dto';
+import { ProductDetailDto } from '../../../dtos/products/product-detail-dto';
+import { UpdateProductDto } from '../../../dtos/products/update-product-dto';
 import ProductItem from './product-item/product-item';
 import { Paginator } from '@shared/components/app-paginator/app-paginator';
 import {
@@ -14,14 +16,16 @@ import {
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 import { ProductFilterBar } from '../product-filter-bar/product-filter-bar';
 import CreateProductModal from '../create-product-modal/create-product-modal';
+import { ProductEditPanel } from '../product-detail/product-edit-panel/product-edit-panel';
 import { PermissionService } from '@features/auth/services/permmision-service';
-import { closeModal, openModal } from '@shared/utils/modal-query';
+import { ToastService } from '@core/services/toast-service';
+import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 import { readQuery, writeQuery } from '@shared/utils/list-query';
 
 @Component({
   selector: 'app-product-list',
   standalone: true,
-  imports: [ProductItem, SkeletonList, Paginator, ProductFilterBar, CreateProductModal],
+  imports: [ProductItem, SkeletonList, Paginator, ProductFilterBar, CreateProductModal, ProductEditPanel],
   template: `
     <div class="flex flex-col gap-3">
       <!-- Header: título + acciones -->
@@ -101,7 +105,8 @@ import { readQuery, writeQuery } from '@shared/utils/list-query';
             <span>Marca</span>
             <span>Nombre</span>
             <span>Categoría</span>
-            <span class="pr-4 text-right">Talla/Color</span>
+            <span>Colores</span>
+            <span class="pr-4 text-right">Precio (Bs)</span>
             <span class="pr-4 text-right">Stock</span>
             <span>Estado</span>
             <span></span>
@@ -116,6 +121,7 @@ import { readQuery, writeQuery } from '@shared/utils/list-query';
                 [product]="p"
                 [gridColumns]="gridColumns"
                 (viewDetail)="goToDetail($event)"
+                (editProduct)="goToEdit($event)"
               />
             }
           </ul>
@@ -137,6 +143,15 @@ import { readQuery, writeQuery } from '@shared/utils/list-query';
     @if (showCreateModal()) {
       <app-create-product-modal (close)="closeCreateModal()" />
     }
+
+    @if (editingProduct(); as editing) {
+      <app-product-edit-panel
+        [product]="editing"
+        [submitting]="editSubmitting()"
+        (save)="onEditSave($event)"
+        (close)="closeEditModal()"
+      />
+    }
   `,
   styles: [
     `
@@ -156,10 +171,12 @@ import { readQuery, writeQuery } from '@shared/utils/list-query';
     `,
   ],
 })
-export default class ProductList {
+export default class ProductList implements OnDestroy {
   private productService = inject(ProductService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private stack = inject(ModalStackService);
+  private toast = inject(ToastService);
   readonly perm = inject(PermissionService);
 
   /** El queryParamMap es la fuente de verdad (filtros y modal). */
@@ -181,22 +198,71 @@ export default class ProductList {
     { equal: sameProductQuery },
   );
 
-  /** Modal de crear producto: ?modal=create */
-  showCreateModal = computed(() => this.queryParams()?.get('modal') === 'create');
+  /** Modal de crear producto (signal, sin URL). */
+  showCreateModal = signal(false);
+  private createModal = useStackedModal(this.stack, this.showCreateModal);
+
+  /** Edición in-place (datos + precios): se trae el detalle por backend al abrir. */
+  editingProduct = signal<ProductDetailDto | null>(null);
+  editSubmitting = signal(false);
+  private unregisterEdit = () => {};
+
+  ngOnDestroy(): void {
+    this.createModal.destroy();
+    this.unregisterEdit();
+  }
 
   openCreateModal(): void {
-    openModal(this.router, this.route, 'create');
+    this.createModal.open();
   }
 
   closeCreateModal(): void {
-    closeModal(this.router, this.route);
+    this.createModal.close();
+  }
+
+  /** ✎ de la fila: trae el detalle y abre el panel acá mismo (sin ir al detalle). */
+  goToEdit(id: GUID): void {
+    this.productService.getById(id).subscribe({
+      next: (detail) => {
+        this.editingProduct.set(detail);
+        this.unregisterEdit = this.stack.push(() => this.closeEditModal());
+      },
+      error: (err: unknown) => {
+        const e = err as { error?: { detail?: string; title?: string }; message?: string };
+        this.toast.error(e?.error?.detail || e?.error?.title || e?.message || 'No se pudo cargar el producto.');
+      },
+    });
+  }
+
+  closeEditModal(): void {
+    this.unregisterEdit();
+    this.editingProduct.set(null);
+  }
+
+  onEditSave(dto: UpdateProductDto): void {
+    const editing = this.editingProduct();
+    if (!editing || this.editSubmitting()) return;
+    this.editSubmitting.set(true);
+    this.productService.update(editing.id, dto).subscribe({
+      next: () => {
+        this.editSubmitting.set(false);
+        this.closeEditModal();
+        this.toast.success('Producto actualizado');
+        this.load();
+      },
+      error: (err: unknown) => {
+        this.editSubmitting.set(false);
+        const e = err as { error?: { detail?: string; title?: string }; message?: string };
+        this.toast.error(e?.error?.detail || e?.error?.title || e?.message || 'Error al actualizar el producto.');
+      },
+    });
   }
 
   /**
    * Grilla de la tabla: la comparten el header y las filas para que no puedan
-   * desalinearse. Código | Marca | Nombre | Categoría | Talla/Color | Stock | Estado | Acción
+   * desalinearse. Código | Marca | Nombre | Categoría | Colores | Precio (Bs) | Stock | Estado | Acción
    */
-  readonly gridColumns = '8rem 9rem 1fr 9rem 7rem 5.5rem 6rem 4.5rem';
+  readonly gridColumns = '5rem 6rem 1fr 6.5rem 14rem 8.5rem 4.5rem 5rem 3rem';
 
   hasActiveFilters = computed(() => {
     const q = this.query();
