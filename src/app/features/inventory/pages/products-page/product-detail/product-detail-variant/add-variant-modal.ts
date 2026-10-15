@@ -3,6 +3,7 @@ import { form, FormField, min, required, validate } from '@angular/forms/signals
 import { ColorSelectCtrl } from '@features/inventory/components/color-select-ctrl/color-select-ctrl.component';
 import { SizeSelectCtrl } from '@features/inventory/components/size-select-ctrl/size-select-ctrl.component';
 import { ColorService } from '@features/inventory/services/color-service';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { ProductVariantDto } from '../../../../dtos/products/product-detail-dto';
 import { CreateProductVariantDto } from '../../../../dtos/products/create-product-variant-dto';
 
@@ -29,7 +30,7 @@ interface AddVariantModel {
  */
 @Component({
   selector: 'app-add-variant-modal',
-  imports: [FormField, ColorSelectCtrl, SizeSelectCtrl],
+  imports: [FormField, ColorSelectCtrl, SizeSelectCtrl, MoneyPipe],
   template: `
     <!-- Overlay -->
     <div
@@ -108,7 +109,7 @@ interface AddVariantModel {
                     [class.!text-accent-ui]="model().price === p"
                     class="px-1.5 py-0.5 text-[11px] font-mono border border-border rounded-md text-text-muted hover:border-accent-ui hover:text-accent-ui transition-colors"
                   >
-                    Bs {{ p }}
+                    Bs {{ p | money }}
                   </button>
                 }
               </div>

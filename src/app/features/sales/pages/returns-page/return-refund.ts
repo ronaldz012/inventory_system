@@ -1,6 +1,5 @@
 import { Component, computed, inject, input, output, signal, OnInit, effect } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { CurrencyPipe } from '@angular/common';
 import { form, validate, applyEach } from '@angular/forms/signals';
 import { SaleService } from '@features/sales/services/sale-service';
 import {
@@ -11,6 +10,7 @@ import {
 } from '@features/sales/dtos/returns-dto';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { ToastService } from '@core/services/toast-service';
 
 interface ReturnLine {
@@ -31,7 +31,7 @@ interface RefundFormModel {
 
 @Component({
   selector: 'app-return-refund',
-  imports: [CurrencyPipe, SkeletonList, SmartDatePipe],
+  imports: [MoneyPipe, SkeletonList, SmartDatePipe],
   styles: `
     @keyframes fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     .fade-up { animation: fade-up 240ms ease both; }
@@ -73,7 +73,7 @@ interface RefundFormModel {
               </div>
               <div>
                 <p class="field-label">Total</p>
-                <p class="field-value text-xs font-bold font-mono">{{ d.totalAmount | currency: 'BOB' : 'symbol' : '1.2-2' }}</p>
+                <p class="field-value text-xs font-bold font-mono">{{ d.totalAmount | money: 'symbol' }}</p>
               </div>
             </div>
           </div>
@@ -83,7 +83,7 @@ interface RefundFormModel {
             <input type="checkbox" [checked]="refundModel().isFullReturn" (change)="onToggleFullReturn($event)" class="h-5 w-5 rounded border-border text-accent-ui focus:ring-accent-ui" />
             <div class="flex flex-col">
               <span class="text-sm font-bold text-text-main">Reembolso completo</span>
-              <span class="text-xs text-text-soft">Todas las unidades ({{ maxRefundUnits() }} unid. · {{ maxRefundAmount() | currency: 'BOB' : 'symbol' : '1.2-2' }})</span>
+              <span class="text-xs text-text-soft">Todas las unidades ({{ maxRefundUnits() }} unid. · {{ maxRefundAmount() | money: 'symbol' }})</span>
             </div>
           </label>
 
@@ -113,7 +113,7 @@ interface RefundFormModel {
                   <div class="flex flex-wrap items-center gap-2 pl-8">
                     <span class="px-2.5 py-1 rounded-md bg-bg-muted border border-border text-xs font-bold font-mono text-text-main">{{ line.soldQuantity }}/{{ line.returnableQuantity }} unid.</span>
                     <span class="text-xs text-text-soft">vendido / disp.</span>
-                    <span class="px-2 py-1 rounded-md bg-bg-surface border border-border text-xs font-medium text-text-muted">{{ line.unitPrice | currency: 'BOB' : 'symbol' : '1.2-2' }} c/u</span>
+                    <span class="px-2 py-1 rounded-md bg-bg-surface border border-border text-xs font-medium text-text-muted">{{ line.unitPrice | money: 'symbol' }} c/u</span>
                   </div>
                   <div class="flex items-center justify-between pl-8">
                     <div class="flex items-center gap-2">
@@ -125,7 +125,7 @@ interface RefundFormModel {
                         <span class="material-icons text-base">add</span>
                       </button>
                     </div>
-                    <span class="text-sm font-mono font-black min-w-[5.5rem] text-right" [class.text-accent-ui]="line.returnQuantity > 0" [class.text-text-soft]="!line.selected">{{ (line.returnQuantity * line.unitPrice) | currency: 'BOB' : 'symbol' : '1.2-2' }}</span>
+                    <span class="text-sm font-mono font-black min-w-[5.5rem] text-right" [class.text-accent-ui]="line.returnQuantity > 0" [class.text-text-soft]="!line.selected">{{ (line.returnQuantity * line.unitPrice) | money: 'symbol' }}</span>
                   </div>
                 </li>
 
@@ -140,7 +140,7 @@ interface RefundFormModel {
                   </div>
                   <div class="grid grid-cols-[7rem_6rem_1fr_7rem] items-center gap-2 pl-7">
                     <span class="text-center px-2 py-1 rounded-md bg-bg-muted border border-border text-xs font-bold font-mono text-text-main whitespace-nowrap">{{ line.soldQuantity }}/{{ line.returnableQuantity }} unid.</span>
-                    <span class="text-right text-xs font-mono font-medium text-text-muted whitespace-nowrap">{{ line.unitPrice | currency: 'BOB' : 'symbol' : '1.2-2' }}</span>
+                    <span class="text-right text-xs font-mono font-medium text-text-muted whitespace-nowrap">{{ line.unitPrice | money: 'symbol' }}</span>
                     <div class="flex items-center justify-center gap-1">
                       <button type="button" (click)="dec(i)" [disabled]="!line.selected || refundModel().isFullReturn || line.returnQuantity <= 1" class="h-7 w-7 rounded-lg border border-border bg-bg-surface flex items-center justify-center text-text-main disabled:opacity-30 hover:bg-bg-muted transition-colors shrink-0">
                         <span class="material-icons text-sm">remove</span>
@@ -150,7 +150,7 @@ interface RefundFormModel {
                         <span class="material-icons text-sm">add</span>
                       </button>
                     </div>
-                    <span class="text-right text-sm font-mono font-bold whitespace-nowrap" [class.text-accent-ui]="line.returnQuantity > 0">{{ (line.returnQuantity * line.unitPrice) | currency: 'BOB' : 'symbol' : '1.2-2' }}</span>
+                    <span class="text-right text-sm font-mono font-bold whitespace-nowrap" [class.text-accent-ui]="line.returnQuantity > 0">{{ (line.returnQuantity * line.unitPrice) | money: 'symbol' }}</span>
                   </div>
                 </li>
               }
@@ -167,7 +167,7 @@ interface RefundFormModel {
           <div class="flex items-start justify-between gap-3">
             <div class="flex flex-col gap-1">
               <span class="text-[11px] font-bold uppercase tracking-wider text-text-soft">A devolver (efectivo)</span>
-              <span class="text-2xl font-black font-mono" [class.text-accent-ui]="canProcess()" [class.text-text-soft]="!canProcess()">{{ totalRefund() | currency: 'BOB' : 'symbol' : '1.2-2' }}</span>
+              <span class="text-2xl font-black font-mono" [class.text-accent-ui]="canProcess()" [class.text-text-soft]="!canProcess()">{{ totalRefund() | money: 'symbol' }}</span>
               <span class="text-xs text-text-soft">{{ activeLinesCount() }} art. · {{ totalUnits() }} unid.</span>
             </div>
             <span class="px-2.5 py-1 rounded-full text-xs font-bold shrink-0" [class]="refundModel().isFullReturn ? 'bg-accent-ui text-white' : 'bg-bg-surface border border-border text-text-muted'">

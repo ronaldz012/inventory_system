@@ -1,5 +1,6 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { RouterLink } from '@angular/router';
 import { DashboardService } from '../../services/dashboard-service';
 import { TodaySalesDto } from '../../dtos/today-sales-dto';
@@ -11,7 +12,7 @@ import { BranchContextService } from '@core/services/branch-context-service';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [CurrencyPipe, DatePipe, RouterLink],
+  imports: [MoneyPipe, DatePipe, RouterLink],
   templateUrl: './dashboard-page.html',
 })
 export default class DashboardPage {

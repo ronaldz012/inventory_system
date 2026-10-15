@@ -1,5 +1,5 @@
 import { Component, computed, input, output, OnInit, signal } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { ProductVariantDto } from '../../../../dtos/products/product-detail-dto';
 import { BulkUpdateVariantPriceItem } from '../../../../dtos/products/bulk-update-variant-price-dto';
 
@@ -24,7 +24,7 @@ const MIN_PRICE = 0.01;
  *       [variants]="product()!.variants"
  *       [submitting]="submitting()"
  *       (save)="onBulkPricesSave($event)"
- *       (close)="closeModal()"
+ *       (close)="closeBulkPrices()"
  *     />
  *   }
  *
@@ -35,7 +35,7 @@ const MIN_PRICE = 0.01;
  */
 @Component({
   selector: 'app-bulk-price-modal',
-  imports: [CurrencyPipe],
+  imports: [MoneyPipe],
   template: `
     <div
       class="fixed inset-y-0 right-0 z-[100] flex flex-col bg-bg-surface font-inter animate-fade-in w-full md:w-[640px] md:max-w-[95%] md:border-l md:border-border md:shadow-[-20px_0_40px_-15px_rgba(0,0,0,0.15)]"
@@ -174,13 +174,13 @@ const MIN_PRICE = 0.01;
                     <div
                       class="text-[11px] font-mono text-text-soft shrink-0 md:px-3 md:py-2 md:text-right"
                     >
-                      {{ row.currentPrice | currency: 'BOB' : 'symbol' : '1.2-2' }}
+                      {{ row.currentPrice | money: 'symbol' }}
                     </div>
 
                     <div class="flex-1 min-w-0 md:px-2 md:py-2">
                       @if (samePriceForAll()) {
                         <span class="block text-[11px] font-mono font-bold text-text-main text-right">
-                          → {{ effectivePrice(row) | currency: 'BOB' : 'symbol' : '1.2-2' }}
+                          → {{ effectivePrice(row) | money: 'symbol' }}
                         </span>
                       } @else {
                         <input
@@ -216,7 +216,7 @@ const MIN_PRICE = 0.01;
           } @else if (samePriceForAll() && isUniqueValid()) {
             <span class="text-[11px] text-text-muted mr-auto">
               <strong class="text-text-main">{{ selectedCount() }}</strong> a
-              <strong class="text-accent-ui font-mono">{{ (uniquePrice() ?? 0) | currency: 'BOB' : 'symbol' : '1.2-2' }}</strong> c/u
+              <strong class="text-accent-ui font-mono">{{ (uniquePrice() ?? 0) | money: 'symbol' }}</strong> c/u
             </span>
           } @else if (!samePriceForAll()) {
             <span class="text-[11px] text-text-muted mr-auto">

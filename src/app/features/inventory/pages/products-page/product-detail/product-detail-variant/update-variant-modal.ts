@@ -46,7 +46,7 @@ import {UpdateProductVariantDto} from '../../../../dtos/products/update-product-
           <div>
             <label class="field-label block">Precio</label>
             <div class="relative">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-text-soft">BOB</span>
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-text-soft">Bs</span>
               <input
                 type="number"
                 [(ngModel)]="form.price"

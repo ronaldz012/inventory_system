@@ -8,4 +8,7 @@ export interface ListProductDto {
   totalStock: number;
   basePrice: number;
   isActive: boolean;
+  minPrice: number;
+  maxPrice: number;
+  colors: string[];
 }

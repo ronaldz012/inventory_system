@@ -1,5 +1,5 @@
 import { Component, input, output } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 
 /**
  * Confirmación previa al guardado de una recepción. Remarca la sucursal
@@ -21,7 +21,7 @@ import { CurrencyPipe } from '@angular/common';
  */
 @Component({
   selector: 'app-reception-confirm-modal',
-  imports: [CurrencyPipe],
+  imports: [MoneyPipe],
   template: `
     <div
       class="fixed inset-0 bg-overlay z-40 flex items-end sm:items-center justify-center backdrop-blur-[2px]"
@@ -70,7 +70,7 @@ import { CurrencyPipe } from '@angular/common';
           </div>
           <div class="flex items-center justify-between gap-3">
             <dt class="text-text-soft">Costo total</dt>
-            <dd class="font-mono font-extrabold text-text-main">{{ totalCost() | currency: 'BOB' : 'symbol' : '1.2-2' }}</dd>
+            <dd class="font-mono font-extrabold text-text-main">{{ totalCost() | money: 'symbol' }}</dd>
           </div>
         </dl>
 

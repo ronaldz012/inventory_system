@@ -201,7 +201,7 @@
         <span class="text-sm tracking-tight font-bold">Cobrar Carrito</span>
       </div>
       <span class="font-mono text-base bg-bg-muted/20 px-2.5 py-0.5 rounded-lg">
-        {{ totalCart() | currency: 'BOB' : 'symbol' : '1.2-2' }}
+        {{ totalCart() | money: 'symbol' }}
       </span>
     </button>
   </div>

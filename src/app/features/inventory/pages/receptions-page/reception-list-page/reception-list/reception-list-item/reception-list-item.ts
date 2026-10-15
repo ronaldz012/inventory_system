@@ -1,6 +1,6 @@
 import { Component, inject, input, output} from '@angular/core';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 import {ReceptionStatus, StockReceptionListDto} from '../../../../../dtos/receptions/stock-reception-list-dto';
-import {DecimalPipe} from '@angular/common';
 import {Router} from '@angular/router';
 import ReceptionDetails from '../../../reception-details/reception-details';
 import {SmartDatePipe} from '@shared/pipes/smart-date.pipe';
@@ -12,7 +12,7 @@ export const RECEPTION_LIST_GRID =
 @Component({
   selector: 'app-reception-list-item',
   imports: [
-    DecimalPipe,
+    MoneyPipe,
     SmartDatePipe
   ],
   templateUrl: './reception-list-item.html',

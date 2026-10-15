@@ -35,7 +35,7 @@
           <div>
             <p class="table-header">Total</p>
             <p class="text-xl font-black font-mono text-accent-ui">
-              {{ r.totalCost | currency: 'BOB' : 'symbol' : '1.2-2' }}
+              {{ r.totalCost | money: 'symbol' }}
             </p>
           </div>
           <div>
@@ -90,7 +90,7 @@
                   <span class="font-normal text-text-soft">· {{ product.units }} uds</span>
                 </p>
                 <p class="shrink-0 text-sm font-semibold text-text-main tabular-nums">
-                  {{ product.subtotal | currency: 'BOB' : 'symbol' : '1.2-2' }}
+                  {{ product.subtotal | money: 'symbol' }}
                 </p>
               </div>
               @for (color of product.colors; track color.color) {
@@ -115,11 +115,11 @@
                     >
                     <span
                       class="shrink-0 w-16 text-right text-[12px] tabular-nums text-text-muted md:w-auto"
-                      >{{ s.unitCost | number: '1.2-2' }}</span
+                      >{{ s.unitCost | money }}</span
                     >
                     <span
                       class="shrink-0 w-20 text-right text-[12px] font-semibold tabular-nums text-text-main md:w-auto"
-                      >{{ s.subtotal | number: '1.2-2' }}</span
+                      >{{ s.subtotal | money }}</span
                     >
                   </div>
                 }
@@ -133,7 +133,7 @@
         >
           <span class="text-xs text-text-soft">{{ totalQuantity }} unidades en total</span>
           <span class="text-sm font-semibold text-text-main tabular-nums">
-            {{ r.totalCost | currency: 'BOB' : 'symbol' : '1.2-2' }}
+            {{ r.totalCost | money: 'symbol' }}
           </span>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { Component, computed, inject, input, OnInit, output, signal } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { ProductService } from '@features/inventory/services/product-service';
 import CreateVariantRow from './create-variant-row/create-variant-row';
 import { ProductWithVariantsCreatedDto } from '@features/inventory/dtos/products/create-product-with-variants-dto';
@@ -21,7 +21,6 @@ import { ProductSearchResult } from '@features/inventory/components/product-sear
 import { ToastService } from '@core/services/toast-service';
 import { ColorService } from '@features/inventory/services/color-service';
 import { blockNonNumericKeys } from '@shared/utils/list-query';
-import { closeModal } from '@shared/utils/modal-query';
 
 const createVariantSchema = schema<VariantForm>((v) => {
   required(v.sizeId, { message: 'Requerido' });
@@ -43,7 +42,6 @@ export default class CreateProductModal implements OnInit {
   private productService = inject(ProductService);
   private colorService = inject(ColorService);
   private router = inject(Router);
-  private route = inject(ActivatedRoute);
   private toastService = inject(ToastService);
   close = output<void>();
   created = output<ProductSearchResult>();
@@ -219,10 +217,9 @@ export default class CreateProductModal implements OnInit {
             this.close.emit();
             return;
           }
-          // El modal vive en la URL (?modal=create): si no lo limpiamos antes de
-          // navegar, "atrás" desde el detalle lo reabre con datos viejos.
-          closeModal(this.router, this.route);
-          this.router.navigate(['inventory', 'products', created.id, 'detail']);
+          // Crear es avance: cerrar e ir al detalle con replace (atrás → lista).
+          this.close.emit();
+          this.router.navigate(['inventory', 'products', created.id, 'detail'], { replaceUrl: true });
         },
         error: (err: unknown) => {
           this.isConfirming.set(false);

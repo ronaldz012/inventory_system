@@ -329,7 +329,7 @@
                     <span class="text-[11px] font-mono font-bold text-feedback-success-text">
                       {{
                         row.variant.price != null
-                          ? (row.variant.price | number: '1.2-2')
+                          ? (row.variant.price | money)
                           : '—'
                       }}
                     </span>
@@ -362,19 +362,19 @@
             <div class="flex flex-col gap-0.5">
               <span class="field-label">Inversión total</span>
               <span class="text-base font-black text-accent-ui font-mono">{{
-                totalInvestment() | number: '1.2-2'
+                totalInvestment() | money
               }}</span>
             </div>
             <div class="flex flex-col gap-0.5">
               <span class="field-label">Ventas estimadas</span>
               <span class="text-base font-black text-text-main font-mono">{{
-                totalSales() | number: '1.2-2'
+                totalSales() | money
               }}</span>
             </div>
             <div class="flex flex-col gap-0.5">
               <span class="field-label">Ganancia esperada</span>
               <span class="text-base font-black text-feedback-success-text font-mono">{{
-                expectedProfit() | number: '1.2-2'
+                expectedProfit() | money
               }}</span>
             </div>
           </section>

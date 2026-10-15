@@ -1,15 +1,15 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SaleService } from '@features/sales/services/sale-service';
 import { DocumentType, PaymentMethod, SaleDetailDto, SaleType } from '@features/sales/dtos/sale-detail-dto';
 import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 
 @Component({
   selector: 'app-sale-detail-page',
   standalone: true,
-  imports: [CurrencyPipe, RouterLink, SkeletonList, SmartDatePipe],
+  imports: [MoneyPipe, RouterLink, SkeletonList, SmartDatePipe],
   styles: `
     @keyframes fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     .fade-up { animation: fade-up 240ms ease both; }
@@ -43,7 +43,7 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
             <div class="rounded-xl border border-feedback-warning/40 bg-feedback-warning/10 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div class="flex flex-col gap-1">
                 <span class="text-[11px] font-bold uppercase tracking-wider text-feedback-warning-text">Esta venta tiene devoluciones</span>
-                <span class="text-sm font-semibold text-text-main">{{ returnsCount() }} devolución(es) · {{ totalRefunded() | currency: 'BOB' : 'symbol' : '1.2-2' }} reembolsado</span>
+                <span class="text-sm font-semibold text-text-main">{{ returnsCount() }} devolución(es) · {{ totalRefunded() | money: 'symbol' }} reembolsado</span>
               </div>
               <a (click)="scrollToReturns()" class="text-xs font-bold text-accent-ui hover:underline cursor-pointer">Ver devoluciones ↓</a>
             </div>
@@ -87,7 +87,7 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                   [class.text-feedback-error-text]="isReturn()"
                   [class.text-text-main]="!isReturn()"
                 >
-                  {{ s.totalAmount | currency: 'BOB' : 'symbol' : '1.2-2' }}
+                  {{ s.totalAmount | money: 'symbol' }}
                 </p>
               </div>
               <div>
@@ -161,7 +161,7 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                       <p class="text-sm font-semibold tabular-nums text-text-main">
                         {{ item.quantity }}<span class="text-xs font-normal text-text-soft"> uds</span>
                       </p>
-                      <p class="text-xs font-mono text-text-soft">{{ item.unitPrice | currency: 'BOB' : 'symbol' : '1.2-2' }} c/u</p>
+                      <p class="text-xs font-mono text-text-soft">{{ item.unitPrice | money: 'symbol' }} c/u</p>
                     </div>
                   </div>
                   <div class="flex flex-wrap items-center gap-2">
@@ -173,14 +173,14 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                         {{ item.returnedQuantity }} devuelto
                       </span>
                     }
-                    <span class="text-xs font-mono text-text-soft">Costo {{ item.unitCost | currency: 'BOB' : 'symbol' : '1.2-2' }}</span>
+                    <span class="text-xs font-mono text-text-soft">Costo {{ item.unitCost | money: 'symbol' }}</span>
                   </div>
                   <div class="flex items-center justify-between text-xs font-mono">
-                    <span class="text-feedback-success-text">Margen {{ ((item.unitPrice - (item.unitCost ?? 0))) * item.quantity | currency: 'BOB' : 'symbol' : '1.2-2' }}</span>
+                    <span class="text-feedback-success-text">Margen {{ ((item.unitPrice - (item.unitCost ?? 0))) * item.quantity | money: 'symbol' }}</span>
                     @if (item.discountAmount) {
-                      <span class="text-feedback-error-text">Desc. {{ item.discountAmount | currency: 'BOB' : 'symbol' : '1.2-2' }}</span>
+                      <span class="text-feedback-error-text">Desc. {{ item.discountAmount | money: 'symbol' }}</span>
                     }
-                    <span class="font-bold text-text-main">{{ item.finalPrice | currency: 'BOB' : 'symbol' : '1.2-2' }}</span>
+                    <span class="font-bold text-text-main">{{ item.finalPrice | money: 'symbol' }}</span>
                   </div>
                 </li>
               }
@@ -207,8 +207,8 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                     <tr [class.bg-feedback-warning/5]="item.returnedQuantity > 0">
                       <td class="py-2.5 pl-6 pr-4 font-mono text-xs text-text-muted">{{ item.productSku }}</td>
                       <td class="py-2.5 pr-4 text-text-main font-medium break-words max-w-[22rem]">{{ item.productDisplayName }}</td>
-                      <td class="py-2.5 px-3 text-right text-text-soft font-mono tabular-nums">{{ item.unitCost | currency: 'BOB' : 'symbol' : '1.2-2' }}</td>
-                      <td class="py-2.5 px-3 text-right text-text-muted font-mono tabular-nums">{{ item.unitPrice | currency: 'BOB' : 'symbol' : '1.2-2' }}</td>
+                      <td class="py-2.5 px-3 text-right text-text-soft font-mono tabular-nums">{{ item.unitCost | money: 'symbol' }}</td>
+                      <td class="py-2.5 px-3 text-right text-text-muted font-mono tabular-nums">{{ item.unitPrice | money: 'symbol' }}</td>
                       <td class="py-2.5 px-3 text-center font-mono tabular-nums">
                         <span class="px-2 py-0.5 rounded-md bg-bg-muted border border-border text-xs font-bold">{{ item.quantity }}</span>
                       </td>
@@ -219,9 +219,9 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                           <span class="text-xs text-text-soft">—</span>
                         }
                       </td>
-                      <td class="py-2.5 px-3 text-right font-mono tabular-nums text-feedback-success-text">{{ ((item.unitPrice - (item.unitCost ?? 0))) * item.quantity | currency: 'BOB' : 'symbol' : '1.2-2' }}</td>
-                      <td class="py-2.5 px-3 text-right text-feedback-error-text font-mono tabular-nums">{{ item.discountAmount | currency: 'BOB' : 'symbol' : '1.2-2' }}</td>
-                      <td class="py-2.5 pr-6 text-right font-mono font-bold text-text-main tabular-nums">{{ item.finalPrice | currency: 'BOB' : 'symbol' : '1.2-2' }}</td>
+                      <td class="py-2.5 px-3 text-right font-mono tabular-nums text-feedback-success-text">{{ ((item.unitPrice - (item.unitCost ?? 0))) * item.quantity | money: 'symbol' }}</td>
+                      <td class="py-2.5 px-3 text-right text-feedback-error-text font-mono tabular-nums">{{ item.discountAmount | money: 'symbol' }}</td>
+                      <td class="py-2.5 pr-6 text-right font-mono font-bold text-text-main tabular-nums">{{ item.finalPrice | money: 'symbol' }}</td>
                     </tr>
                   }
                 </tbody>
@@ -230,7 +230,7 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 
             <div class="px-6 py-3 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-bg-muted/30">
               <span class="text-xs text-text-soft">{{ s.totalItems }} unid. en total @if (hasReturns()) { · {{ totalReturnedUnits() }} devuelto(s) · neto {{ netUnits() }} unid. }</span>
-              <span class="text-sm font-bold font-mono text-text-main">{{ s.totalAmount | currency: 'BOB' : 'symbol' : '1.2-2' }} @if (hasReturns()) { <span class="text-xs font-normal text-feedback-warning-text">· reembolsado {{ totalRefunded() | currency: 'BOB' : 'symbol' : '1.2-2' }}</span> }</span>
+              <span class="text-sm font-bold font-mono text-text-main">{{ s.totalAmount | money: 'symbol' }} @if (hasReturns()) { <span class="text-xs font-normal text-feedback-warning-text">· reembolsado {{ totalRefunded() | money: 'symbol' }}</span> }</span>
             </div>
           </div>
 
@@ -248,7 +248,7 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                       <span class="text-xs text-text-soft">{{ r.createdAt | smartDate }}</span>
                     </div>
                     <div class="flex items-center gap-3 shrink-0">
-                      <span class="text-sm font-mono font-bold text-feedback-warning-text">{{ r.totalAmount | currency: 'BOB' : 'symbol' : '1.2-2' }}</span>
+                      <span class="text-sm font-mono font-bold text-feedback-warning-text">{{ r.totalAmount | money: 'symbol' }}</span>
                       <a [routerLink]="['/sales/sale', r.id]" class="btn-link">
                         <span class="btn-link-text">Ver</span>
                         <span class="material-icons text-base">chevron_right</span>
@@ -259,7 +259,7 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
               </ul>
               <div class="px-6 py-3 bg-bg-muted/30 border-t border-border flex justify-between items-center">
                 <span class="text-xs font-medium text-text-soft">Total reembolsado</span>
-                <span class="text-sm font-black font-mono text-feedback-warning-text">{{ totalRefunded() | currency: 'BOB' : 'symbol' : '1.2-2' }}</span>
+                <span class="text-sm font-black font-mono text-feedback-warning-text">{{ totalRefunded() | money: 'symbol' }}</span>
               </div>
             </div>
           }

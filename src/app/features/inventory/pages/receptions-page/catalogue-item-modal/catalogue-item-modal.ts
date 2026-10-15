@@ -12,7 +12,6 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
 import { debounceTime, distinctUntilChanged, finalize, Subject, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { applyEach, applyWhen, form, min, required, schema } from '@angular/forms/signals';
@@ -30,6 +29,7 @@ import {
   VariantForm,
 } from '@features/inventory/models/variant-form.model';
 import { CreateProductVariantDto } from '@features/inventory/dtos/products/create-product-variant-dto';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { blockNonNumericKeys, parseAmountInput } from '@shared/utils/list-query';
 import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 
@@ -43,7 +43,7 @@ function sortVariants(rows: VariantForm[]): VariantForm[] {
 @Component({
   selector: 'app-catalogue-item-modal',
   standalone: true,
-  imports: [DecimalPipe, AddVariantModal, GridNavDirective],
+  imports: [MoneyPipe, AddVariantModal, GridNavDirective],
   templateUrl: './catalogue-item-modal.html',
 })
 export default class CatalogueItemModal implements OnInit, OnDestroy {

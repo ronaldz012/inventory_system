@@ -1,5 +1,5 @@
-import { CurrencyPipe } from '@angular/common';
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { Router } from '@angular/router';
 import { form, required } from '@angular/forms/signals';
 import { ReceptionItem } from './reception-item/reception-item';
@@ -23,7 +23,7 @@ import { BranchContextService } from '@core/services/branch-context-service';
   selector: 'app-reception-form',
   imports: [
     ReceptionItem,
-    CurrencyPipe,
+    MoneyPipe,
     CatalogueItemModal,
     CreateProductModal,
     ProviderSelectCtrl,

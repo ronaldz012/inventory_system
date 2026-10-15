@@ -1,5 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { DatePipe, CurrencyPipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { RouterLink } from '@angular/router';
 import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
 import { CashRegisterService } from '@features/sales/services/cash-register-service';
@@ -11,7 +12,7 @@ import { BaseQueryDto } from '@features/inventory/dtos/base-query-dto';
 @Component({
   selector: 'app-closures-list-page',
   standalone: true,
-  imports: [DatePipe, CurrencyPipe, RouterLink, Paginator, SkeletonList, SmartDatePipe],
+  imports: [DatePipe, MoneyPipe, RouterLink, Paginator, SkeletonList, SmartDatePipe],
   template: `
     <div class="flex flex-col gap-4 w-full">
       <div class="flex items-center justify-between gap-3">
@@ -77,9 +78,9 @@ import { BaseQueryDto } from '@features/inventory/dtos/base-query-dto';
                     <p class="text-xs text-text-muted mt-1">
                       Ventas:
                       <span class="font-medium text-text-main">{{
-                        c.totalSales | currency: 'BOB' : 'symbol' : '1.2-2'
+                        c.totalSales | money: 'symbol'
                       }}</span>
-                      · Gastos: {{ c.totalExpenses | currency: 'BOB' : 'symbol' : '1.2-2' }}
+                      · Gastos: {{ c.totalExpenses | money: 'symbol' }}
                     </p>
                     <p class="text-xs mt-0.5">
                       <span
@@ -90,7 +91,7 @@ import { BaseQueryDto } from '@features/inventory/dtos/base-query-dto';
                         @if (c.difference === 0) {
                           Cuadra
                         } @else {
-                          Dif: {{ c.difference | currency: 'BOB' : 'symbol' : '1.2-2' }}
+                          Dif: {{ c.difference | money: 'symbol' }}
                         }
                       </span>
                     </p>
@@ -122,19 +123,19 @@ import { BaseQueryDto } from '@features/inventory/dtos/base-query-dto';
                     </p>
                   </div>
                   <span class="text-right text-[13px] font-mono font-bold text-text-main">{{
-                    c.totalSales | currency: 'BOB' : 'symbol' : '1.2-2'
+                    c.totalSales | money: 'symbol'
                   }}</span>
                   <span class="text-right text-[13px] font-mono text-text-main">{{
-                    c.cashSales | currency: 'BOB' : 'symbol' : '1.2-2'
+                    c.cashSales | money: 'symbol'
                   }}</span>
                   <span class="text-right text-[13px] font-mono text-feedback-error-text">{{
-                    c.totalExpenses | currency: 'BOB' : 'symbol' : '1.2-2'
+                    c.totalExpenses | money: 'symbol'
                   }}</span>
                   <span class="text-right text-[13px] font-mono text-text-main">{{
-                    c.systemSalesAmount | currency: 'BOB' : 'symbol' : '1.2-2'
+                    c.systemSalesAmount | money: 'symbol'
                   }}</span>
                   <span class="text-right text-[13px] font-mono text-text-main">{{
-                    c.realCountedAmount | currency: 'BOB' : 'symbol' : '1.2-2'
+                    c.realCountedAmount | money: 'symbol'
                   }}</span>
                   <div class="flex justify-end items-center gap-2">
                     <span
@@ -147,7 +148,7 @@ import { BaseQueryDto } from '@features/inventory/dtos/base-query-dto';
                       @if (c.difference === 0) {
                         0
                       } @else {
-                        {{ c.difference | currency: 'BOB' : 'symbol' : '1.2-2' }}
+                        {{ c.difference | money: 'symbol' }}
                       }
                     </span>
                     <a [routerLink]="['/sales', 'closures', c.id]" class="btn-link">

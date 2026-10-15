@@ -13,7 +13,7 @@ import { ProductService } from '@features/inventory/services';
 import { PosCartItemCardComponent } from './pos-item/pos-item.component';
 import { PosCartItem, PosSaleState } from '@features/sales/models/pos-sale-state.model';
 import { ProductVariantBySkuDto } from '@features/inventory/dtos/products/product-variant-by-sku-dto';
-import { CurrencyPipe } from '@angular/common';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { PosMobilePayModal } from './pos-mobile-pay-modal/pos-mobile-pay-modal';
 import { PosDesktopPayPanel } from './pos-desktop-pay-panel/pos-desktop-pay-panel';
 import { PosSearchModal } from './pos-search-modal/pos-search-modal';
@@ -32,7 +32,7 @@ import { PermissionService } from '@features/auth/services/permmision-service';
     SkuInput,
     QrScannerModal,
     PosCartItemCardComponent,
-    CurrencyPipe,
+    MoneyPipe,
     PosMobilePayModal,
     PosDesktopPayPanel,
     PosSearchModal,

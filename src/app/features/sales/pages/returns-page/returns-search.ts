@@ -1,10 +1,10 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { CurrencyPipe } from '@angular/common';
 import { SaleService } from '@features/sales/services/sale-service';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 import { Paginator } from '@shared/components/app-paginator/app-paginator';
 import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { SkuInput } from '@shared/components/sku-input/sku-input';
 import { QrScannerModal, isBarcodeApiAvailable } from '@features/sales/components/qr-scanner-modal/qr-scanner-modal';
 import { SaleSkuSearchDto } from '@features/sales/dtos/returns-dto';
@@ -13,7 +13,7 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
 
 @Component({
   selector: 'app-returns-search',
-  imports: [CurrencyPipe, RouterLink, SkeletonList, Paginator, SmartDatePipe, SkuInput, QrScannerModal, ReturnRefund],
+  imports: [MoneyPipe, RouterLink, SkeletonList, Paginator, SmartDatePipe, SkuInput, QrScannerModal, ReturnRefund],
   styles: `
     @keyframes fade-up {
       from { opacity: 0; transform: translateY(8px); }
@@ -98,8 +98,8 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
                       {{ sale.createdAt | smartDate }}
                     </p>
                     <p class="mt-1 font-inter text-xs text-text-muted flex flex-wrap items-center gap-1.5">
-                      <span class="font-bold text-accent-ui bg-accent-ui/10 px-1.5 py-0.5 rounded text-[11px]">×{{ sale.matchedItem.quantity }} · {{ sale.matchedItem.unitPrice | currency: 'BOB' : 'symbol' : '1.2-2' }}</span>
-                      <span class="font-bold text-accent-ui">{{ sale.totalAmount | currency: 'BOB' : 'symbol' : '1.2-2' }}</span>
+                      <span class="font-bold text-accent-ui bg-accent-ui/10 px-1.5 py-0.5 rounded text-[11px]">×{{ sale.matchedItem.quantity }} · {{ sale.matchedItem.unitPrice | money: 'symbol' }}</span>
+                      <span class="font-bold text-accent-ui">{{ sale.totalAmount | money: 'symbol' }}</span>
                       <span class="font-medium text-text-soft bg-bg-muted px-1.5 py-0.5 rounded text-[11px]">{{ sale.totalItems }} art. dif.</span>
                       <span class="font-medium text-text-soft bg-bg-muted px-1.5 py-0.5 rounded text-[11px]">{{ sale.totalUnitsSold }} unid.</span>
                       <span class="truncate">· {{ sale.soldByName }}</span>
@@ -116,11 +116,11 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
                 <!-- DESKTOP: una sola fila por venta -->
                 <div class="group hidden lg:grid lg:grid-cols-[11rem_9rem_6rem_7rem_1fr_8rem_7rem] items-center px-4 py-3 transition-colors duration-150 hover:bg-bg-muted">
                   <span class="text-[13px] font-medium text-text-main">{{ sale.createdAt | smartDate }}</span>
-                  <span class="text-[11px] font-bold text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md w-fit">×{{ sale.matchedItem.quantity }} · {{ sale.matchedItem.unitPrice | currency: 'BOB' : 'symbol' : '1.2-2' }}</span>
+                  <span class="text-[11px] font-bold text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md w-fit">×{{ sale.matchedItem.quantity }} · {{ sale.matchedItem.unitPrice | money: 'symbol' }}</span>
                   <span class="text-center text-xs font-bold font-mono text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md w-fit mx-auto">{{ sale.totalItems }}</span>
                   <span class="text-center text-xs font-medium text-text-muted bg-bg-muted px-2 py-0.5 rounded-md w-fit mx-auto">{{ sale.totalUnitsSold }}</span>
                   <span class="text-xs text-text-muted truncate pr-2">{{ sale.soldByName }}</span>
-                  <span class="text-right text-[13px] font-mono font-bold text-text-main">{{ sale.totalAmount | currency: 'BOB' : 'symbol' : '1.2-2' }}</span>
+                  <span class="text-right text-[13px] font-mono font-bold text-text-main">{{ sale.totalAmount | money: 'symbol' }}</span>
                   <div class="flex justify-end">
                     <button type="button" (click)="openRefund(sale)" class="btn-link">
                       <span class="btn-link-text">Ver más</span>

@@ -17,7 +17,7 @@
     <div class="flex justify-between items-center bg-bg-muted p-3 rounded-xl font-mono text-sm">
       <span class="text-text-muted">Total ({{ itemCount() }} art.)</span>
       <span class="text-lg font-black text-accent-ui">{{
-        total() | currency: 'BOB' : 'symbol' : '1.2-2'
+        total() | money: 'symbol'
       }}</span>
     </div>
 
@@ -78,7 +78,7 @@
       class="btn-primary w-full py-3.5 rounded-xl text-center flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
     >
       <span class="material-icons">done_all</span>
-      Completar Venta ({{ total() | currency: 'BOB' : 'symbol' : '1.2-2' }})
+      Completar Venta ({{ total() | money: 'symbol' }})
     </button>
   </div>
 </div>

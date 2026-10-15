@@ -1,12 +1,13 @@
 import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { PaymentMethod } from '@features/sales/models/payment-method';
 import { Field, FieldState, FieldTree, FormField } from '@angular/forms/signals';
 
 @Component({
   selector: 'app-pos-desktop-pay-panel',
   standalone: true,
-  imports: [CommonModule, FormField],
+  imports: [CommonModule, FormField, MoneyPipe],
   templateUrl: './pos-desktop-pay-panel.html',
 })
 export class PosDesktopPayPanel {

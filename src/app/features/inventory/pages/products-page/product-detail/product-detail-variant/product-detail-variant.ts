@@ -1,12 +1,12 @@
 import { Component, computed, inject, input, output } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
+import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { ProductVariantDto } from '../../../../dtos/products/product-detail-dto';
 import { PermissionService } from '@features/auth/services/permmision-service';
 import { highlightParts } from '../variant-filter';
 
 @Component({
   selector: 'app-product-detail-variant',
-  imports: [DecimalPipe],
+  imports: [MoneyPipe],
   template: `
     <!-- ── Desktop Row: Sku | Color | Talla | Sucs | Total | Precio | [Costo | Margen] | Acciones ── -->
     <li
@@ -40,10 +40,10 @@ import { highlightParts } from '../variant-filter';
         >
       }
       <span class="tabular-nums font-semibold text-center">{{ variant().totalAvailable }}</span>
-      <span class="tabular-nums font-semibold text-right">{{ variant().price | number: '1.2-2' }}</span>
+      <span class="tabular-nums font-semibold text-right">{{ variant().price | money }}</span>
       @if (perm.canUpdate('inventory', 'products')) {
-        <span class="field-value text-right">{{ variant().averageCost | number: '1.2-2' }}</span>
-        <span class="field-value font-mono text-right" [class.text-feedback-success-text]="(variant().price - (variant().averageCost ?? 0)) > 0" [class.text-text-soft]="(variant().price - (variant().averageCost ?? 0)) <= 0">{{ ((variant().price - (variant().averageCost ?? 0))) | number: '1.2-2' }}</span>
+        <span class="field-value text-right">{{ variant().averageCost | money }}</span>
+        <span class="field-value font-mono text-right" [class.text-feedback-success-text]="(variant().price - (variant().averageCost ?? 0)) > 0" [class.text-text-soft]="(variant().price - (variant().averageCost ?? 0)) <= 0">{{ ((variant().price - (variant().averageCost ?? 0))) | money }}</span>
       }
       <div class="flex gap-1 justify-end">
         <button (click)="viewHistory.emit(variant())" class="action-btn" title="Ver movimientos">
@@ -98,7 +98,7 @@ import { highlightParts } from '../variant-filter';
           [class.text-accent-ui]="activeStock() > 0"
           [class.text-text-soft]="activeStock() <= 0"
         >{{ activeStock() }}u</span>
-        <span class="shrink-0 text-xs font-mono text-text-muted">{{ variant().price | number: '1.2-2' }}</span>
+        <span class="shrink-0 text-xs font-mono text-text-muted">{{ variant().price | money }}</span>
         <span
           class="material-icons text-base text-text-soft shrink-0 transition-transform duration-200"
           [class.rotate-180]="expanded()"
@@ -127,8 +127,8 @@ import { highlightParts } from '../variant-filter';
           </div>
           @if (perm.canUpdate('inventory', 'products')) {
             <p class="text-xs text-text-muted">
-              Costo <span class="font-mono font-semibold text-text-main">{{ variant().averageCost | number: '1.2-2' }}</span>
-              · Margen <span class="font-mono font-semibold text-text-main">{{ ((variant().price - (variant().averageCost ?? 0))) | number: '1.2-2' }}</span>
+              Costo <span class="font-mono font-semibold text-text-main">{{ variant().averageCost | money }}</span>
+              · Margen <span class="font-mono font-semibold text-text-main">{{ ((variant().price - (variant().averageCost ?? 0))) | money }}</span>
             </p>
           }
           <div class="flex items-center gap-3">

@@ -93,7 +93,7 @@
               <p class="text-xs text-text-muted truncate">
                 <span class="font-semibold">{{ m.userName }}</span>
                 @if (perm.can('inventory', 'products', 'update')) {
-                  · costo {{ m.unitCost | currency: 'BOB':'symbol':'1.2-2' }}
+                  · costo {{ m.unitCost | money: 'symbol' }}
                 }
                 {{ m.notes ? '· ' + m.notes : '' }}
               </p>
@@ -140,7 +140,7 @@
               <!-- Costo -->
               @if (perm.can('inventory', 'products', 'update')) {
                 <span class="pr-4 text-right font-mono text-xs text-text-soft">
-                  {{ m.unitCost | currency: 'BOB':'symbol':'1.2-2' }}
+                  {{ m.unitCost | money: 'symbol' }}
                 </span>
               } @else {
                 <span class="pr-4 text-right text-xs text-text-soft">—</span>

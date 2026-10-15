@@ -28,7 +28,7 @@
         </span>
       </div>
 
-      <!-- Marca · Nombre (la marca manda y nunca se trunca) -->
+      <!-- Marca · Nombre (tapeable → detalle) -->
       <p class="flex min-w-0 items-baseline gap-1 text-sm leading-tight">
         @if (product().brandName) {
           <span class="shrink-0 font-bold text-text-main" [title]="product().brandName">
@@ -36,23 +36,40 @@
           </span>
           <span class="shrink-0 text-text-soft">·</span>
         }
-        <span class="truncate font-semibold text-text-main">{{ product().name }}</span>
+        <button
+          type="button"
+          (click)="viewDetail.emit(product().id)"
+          class="truncate text-left font-semibold text-accent-ui"
+        >
+          {{ product().name }}
+        </button>
       </p>
 
-      <p class="mt-1 text-xs text-text-muted">
-        {{ product().variantsCount }}
-        {{ product().variantsCount === 1 ? 'talla/color' : 'tallas/colores' }}
+      <!-- Colores + precio -->
+      <p class="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-text-muted">
+        <span class="truncate" [title]="allColorNames()">{{ allColorNames() || '—' }}</span>
+        <span class="shrink-0 text-text-soft">·</span>
+        <span class="shrink-0 font-mono font-semibold text-text-main">{{ priceLabel() }}</span>
       </p>
     </div>
 
-    <!-- Stock: protagonista, a la izquierda del chevron -->
+    <!-- Stock: protagonista, a la izquierda de las acciones -->
     <span class="shrink-0 text-right font-mono">
       <span class="text-lg font-black leading-none" [class]="stockClasses()">{{
         product().totalStock
       }}</span>
-      <span class="text-xs font-bold">u</span>
     </span>
 
+    @if (canEdit()) {
+      <button
+        type="button"
+        (click)="editProduct.emit(product().id)"
+        class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-accent-ui transition-colors hover:bg-bg-muted"
+        [attr.aria-label]="'Editar ' + product().name"
+      >
+        Editar
+      </button>
+    }
     <button
       type="button"
       (click)="viewDetail.emit(product().id)"
@@ -68,9 +85,10 @@
     class="group hidden items-center px-4 py-3 transition-colors duration-150 hover:bg-bg-muted lg:grid"
     [style.grid-template-columns]="gridColumns()"
   >
-    <!-- Código: Token mono -->
+    <!-- Código: Token mono (corto, casi siempre 4 caracteres) -->
     <span
       class="inline-flex w-fit truncate items-center rounded border border-border bg-bg-muted px-2 py-0.5 font-mono text-xs font-bold text-text-muted"
+      [title]="product().internalCode"
     >
       {{ product().internalCode || '—' }}
     </span>
@@ -83,11 +101,16 @@
       {{ product().brandName || '—' }}
     </span>
 
-    <!-- Nombre -->
-    <p
-      class="truncate pr-4 text-sm font-semibold text-text-main group-hover:text-accent-ui transition-colors duration-150"
-    >
-      {{ product().name }}
+    <!-- Nombre (link → detalle) -->
+    <p class="truncate pr-4 text-sm font-semibold">
+      <button
+        type="button"
+        (click)="viewDetail.emit(product().id)"
+        class="truncate text-left text-accent-ui hover:underline"
+        [title]="product().name"
+      >
+        {{ product().name }}
+      </button>
     </p>
 
     <!-- Categoría -->
@@ -98,15 +121,34 @@
       {{ product().categoryName || '—' }}
     </span>
 
-    <!-- Tallas/Colores -->
-    <span class="pr-4 text-right text-xs font-medium text-text-soft">
-      {{ product().variantsCount }}
-      {{ product().variantsCount === 1 ? 'talla/color' : 'tallas/colores' }}
+    <!-- Colores: N chips + "+N" (hover/title con todos) -->
+    <span
+      class="flex min-w-0 items-center gap-1 overflow-hidden pr-4"
+      [title]="allColorNames()"
+    >
+      @for (c of visibleColors(); track c) {
+        <span
+          class="shrink-0 rounded border border-border bg-bg-muted px-1.5 py-0.5 text-[11px] font-medium text-text-main"
+        >
+          {{ c }}
+        </span>
+      }
+      @if (extraColorsCount() > 0) {
+        <span class="shrink-0 text-[11px] font-bold text-text-soft">+{{ extraColorsCount() }}</span>
+      }
+      @if (visibleColors().length === 0) {
+        <span class="text-xs text-text-soft">—</span>
+      }
+    </span>
+
+    <!-- Precio: rango único -->
+    <span class="truncate whitespace-nowrap pr-4 text-right font-mono text-sm font-bold text-text-main" [title]="priceLabel()">
+      {{ priceLabel() }}
     </span>
 
     <!-- Stock: semántica de colores por cantidad -->
     <span class="pr-4 text-right text-sm font-bold" [class]="stockClasses()">
-      {{ product().totalStock }} uds
+      {{ product().totalStock }}
     </span>
 
     <!-- Estado -->
@@ -121,11 +163,19 @@
       {{ product().isActive ? 'Activo' : 'Inactivo' }}
     </span>
 
+    <!-- Editar inline (rondas de precios/datos sin entrar al detalle) -->
     <div class="flex shrink-0 justify-end">
-      <button type="button" (click)="viewDetail.emit(product().id)" class="btn-link">
-        <span class="btn-link-text">Ver más</span>
-        <span class="material-icons text-base">chevron_right</span>
-      </button>
+      @if (canEdit()) {
+        <button
+          type="button"
+          (click)="editProduct.emit(product().id)"
+          class="rounded-lg p-1.5 text-text-soft transition-colors hover:bg-bg-muted hover:text-text-main"
+          [attr.aria-label]="'Editar ' + product().name"
+          [title]="'Editar ' + product().name"
+        >
+          <span class="material-icons text-lg leading-none">edit</span>
+        </button>
+      }
     </div>
   </div>
 </li>
