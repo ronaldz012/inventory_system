@@ -5,7 +5,8 @@ export interface ProductSearchResult {
   name: string;
   internalCode: string;
   description: string;
-  basePrice: number;
+  /** Deprecado: el precio vive por variante. Se eliminará del contrato. */
+  basePrice?: number;
   brandName: string;
   categoryName: string;
   gender: Gender;

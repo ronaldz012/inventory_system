@@ -120,11 +120,18 @@ export class SizeSelectCtrl implements OnDestroy {
 
   fieldState = input.required<FieldState<GUID>>();
   sizeNameState = input.required<FieldState<string>>();
+  /** Tallas que no deben ofrecerse (ej. ya agregadas en una tarjeta). */
+  excludeIds = input<GUID[]>([]);
   sizes = this.service.sizes;
   placeholder = input<string>('Talla...');
   sizeCreated = output<Size>();
 
-  sizeOptions = computed(() => this.sizes().map((s) => ({ id: s.id, displayName: s.name })));
+  sizeOptions = computed(() => {
+    const excluded = new Set(this.excludeIds());
+    return this.sizes()
+      .filter((s) => !excluded.has(s.id))
+      .map((s) => ({ id: s.id, displayName: s.name }));
+  });
 
   showCreate = signal(false);
   createQuery = signal('');
@@ -158,7 +165,9 @@ export class SizeSelectCtrl implements OnDestroy {
   showCreateOption = computed(() => {
     const q = this.query().trim();
     if (!q) return false;
-    return !this.sizeOptions().some((o) => o.displayName.toLowerCase() === q.toLowerCase());
+    // Compara contra el catálogo completo: una talla excluida (ya agregada)
+    // no debe ofrecerse para crear, aunque no aparezca en la lista.
+    return !this.sizes().some((s) => s.name.toLowerCase() === q.toLowerCase());
   });
 
   handleFocusOut(event: FocusEvent): void {

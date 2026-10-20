@@ -62,7 +62,8 @@ import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
           <span
             class="material-icons text-base transition-transform duration-200"
             [class.rotate-180]="isOpen()"
-          >arrow_drop_down</span>
+            >arrow_drop_down</span
+          >
         </button>
       </div>
 
@@ -119,13 +120,19 @@ export class ColorSelectCtrl implements OnDestroy {
 
   fieldState = input.required<FieldState<GUID>>();
   colorNameState = input.required<FieldState<GUID>>();
+  /** Colores que no deben ofrecerse (ej. ya elegidos en otra tarjeta). */
+  excludeIds = input<GUID[]>([]);
   colors = this.service.colors;
   placeholder = input<string>('Color...');
   colorCreated = output<Color>();
 
-  colorOptions = computed(() =>
-    this.colors().map((c) => ({ id: c.id, displayName: c.name })),
-  );
+  /** Catálogo completo: también se usa para impedir crear un color existente. */
+  colorOptions = computed(() => this.colors().map((c) => ({ id: c.id, displayName: c.name })));
+
+  availableColorOptions = computed(() => {
+    const excluded = new Set(this.excludeIds());
+    return this.colorOptions().filter((o) => !excluded.has(o.id));
+  });
 
   showCreate = signal(false);
   createQuery = signal('');
@@ -138,7 +145,7 @@ export class ColorSelectCtrl implements OnDestroy {
   constructor() {
     effect(() => {
       const val = this.fieldState().value();
-      const opts = this.colorOptions();
+      const opts = this.availableColorOptions();
       untracked(() => {
         if (!val) {
           this.query.set('');
@@ -152,12 +159,14 @@ export class ColorSelectCtrl implements OnDestroy {
 
   filteredOptions = computed(() => {
     const q = this.query().toLowerCase().trim();
-    return this.colorOptions().filter((o) => o.displayName.toLowerCase().includes(q));
+    return this.availableColorOptions().filter((o) => o.displayName.toLowerCase().includes(q));
   });
 
   showCreateOption = computed(() => {
     const q = this.query().trim();
     if (!q) return false;
+    // Compara contra el catálogo completo: un color excluido (ya usado en otra
+    // tarjeta) no debe ofrecerse para crear aunque no aparezca en la lista.
     return !this.colorOptions().some((o) => o.displayName.toLowerCase() === q.toLowerCase());
   });
 

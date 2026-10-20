@@ -84,9 +84,7 @@
         </span>
         <span class="text-text-muted">
           Total:
-          <span class="font-extrabold text-accent-ui">{{
-            totalCost() | money: 'symbol'
-          }}</span>
+          <span class="font-extrabold text-accent-ui">{{ totalCost() | money: 'symbol' }}</span>
         </span>
       </div>
 
@@ -117,7 +115,7 @@
       [existingProductIds]="existingProductIds()"
       (confirm)="addGroup($event)"
       (close)="closeCatalogue()"
-      (notFound)="onNotFound($event)"
+      (notFound)="onNotFound()"
     />
   }
 
@@ -129,14 +127,13 @@
       [initialProduct]="pendingCreated()"
       (confirm)="updateItem($event)"
       (close)="closeEdit()"
-      (notFound)="onNotFound($event)"
+      (notFound)="onNotFound()"
     />
   }
 
   @if (showCreateProductModal()) {
     <app-create-product-modal
       [returnMode]="true"
-      [initialName]="pendingName()"
       (created)="onProductCreated($event)"
       (close)="onCreateProductCancelled()"
     />
