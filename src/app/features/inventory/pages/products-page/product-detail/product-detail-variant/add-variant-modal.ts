@@ -1,10 +1,9 @@
-import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { form, FormField, min, required, validate } from '@angular/forms/signals';
 import { ColorSelectCtrl } from '@features/inventory/components/color-select-ctrl/color-select-ctrl.component';
 import { SizeSelectCtrl } from '@features/inventory/components/size-select-ctrl/size-select-ctrl.component';
 import { ColorService } from '@features/inventory/services/color-service';
 import { MoneyPipe } from '@shared/pipes/money-pipe';
-import { ProductVariantDto } from '../../../../dtos/products/product-detail-dto';
 import { CreateProductVariantDto } from '../../../../dtos/products/create-product-variant-dto';
 
 interface AddVariantModel {
@@ -12,6 +11,15 @@ interface AddVariantModel {
   sizeName: string;
   colorId: GUID;
   colorName: string;
+  price: number | null;
+}
+
+/** Variante existente, con el nombre del color según el origen. */
+interface ExistingVariant {
+  colorId: GUID;
+  sizeId: GUID;
+  colorName?: string;
+  color?: string;
   price: number | null;
 }
 
@@ -57,6 +65,22 @@ interface AddVariantModel {
               [fieldState]="addVariantForm.colorId()"
               [colorNameState]="addVariantForm.colorName()"
             />
+            @if (existingColors().length > 0) {
+              <div class="flex items-center gap-1.5 flex-wrap mt-1.5">
+                <span class="text-[10px] text-text-soft">Colores del producto:</span>
+                @for (color of existingColors(); track color.id) {
+                  <button
+                    type="button"
+                    (click)="useColor(color.id)"
+                    [class.!border-accent-ui]="model().colorId === color.id"
+                    [class.!text-accent-ui]="model().colorId === color.id"
+                    class="px-1.5 py-0.5 text-[11px] border border-border rounded-md text-text-muted hover:border-accent-ui hover:text-accent-ui transition-colors"
+                  >
+                    {{ color.name }}
+                  </button>
+                }
+              </div>
+            }
             @if (addVariantForm.colorId().touched() && addVariantForm.colorId().invalid()) {
               @for (error of addVariantForm.colorId().errors(); track error.kind) {
                 <span class="text-xs text-feedback-error-text font-medium leading-none mt-1 block">
@@ -72,6 +96,7 @@ interface AddVariantModel {
             <app-size-select-ctrl
               [fieldState]="addVariantForm.sizeId()"
               [sizeNameState]="addVariantForm.sizeName()"
+              [excludeIds]="usedSizeIdsForSelectedColor()"
             />
             @if (addVariantForm.sizeId().touched() && addVariantForm.sizeId().invalid()) {
               @for (error of addVariantForm.sizeId().errors(); track error.kind) {
@@ -161,9 +186,7 @@ interface AddVariantModel {
   `,
 })
 export default class AddVariantModal {
-  existingVariants = input.required<
-    (Pick<ProductVariantDto, 'colorId' | 'sizeId'> & { price: number | null })[]
-  >();
+  existingVariants = input.required<ExistingVariant[]>();
   submitting = input<boolean>(false);
 
   save = output<CreateProductVariantDto>();
@@ -173,6 +196,15 @@ export default class AddVariantModal {
 
   constructor() {
     this.colorService.load();
+
+    // Si cambia el color y la talla elegida ya existe para ese color, limpiarla.
+    effect(() => {
+      const used = new Set(this.usedSizeIdsForSelectedColor());
+      const sizeId = this.model().sizeId;
+      if (sizeId && used.has(sizeId)) {
+        this.model.update((m) => ({ ...m, sizeId: '' as GUID, sizeName: '' }));
+      }
+    });
   }
 
   model = signal<AddVariantModel>({
@@ -210,9 +242,37 @@ export default class AddVariantModal {
     return [...set].sort((a, b) => a - b);
   });
 
+  /** Tallas que ya existen para el color elegido. */
+  usedSizeIdsForSelectedColor = computed(() => {
+    const colorId = this.model().colorId;
+    if (!colorId) return [];
+    return this.existingVariants()
+      .filter((v) => v.colorId === colorId)
+      .map((v) => v.sizeId);
+  });
+
+  /** Colores distintos del producto, con su nombre. */
+  existingColors = computed(() => {
+    const colors = new Map<GUID, string>();
+    for (const v of this.existingVariants()) {
+      const name = v.colorName?.trim() || v.color?.trim();
+      if (name && !colors.has(v.colorId)) colors.set(v.colorId, name);
+    }
+    return [...colors.entries()]
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  });
+
   /** Un tap en un chip aplica ese precio (acción explícita, nunca automática). */
   usePrice(p: number): void {
     this.model.update((m) => ({ ...m, price: p }));
+  }
+
+  /** Un tap en un chip elige un color ya presente en el producto. */
+  useColor(colorId: GUID): void {
+    const colorName = this.existingColors().find((c) => c.id === colorId)?.name ?? '';
+    this.model.update((m) => ({ ...m, colorId, colorName }));
+    this.addVariantForm.colorId().markAsTouched();
   }
 
   onSave(): void {
