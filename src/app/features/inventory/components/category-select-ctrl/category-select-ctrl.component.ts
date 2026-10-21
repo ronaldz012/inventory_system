@@ -63,7 +63,8 @@ import { CreateCategory } from '../create-category/create-category.component';
           <span
             class="material-icons text-lg transition-transform duration-200"
             [class.rotate-180]="isOpen()"
-          >arrow_drop_down</span>
+            >arrow_drop_down</span
+          >
         </button>
       </div>
 
@@ -122,6 +123,11 @@ export class CategorySelectCtrl implements OnDestroy {
   fieldName = input.required<FieldState<string>>();
   placeholder = input<string>('Categoría...');
   inputId = input<string>('');
+
+  /** Enfoca el combo; el foco abre el desplegable. */
+  focus(): void {
+    this.comboInput()?.nativeElement.focus();
+  }
 
   categoryChange = output<Category>();
 

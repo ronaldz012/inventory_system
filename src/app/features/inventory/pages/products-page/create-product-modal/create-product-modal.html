@@ -6,7 +6,7 @@
     (click)="$event.stopPropagation()"
   >
     <header
-      class="flex items-center justify-between px-4 py-3 border-b border-border bg-bg-surface"
+      class="flex items-center justify-between px-4 py-2 border-b border-border bg-bg-surface"
     >
       <span class="text-[13px] font-semibold text-text-main">Crear producto</span>
       <button
@@ -26,9 +26,9 @@
       </button>
     </header>
 
-    <main class="flex-1 overflow-y-auto p-3 max-w-5xl w-full mx-auto space-y-5">
+    <main class="flex-1 overflow-y-auto p-3 max-w-5xl w-full mx-auto space-y-3">
       <section
-        class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-bg-muted/30 p-4 rounded-xl border border-border/60"
+        class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-bg-muted/30 p-3 rounded-xl border border-border/60"
       >
         <div class="flex flex-col gap-1">
           <label class="field-label">Categoría</label>
@@ -68,7 +68,6 @@
             type="text"
             [formField]="newProductForm.newProduct.name"
             placeholder="Ej. 505 semiclásico..."
-            autofocus
             class="w-full px-3 py-1.5 border rounded-md text-[13px] text-text-main placeholder:text-text-soft bg-bg-surface font-medium outline-none transition-all focus:ring-2 focus:ring-feedback-success-text/20 focus:border-feedback-success-text"
             [class.border-border]="
               !(
@@ -93,8 +92,7 @@
         <div class="flex flex-col gap-1">
           <label class="field-label">Género</label>
           <select
-            (change)="onGenderChange($event)"
-            [value]="newProduct().newProduct.gender ?? ''"
+            [formField]="newProductForm.newProduct.gender"
             class="w-full px-3 py-1.5 border border-border rounded-md text-[13px] text-text-main bg-bg-surface outline-none transition-all focus:ring-2 focus:ring-accent-ui/20 focus:border-accent-ui"
           >
             <option value="" disabled>Seleccione</option>
@@ -102,6 +100,14 @@
               <option [value]="opt.value">{{ opt.label }}</option>
             }
           </select>
+          @if (
+            newProductForm.newProduct.gender().touched() &&
+            newProductForm.newProduct.gender().invalid()
+          ) {
+            @for (error of newProductForm.newProduct.gender().errors(); track error.kind) {
+              <span class="text-[10px] text-feedback-error-text">{{ error.message }}</span>
+            }
+          }
         </div>
 
         <div class="md:col-span-2 flex flex-col gap-1">
@@ -119,27 +125,33 @@
       </section>
 
       <section class="space-y-3">
-        <h3 class="section-title">Talla / Color</h3>
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h3 class="text-xs font-semibold text-text-muted uppercase tracking-wide shrink-0">
+            Colores y tallas
+          </h3>
 
-        <div
-          class="flex flex-wrap items-center gap-3 bg-bg-muted/60 px-3 py-1.5 rounded-lg border border-border"
-        >
-          <span class="text-[10px] font-medium text-text-soft uppercase tracking-wider"
-            >Precio de venta por defecto:</span
-          >
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <label
+              for="product-bulk-price"
+              class="text-[10px] font-medium text-text-muted whitespace-nowrap"
+              >Precio para todas las tallas</label
+            >
+            <span class="text-[10px] font-mono text-text-soft">Bs</span>
             <input
+              id="product-bulk-price"
               type="number"
               placeholder="0.00"
-              [value]="newProduct().defaultPrice ?? ''"
-              (input)="onDefaultPriceChange($event.target.value)"
+              [value]="bulkPrice() ?? ''"
+              (input)="onBulkPriceChange($event)"
+              (keydown.enter)="applyBulkPrice()"
               (keydown)="blockKeys($event)"
-              class="field-number w-24 px-1.5 py-0.5 border border-border rounded text-[11px] font-mono text-text-main bg-bg-surface focus:outline-none focus:border-accent-ui"
+              class="field-number w-20 px-1.5 py-0.5 border border-border rounded text-[11px] font-mono text-text-main bg-bg-surface focus:outline-none focus:border-accent-ui"
             />
             <button
               type="button"
-              (click)="applyDefaultToAll()"
-              [disabled]="newProduct().defaultPrice == null"
+              (click)="applyBulkPrice()"
+              [disabled]="!canApplyBulk()"
+              title="Aplica a todas las tallas de todos los colores"
               class="btn btn-secondary btn-sm shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Aplicar a todas
@@ -147,36 +159,43 @@
           </div>
         </div>
 
-        <div class="border border-border rounded-xl bg-bg-surface shadow-sm">
-          <div class="flex flex-col">
-            @for (variant of newProductForm.variants; track $index; let i = $index) {
-              <app-create-variant-row
-                [formModel]="newProductForm.variants[$index]"
-                (remove)="removeVariant(i)"
-                [index]="i"
-              />
-            } @empty {
-              <div class="py-8 text-center text-xs text-text-soft italic">
-                Sin tallas/colores activos.
-              </div>
-            }
-          </div>
+        <div #colorCardsList class="flex flex-col gap-1.5">
+          @for (group of newProduct().colorGroups; track group.id; let i = $index) {
+            <app-create-color-group
+              [formModel]="newProductForm.colorGroups[$index]"
+              [group]="group"
+              [index]="i"
+              [sizes]="sizeCatalog()"
+              [excludedColorIds]="excludedColorIdsByGroup()[i]"
+              (remove)="removeColorGroup(i)"
+              (duplicate)="duplicateColorGroup(i)"
+              (addSize)="addSize(i, $event)"
+              (removeSize)="removeSize(i, $event)"
+            />
+          } @empty {
+            <div class="py-8 text-center text-xs text-text-soft italic">
+              Sin colores. Agregá uno para cargar sus tallas.
+            </div>
+          }
         </div>
 
-        <div class="flex gap-2">
-          <button type="button" (click)="addVariant()" class="btn btn-secondary btn-sm flex-1">
-            + Agregar talla / color
-          </button>
-          <button
-            type="button"
-            (click)="duplicateLastVariant()"
-            [disabled]="newProduct().variants.length === 0"
-            title="Copia color y precio de la última fila, solo elegís la talla"
-            class="btn btn-secondary btn-sm flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {{ duplicateLabel() }}
-          </button>
-        </div>
+        @if (newProductForm.colorGroups().touched() && newProductForm.colorGroups().invalid()) {
+          @for (error of newProductForm.colorGroups().errors(); track error.kind) {
+            <div
+              class="px-2 py-1 bg-feedback-error-bg/10 border border-feedback-error-text/20 rounded text-[10px] text-feedback-error-text font-medium"
+            >
+              {{ error.message }}
+            </div>
+          }
+        }
+
+        <button
+          type="button"
+          (click)="addColorGroup()"
+          class="btn btn-secondary btn-sm w-full border-dashed"
+        >
+          + Agregar color
+        </button>
       </section>
 
       @if (error()) {
@@ -188,8 +207,9 @@
       }
     </main>
 
-    <footer class="border-t border-border bg-bg-surface p-4">
-      <div class="flex items-center justify-end gap-3">
+    <footer class="border-t border-border bg-bg-surface p-3">
+      <div class="flex flex-wrap items-center justify-end gap-3">
+        <span class="text-[11px] text-text-muted mr-auto">{{ summary() }}</span>
         <button type="button" (click)="onClose()" class="btn btn-secondary btn-sm">Cancelar</button>
         <button
           type="button"

@@ -74,7 +74,6 @@ export default class ReceptionForm implements OnInit, OnDestroy {
   private confirmModal = useStackedModal(this.stack, this.showConfirm, () => !this.isSubmitting());
   editingItem = signal<{ index: number; item: ItemForm } | null>(null);
   pendingProduct = signal<ProductSearchResult | null>(null);
-  pendingName = signal('');
   creatingFromEdit = signal(false);
   pendingCreated = signal<ProductSearchResult | null>(null);
 
@@ -212,7 +211,11 @@ export default class ReceptionForm implements OnInit, OnDestroy {
         this.isSubmitting.set(false);
         // El modal queda abierto para reintentar; el error se muestra arriba.
         const e = err as { error?: { detail?: string; title?: string }; message?: string };
-        const msg = e?.error?.detail || e?.error?.title || e?.message || 'Error al guardar la recepción. Intentá de nuevo.';
+        const msg =
+          e?.error?.detail ||
+          e?.error?.title ||
+          e?.message ||
+          'Error al guardar la recepción. Intentá de nuevo.';
         this.submitError.set(msg);
         this.toast.error(msg);
       },
@@ -230,9 +233,8 @@ export default class ReceptionForm implements OnInit, OnDestroy {
     if (item) this.openEdit();
   }
 
-  onNotFound(query: string): void {
+  onNotFound(): void {
     this.creatingFromEdit.set(this.showEditModal());
-    this.pendingName.set(query);
     if (this.showEditModal()) this.closeEdit();
     if (this.showAddCatalogueModal()) this.closeCatalogue();
     this.openProduct();

@@ -14,12 +14,30 @@ import { ModalStackService } from '@core/modal-stack-service';
 import { ItemForm } from '../../../models/variant-form.model';
 
 const item: ItemForm = {
-  product: { id: 'p1', productName: 'Zapato', internalCode: 'ZAP', categoryName: 'Calzado', brandName: 'Nike', genderName: '', description: '' },
+  product: {
+    id: 'p1',
+    productName: 'Zapato',
+    internalCode: 'ZAP',
+    categoryName: 'Calzado',
+    brandName: 'Nike',
+    genderName: '',
+    description: '',
+  },
   variants: [
     {
-      mode: 'ex', id: 'v1', sizeId: 's1', sizeName: '35', sizeOrder: 1, colorId: 'c1',
-      colorCode: '', colorName: 'Rojo', quantityReceived: 6, unitCost: 50,
-      price: 120, sku: 'SKU-1', selected: true,
+      mode: 'ex',
+      id: 'v1',
+      sizeId: 's1',
+      sizeName: '35',
+      sizeOrder: 1,
+      colorId: 'c1',
+      colorCode: '',
+      colorName: 'Rojo',
+      quantityReceived: 6,
+      unitCost: 50,
+      price: 120,
+      sku: 'SKU-1',
+      selected: true,
     },
   ],
 };
@@ -42,7 +60,10 @@ describe('ReceptionForm confirm flow', () => {
     calls: [] as unknown[],
     flags: [] as (boolean | undefined)[],
     paths: [] as unknown[][],
-    fn(commands: unknown[], extras?: { queryParams?: { modal?: string | null }; replaceUrl?: boolean }) {
+    fn(
+      commands: unknown[],
+      extras?: { queryParams?: { modal?: string | null }; replaceUrl?: boolean },
+    ) {
       const modal = extras?.queryParams?.modal;
       params$.next({ get: () => (modal == null ? null : modal) });
       this.calls.push(modal);
@@ -63,7 +84,12 @@ describe('ReceptionForm confirm flow', () => {
       imports: [Host],
       providers: [
         { provide: ActivatedRoute, useValue: { queryParamMap: params$.asObservable() } },
-        { provide: Router, useValue: { navigate: (...a: unknown[]) => navigateSpy.fn(a[0] as unknown[], a[1] as never) } },
+        {
+          provide: Router,
+          useValue: {
+            navigate: (...a: unknown[]) => navigateSpy.fn(a[0] as unknown[], a[1] as never),
+          },
+        },
         {
           provide: ReceptionService,
           useValue: {
@@ -207,10 +233,9 @@ describe('ReceptionForm confirm flow', () => {
   it('notFound cambia de catalogue a crear-producto sin historial', () => {
     const { form } = setup();
     form.openAddCatalogueModal();
-    form.onNotFound('zapato');
+    form.onNotFound();
     expect(form.showAddCatalogueModal()).toBe(false);
     expect(form.showCreateProductModal()).toBe(true);
-    expect(form.pendingName()).toBe('zapato');
     expect(navigateSpy.paths).toEqual([]);
     expect(backSpy.calls).toBe(0);
   });
@@ -218,11 +243,17 @@ describe('ReceptionForm confirm flow', () => {
   it('cadena catalogue→product→catalogue→add cierra directo sin back()', () => {
     const { form } = setup();
     form.openAddCatalogueModal();
-    form.onNotFound('zapato');
+    form.onNotFound();
     form.onProductCreated({
-      id: 'p2', name: 'Botín', internalCode: 'BOT', description: '',
-      basePrice: 100, brandName: 'Nike', categoryName: 'Calzado',
-      gender: 0, productVariants: [],
+      id: 'p2',
+      name: 'Botín',
+      internalCode: 'BOT',
+      description: '',
+      basePrice: 100,
+      brandName: 'Nike',
+      categoryName: 'Calzado',
+      gender: 0,
+      productVariants: [],
     } as never);
     expect(form.showAddCatalogueModal()).toBe(true);
     expect(form.showCreateProductModal()).toBe(false);

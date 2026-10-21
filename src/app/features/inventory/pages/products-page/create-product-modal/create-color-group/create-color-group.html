@@ -1,0 +1,143 @@
+<div class="rounded-xl border border-border bg-bg-surface shadow-sm">
+  <header
+    class="flex items-center gap-2 px-3 py-1.5 bg-bg-muted/40 border-b border-border rounded-t-xl"
+  >
+    <span class="shrink-0 w-4 text-center text-[10px] font-bold text-text-soft tabular-nums">
+      {{ index() + 1 }}
+    </span>
+
+    <span class="shrink-0 hidden sm:inline text-[9px] uppercase tracking-wider text-text-soft">
+      Color
+    </span>
+
+    <div class="flex-1 min-w-0 flex flex-col gap-0.5">
+      <app-color-select-ctrl
+        [fieldState]="formModel().colorId()"
+        [colorNameState]="formModel().colorName()"
+        [excludeIds]="excludedColorIds()"
+      />
+      @if (formModel().colorId().touched() && formModel().colorId().invalid()) {
+        @for (error of formModel().colorId().errors(); track error.kind) {
+          <span class="text-[9px] text-feedback-error-text font-medium leading-none">{{
+            error.message
+          }}</span>
+        }
+      }
+    </div>
+
+    @if (group().sizes.length > 0) {
+      <span class="shrink-0 hidden sm:inline text-[10px] text-text-soft whitespace-nowrap">
+        {{ group().sizes.length }} {{ group().sizes.length === 1 ? 'talla' : 'tallas' }}
+      </span>
+    }
+
+    <button
+      type="button"
+      (click)="duplicate.emit()"
+      class="btn-icon text-text-soft hover:text-accent-ui hover:bg-bg-muted transition-all shrink-0"
+      title="Duplicar este color con sus tallas"
+      [attr.aria-label]="'Duplicar color ' + (index() + 1)"
+    >
+      <span class="material-icons text-[16px] leading-none">content_copy</span>
+    </button>
+
+    <button
+      type="button"
+      (click)="remove.emit()"
+      class="btn-icon text-text-soft hover:text-white hover:bg-feedback-error-text transition-all shrink-0"
+      [attr.aria-label]="'Quitar color ' + (index() + 1)"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M6 18L18 6M6 6l12 12"
+        />
+      </svg>
+    </button>
+  </header>
+
+  <div class="px-3 py-1.5">
+    @if (group().sizes.length > 0) {
+      <div class="hidden sm:grid grid-cols-[1fr_8.5rem_1.75rem] gap-2 pb-1">
+        <span class="table-header">Talla</span>
+        <span class="table-header text-right">Precio (Bs)</span>
+        <span></span>
+      </div>
+
+      <ul class="flex flex-col">
+        @for (size of group().sizes; track size.sizeId; let j = $index) {
+          <li
+            class="grid grid-cols-[1fr_8.5rem_1.75rem] gap-2 items-start py-0.5 border-t border-border/40 first:border-t-0"
+          >
+            <div class="min-w-0 pt-1">
+              <span class="text-[12px] font-semibold text-text-main">{{ size.sizeName }}</span>
+            </div>
+
+            <div>
+              <input
+                type="number"
+                [formField]="formModel().sizes[j].price"
+                placeholder="0.00"
+                (keydown)="blockKeys($event)"
+                [class.!border-feedback-error-text]="
+                  formModel().sizes[j].price().touched() && formModel().sizes[j].price().invalid()
+                "
+                class="field-number w-full px-2 py-1 border border-border rounded text-[11px] text-right bg-transparent text-feedback-success-text font-bold font-mono focus:outline-none focus:border-accent-ui focus:bg-bg-surface transition-all placeholder:text-text-soft"
+              />
+              @if (
+                formModel().sizes[j].price().touched() && formModel().sizes[j].price().invalid()
+              ) {
+                @for (error of formModel().sizes[j].price().errors(); track error.kind) {
+                  <span
+                    class="block text-[9px] text-feedback-error-text font-medium leading-none mt-0.5"
+                    >{{ error.message }}</span
+                  >
+                }
+              }
+            </div>
+
+            <button
+              type="button"
+              tabindex="-1"
+              (click)="onRemoveSize(j)"
+              class="btn-icon text-text-soft hover:text-white hover:bg-feedback-error-text transition-all shrink-0"
+              [attr.aria-label]="'Quitar talla ' + size.sizeName"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+
+    <div #addSizeAnchor class="flex items-center gap-2 mt-1.5">
+      <div class="w-56 max-w-full">
+        <app-size-select-ctrl
+          [fieldState]="pickerForm.sizeId()"
+          [sizeNameState]="pickerForm.sizeName()"
+          [excludeIds]="usedSizeIds()"
+          placeholder="+ Agregar talla…"
+        />
+      </div>
+    </div>
+
+    @if (formModel().sizes().touched() && formModel().sizes().invalid()) {
+      @for (error of formModel().sizes().errors(); track error.kind) {
+        <div
+          class="mt-1.5 px-2 py-1 bg-feedback-error-bg/10 border border-feedback-error-text/20 rounded text-[10px] text-feedback-error-text font-medium"
+        >
+          {{ error.message }}
+        </div>
+      }
+    }
+  </div>
+</div>
