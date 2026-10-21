@@ -10,7 +10,7 @@ export enum PaymentMethod {
 
 export function paymentMethodLabel(v: PaymentMethod | string | number): string {
   const n = typeof v === 'string' ? (v === 'Cash' ? 0 : v === 'QrCode' ? 1 : NaN) : (v as number);
-  return n === PaymentMethod.QrCode ? 'Pago Móvil' : 'Efectivo';
+  return n === PaymentMethod.QrCode ? 'QR' : 'Efectivo';
 }
 export function isCashPayment(v: PaymentMethod | string | number): boolean {
   return paymentMethodLabel(v) === 'Efectivo';
@@ -23,7 +23,16 @@ export enum DocumentType {
 }
 
 export function documentTypeLabel(v: DocumentType | string | number): string {
-  const n = typeof v === 'string' ? (v === 'Ticket' ? 0 : v === 'Invoice' ? 1 : v === 'PendingInvoice' ? 2 : NaN) : (v as number);
+  const n =
+    typeof v === 'string'
+      ? v === 'Ticket'
+        ? 0
+        : v === 'Invoice'
+          ? 1
+          : v === 'PendingInvoice'
+            ? 2
+            : NaN
+      : (v as number);
   if (n === DocumentType.Invoice) return 'Factura';
   if (n === DocumentType.PendingInvoice) return 'Pendiente';
   return 'Boleta';

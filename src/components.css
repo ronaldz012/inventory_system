@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* ...todo tu :root y .dark... */
 
@@ -29,6 +29,11 @@
 }
 @utility btn-link-text {
   @apply hover:underline;
+}
+
+/* Acción suave de acento (ej.: Registrar gasto): no es primaria ni neutra. */
+@utility btn-accent-soft {
+  @apply btn bg-accent-ui/10 text-accent-ui hover:bg-accent-ui/20;
 }
 
 @utility btn-icon-md {
@@ -87,7 +92,6 @@
 @utility table-group-header {
   @apply flex items-center gap-2 px-3 py-1.5 bg-bg-muted/40 border-b border-border;
 }
-
 
 @utility badge {
   @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ring-1;
@@ -159,4 +163,29 @@
 }
 @utility tag-error {
   @apply tag bg-feedback-error text-feedback-error-text border-feedback-error-text/20;
+}
+
+/* ─────────────────────────────────────────────
+   CHIPS — Badges compactos de estado del módulo de ventas
+   (media punta entre pill (8px) y tag (12px): la medida que
+   la vista de venta/cierre venía usando de facto)
+   ───────────────────────────────────────────── */
+@utility chip {
+  @apply inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold;
+}
+
+@utility chip-accent {
+  @apply chip bg-accent-ui/10 text-accent-ui;
+}
+
+@utility chip-warning {
+  @apply chip bg-feedback-warning text-feedback-warning-text;
+}
+
+@utility chip-info {
+  @apply chip bg-feedback-info text-feedback-info-text;
+}
+
+@utility chip-neutral {
+  @apply chip bg-bg-muted text-text-muted;
 }

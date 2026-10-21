@@ -170,13 +170,6 @@ export const routes: Routes = [
               import('@features/sales/pages/close-register-page/close-register-page'),
           },
           {
-            path: 'pos/expenses',
-            title: 'Gastos del Día',
-            canActivate: [featureGuard],
-            data: { module: 'sales', feature: 'pos' },
-            loadComponent: () => import('@features/sales/pages/expenses-page/expenses-page'),
-          },
-          {
             path: 'pos/returns',
             canActivate: [featureGuard],
             data: { module: 'sales', feature: 'pos' },

@@ -50,7 +50,7 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
             <h1 class="text-lg font-black text-text-main">Detalle de Cierre</h1>
           </div>
 
-           <div class="bg-bg-surface rounded-xl border border-border-strong px-4 py-3">
+          <div class="bg-bg-surface rounded-xl border border-border-strong px-4 py-3">
             <div class="flex items-center gap-2">
               <p class="text-sm font-semibold text-text-main">Cierre #{{ c.number }}</p>
               <span
@@ -59,12 +59,13 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                 [class.text-feedback-success-text]="c.difference === 0"
                 [class.bg-feedback-error]="c.difference !== 0"
                 [class.text-feedback-error-text]="c.difference !== 0"
-                >@if (c.difference === 0) {
+              >
+                @if (c.difference === 0) {
                   Cuadra
                 } @else {
                   Dif {{ c.difference | money: 'symbol' }}
-                }</span
-              >
+                }
+              </span>
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
@@ -112,7 +113,10 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
               </div>
               <div class="min-w-0">
                 <p class="table-header">Turno</p>
-                <p class="text-sm font-bold text-text-main truncate" [title]="c.openedByName + ' → ' + (c.closedByName || '—')">
+                <p
+                  class="text-sm font-bold text-text-main truncate"
+                  [title]="c.openedByName + ' → ' + (c.closedByName || '—')"
+                >
                   {{ c.openedByName }} → {{ c.closedByName || '—' }}
                 </p>
               </div>
@@ -140,10 +144,17 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
           @if (c.sales.length > 0) {
             <div class="bg-bg-surface rounded-xl border border-border shadow-xs overflow-hidden">
               <div class="px-6 pt-5 pb-3 flex items-center justify-between">
-                <p class="text-[11px] font-bold uppercase tracking-wider text-text-soft">Ventas del turno ({{ c.sales.length }})</p>
-                <span class="text-xs font-bold text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md">{{ c.sales.length }} venta(s)</span>
+                <p class="text-[11px] font-bold uppercase tracking-wider text-text-soft">
+                  Ventas del turno ({{ c.sales.length }})
+                </p>
+                <span
+                  class="text-xs font-bold text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md"
+                  >{{ c.sales.length }} venta(s)</span
+                >
               </div>
-              <div class="hidden lg:grid lg:grid-cols-[9rem_8rem_6rem_7rem_6rem] px-6 py-2 bg-bg-muted border-y border-border text-[10px] font-bold uppercase tracking-wider text-text-soft">
+              <div
+                class="hidden lg:grid lg:grid-cols-[9rem_8rem_6rem_7rem_6rem] px-6 py-2 bg-bg-muted border-y border-border text-[10px] font-bold uppercase tracking-wider text-text-soft"
+              >
                 <span>Hora</span>
                 <span class="text-right">Monto</span>
                 <span class="text-center">Tipo</span>
@@ -156,33 +167,77 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                     <!-- Mobile card -->
                     <div class="lg:hidden px-4 py-4 flex flex-col gap-3">
                       <div class="flex items-center justify-between gap-2">
-                        <span class="text-sm font-bold text-text-main font-mono">{{ sale.createdAt | smartDate }}</span>
-                        <span class="text-sm font-mono font-black text-text-main">{{ sale.totalAmount | money: 'symbol' }}</span>
+                        <span class="text-sm font-bold text-text-main font-mono">{{
+                          sale.createdAt | smartDate
+                        }}</span>
+                        <span class="text-sm font-mono font-black text-text-main">{{
+                          sale.totalAmount | money: 'symbol'
+                        }}</span>
                       </div>
                       <div class="flex flex-wrap items-center gap-2">
                         @if (isReturnType(sale.type)) {
-                          <span class="text-[11px] font-bold text-feedback-warning-text bg-feedback-warning/15 border border-feedback-warning/30 px-2 py-0.5 rounded-md">Devolución</span>
+                          <span
+                            class="text-[11px] font-bold text-feedback-warning-text bg-feedback-warning/15 border border-feedback-warning/30 px-2 py-0.5 rounded-md"
+                            >Devolución</span
+                          >
                         } @else {
-                          <span class="text-[11px] font-bold text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md">Venta</span>
+                          <span
+                            class="text-[11px] font-bold text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md"
+                            >Venta</span
+                          >
                         }
                         @if (isCashPayment(sale.paymentMethod)) {
-                          <span class="text-[11px] font-medium text-text-muted bg-bg-muted px-2 py-0.5 rounded-md">Efectivo</span>
+                          <span
+                            class="text-[11px] font-medium text-text-muted bg-bg-muted px-2 py-0.5 rounded-md"
+                            >Efectivo</span
+                          >
                         } @else {
-                          <span class="text-[11px] font-medium text-feedback-info-text bg-feedback-info-bg/15 px-2 py-0.5 rounded-md">Pago Móvil</span>
+                          <span
+                            class="text-[11px] font-medium text-feedback-info-text bg-feedback-info-bg/15 px-2 py-0.5 rounded-md"
+                            >QR</span
+                          >
                         }
-                        <span class="text-xs font-bold text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md">{{ sale.itemsCount }} art.</span>
+                        <span
+                          class="text-xs font-bold text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md"
+                          >{{ sale.itemsCount }} art.</span
+                        >
                         <span class="text-xs text-text-soft truncate">· {{ sale.soldByName }}</span>
                       </div>
                       @if (sale.items.length > 0) {
-                        <ul class="flex flex-col divide-y divide-border border border-border rounded-lg overflow-hidden">
+                        <ul
+                          class="flex flex-col divide-y divide-border border border-border rounded-lg overflow-hidden"
+                        >
                           @for (item of sale.items; track item.productVariantId) {
                             <li class="px-3 py-2.5 flex flex-col gap-1 bg-bg-surface">
-                              <span class="font-mono text-[11px] font-bold tracking-wide text-accent-ui">{{ item.productSku }}</span>
-                              <p class="text-[13px] font-semibold text-text-main break-words leading-snug">{{ item.productDisplayName }}</p>
+                              <span
+                                class="font-mono text-[11px] font-bold tracking-wide text-accent-ui"
+                                >{{ item.productSku }}</span
+                              >
+                              <p
+                                class="text-[13px] font-semibold text-text-main break-words leading-snug"
+                              >
+                                {{ item.productDisplayName }}
+                              </p>
                               <div class="flex flex-wrap items-center gap-2 text-xs">
-                                <span class="px-2 py-0.5 rounded-md bg-bg-muted border border-border font-mono font-medium text-text-main">×{{ item.quantity }} · {{ item.finalPrice | money: 'symbol' }}</span>
-                                <span class="text-text-soft font-mono">costo {{ item.unitCost | money: 'symbol' }}</span>
-                                <span class="font-mono font-bold" [class.text-feedback-success-text]="((item.unitPrice - (item.unitCost ?? 0)) * item.quantity) > 0">{{ ((item.unitPrice - (item.unitCost ?? 0))) * item.quantity | money: 'symbol' }} margen</span>
+                                <span
+                                  class="px-2 py-0.5 rounded-md bg-bg-muted border border-border font-mono font-medium text-text-main"
+                                  >×{{ item.quantity }} ·
+                                  {{ item.finalPrice | money: 'symbol' }}</span
+                                >
+                                <span class="text-text-soft font-mono"
+                                  >costo {{ item.unitCost | money: 'symbol' }}</span
+                                >
+                                <span
+                                  class="font-mono font-bold"
+                                  [class.text-feedback-success-text]="
+                                    (item.unitPrice - (item.unitCost ?? 0)) * item.quantity > 0
+                                  "
+                                  >{{
+                                    (item.unitPrice - (item.unitCost ?? 0)) * item.quantity
+                                      | money: 'symbol'
+                                  }}
+                                  margen</span
+                                >
                               </div>
                             </li>
                           }
@@ -191,37 +246,86 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                     </div>
                     <!-- Desktop -->
                     <div class="hidden lg:block">
-                      <div class="grid lg:grid-cols-[9rem_8rem_6rem_7rem_6rem] items-center px-6 py-3 hover:bg-bg-muted/30 transition-colors">
-                        <span class="text-[13px] text-text-main font-mono">{{ sale.createdAt | smartDate }}</span>
-                        <span class="text-right text-[13px] font-mono font-bold text-text-main" [class.text-feedback-warning-text]="isReturnType(sale.type)">{{ sale.totalAmount | money: 'symbol' }}</span>
+                      <div
+                        class="grid lg:grid-cols-[9rem_8rem_6rem_7rem_6rem] items-center px-6 py-3 hover:bg-bg-muted/30 transition-colors"
+                      >
+                        <span class="text-[13px] text-text-main font-mono">{{
+                          sale.createdAt | smartDate
+                        }}</span>
+                        <span
+                          class="text-right text-[13px] font-mono font-bold text-text-main"
+                          [class.text-feedback-warning-text]="isReturnType(sale.type)"
+                          >{{ sale.totalAmount | money: 'symbol' }}</span
+                        >
                         <span class="text-center">
                           @if (isReturnType(sale.type)) {
-                            <span class="text-[11px] font-bold text-feedback-warning-text bg-feedback-warning/15 border border-feedback-warning/30 px-2 py-0.5 rounded-md">Devolución</span>
+                            <span
+                              class="text-[11px] font-bold text-feedback-warning-text bg-feedback-warning/15 border border-feedback-warning/30 px-2 py-0.5 rounded-md"
+                              >Devolución</span
+                            >
                           } @else {
-                            <span class="text-[11px] font-bold text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md">Venta</span>
+                            <span
+                              class="text-[11px] font-bold text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md"
+                              >Venta</span
+                            >
                           }
                         </span>
                         <span class="text-center">
                           @if (isCashPayment(sale.paymentMethod)) {
-                            <span class="text-[11px] font-medium text-text-muted bg-bg-muted px-2 py-0.5 rounded-md">Efectivo</span>
+                            <span
+                              class="text-[11px] font-medium text-text-muted bg-bg-muted px-2 py-0.5 rounded-md"
+                              >Efectivo</span
+                            >
                           } @else {
-                            <span class="text-[11px] font-medium text-feedback-info-text bg-feedback-info-bg/10 px-2 py-0.5 rounded-md">Pago Móvil</span>
+                            <span
+                              class="text-[11px] font-medium text-feedback-info-text bg-feedback-info-bg/10 px-2 py-0.5 rounded-md"
+                              >QR</span
+                            >
                           }
                         </span>
-                        <span class="text-right text-xs font-bold font-mono text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md w-fit ml-auto">{{ sale.itemsCount }}</span>
+                        <span
+                          class="text-right text-xs font-bold font-mono text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md w-fit ml-auto"
+                          >{{ sale.itemsCount }}</span
+                        >
                       </div>
                       @if (sale.items.length > 0) {
-                        <div class="mx-6 mb-3 rounded-lg border border-border bg-bg-muted/30 overflow-hidden">
-                          <div class="grid lg:grid-cols-[8rem_1fr_6rem_6rem_7rem] px-3 py-1.5 bg-bg-muted border-b border-border text-[10px] font-bold uppercase tracking-wider text-text-soft">
-                            <span>SKU</span><span>Producto</span><span class="text-right">Costo</span><span class="text-right">Margen</span><span class="text-right">Subtotal</span>
+                        <div
+                          class="mx-6 mb-3 rounded-lg border border-border bg-bg-muted/30 overflow-hidden"
+                        >
+                          <div
+                            class="grid lg:grid-cols-[8rem_1fr_6rem_6rem_7rem] px-3 py-1.5 bg-bg-muted border-b border-border text-[10px] font-bold uppercase tracking-wider text-text-soft"
+                          >
+                            <span>SKU</span><span>Producto</span
+                            ><span class="text-right">Costo</span
+                            ><span class="text-right">Margen</span
+                            ><span class="text-right">Subtotal</span>
                           </div>
                           @for (item of sale.items; track item.productVariantId) {
-                            <div class="grid lg:grid-cols-[8rem_1fr_6rem_6rem_7rem] items-center px-3 py-2 text-xs gap-2 border-b border-border/50 last:border-0 bg-bg-surface">
-                              <span class="font-mono text-accent-ui font-bold truncate">{{ item.productSku }}</span>
-                              <span class="font-medium text-text-main truncate" [title]="item.productDisplayName">{{ item.productDisplayName }}</span>
-                              <span class="text-right font-mono text-text-soft">{{ item.unitCost | money: 'symbol' }}</span>
-                              <span class="text-right font-mono font-bold text-feedback-success-text">{{ ((item.unitPrice - (item.unitCost ?? 0))) * item.quantity | money: 'symbol' }}</span>
-                              <span class="text-right font-mono font-bold text-text-main">×{{ item.quantity }} · {{ item.finalPrice | money: 'symbol' }}</span>
+                            <div
+                              class="grid lg:grid-cols-[8rem_1fr_6rem_6rem_7rem] items-center px-3 py-2 text-xs gap-2 border-b border-border/50 last:border-0 bg-bg-surface"
+                            >
+                              <span class="font-mono text-accent-ui font-bold truncate">{{
+                                item.productSku
+                              }}</span>
+                              <span
+                                class="font-medium text-text-main truncate"
+                                [title]="item.productDisplayName"
+                                >{{ item.productDisplayName }}</span
+                              >
+                              <span class="text-right font-mono text-text-soft">{{
+                                item.unitCost | money: 'symbol'
+                              }}</span>
+                              <span
+                                class="text-right font-mono font-bold text-feedback-success-text"
+                                >{{
+                                  (item.unitPrice - (item.unitCost ?? 0)) * item.quantity
+                                    | money: 'symbol'
+                                }}</span
+                              >
+                              <span class="text-right font-mono font-bold text-text-main"
+                                >×{{ item.quantity }} ·
+                                {{ item.finalPrice | money: 'symbol' }}</span
+                              >
                             </div>
                           }
                         </div>
@@ -236,12 +340,16 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
           @if (c.movements.length > 0) {
             <div class="bg-bg-surface rounded-xl border border-border shadow-xs overflow-hidden">
               <div class="px-6 pt-5 pb-3">
-                <p class="text-[11px] font-bold uppercase tracking-wider text-text-soft">Movimientos ({{ c.movements.length }})</p>
+                <p class="text-[11px] font-bold uppercase tracking-wider text-text-soft">
+                  Movimientos ({{ c.movements.length }})
+                </p>
               </div>
               <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                   <thead>
-                    <tr class="text-[10px] font-bold uppercase tracking-wider text-text-soft border-y border-border bg-bg-muted">
+                    <tr
+                      class="text-[10px] font-bold uppercase tracking-wider text-text-soft border-y border-border bg-bg-muted"
+                    >
                       <th class="text-left py-2.5 pl-6 pr-4">Tipo</th>
                       <th class="text-left py-2.5 pr-4">Descripción</th>
                       <th class="text-right py-2.5 px-4">Monto</th>
@@ -252,15 +360,27 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                     @for (m of c.movements; track m.id) {
                       <tr class="hover:bg-bg-muted/30 transition-colors">
                         <td class="py-2.5 pl-6 pr-4">
-                          <span class="text-[11px] font-bold px-2 py-0.5 rounded-md" [class.text-feedback-error-text]="m.type === 'Outflow'" [class.bg-feedback-error-bg]="m.type === 'Outflow'" [class.text-feedback-success-text]="m.type !== 'Outflow'" [class.bg-feedback-success-bg]="m.type !== 'Outflow'">
+                          <span
+                            class="text-[11px] font-bold px-2 py-0.5 rounded-md"
+                            [class.text-feedback-error-text]="m.type === 'Outflow'"
+                            [class.bg-feedback-error-bg]="m.type === 'Outflow'"
+                            [class.text-feedback-success-text]="m.type !== 'Outflow'"
+                            [class.bg-feedback-success-bg]="m.type !== 'Outflow'"
+                          >
                             {{ m.type === 'Outflow' ? 'Salida' : 'Entrada' }}
                           </span>
                         </td>
                         <td class="py-2.5 pr-4 text-sm text-text-main">{{ m.description }}</td>
-                        <td class="py-2.5 px-4 text-right text-sm font-mono font-bold" [class.text-feedback-error-text]="m.type === 'Outflow'" [class.text-feedback-success-text]="m.type !== 'Outflow'">
+                        <td
+                          class="py-2.5 px-4 text-right text-sm font-mono font-bold"
+                          [class.text-feedback-error-text]="m.type === 'Outflow'"
+                          [class.text-feedback-success-text]="m.type !== 'Outflow'"
+                        >
                           {{ (m.type === 'Outflow' ? -m.amount : m.amount) | money: 'symbol' }}
                         </td>
-                        <td class="py-2.5 pr-6 text-right text-sm text-text-soft">{{ m.createdAt | smartDate }}</td>
+                        <td class="py-2.5 pr-6 text-right text-sm text-text-soft">
+                          {{ m.createdAt | smartDate }}
+                        </td>
                       </tr>
                     }
                   </tbody>
@@ -272,8 +392,13 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
           @if (c.variantStocks.length) {
             <div class="bg-bg-surface rounded-xl border border-border shadow-xs overflow-hidden">
               <div class="px-6 pt-5 pb-3 flex items-center justify-between">
-                <p class="text-[11px] font-bold uppercase tracking-wider text-text-soft">Stock actual para reposición ({{ c.variantStocks.length }})</p>
-                <span class="text-xs font-bold text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md">{{ c.variantStocks.length }} art.</span>
+                <p class="text-[11px] font-bold uppercase tracking-wider text-text-soft">
+                  Stock actual para reposición ({{ c.variantStocks.length }})
+                </p>
+                <span
+                  class="text-xs font-bold text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md"
+                  >{{ c.variantStocks.length }} art.</span
+                >
               </div>
 
               <!-- MOBILE -->
@@ -309,7 +434,9 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
               <div class="hidden md:block overflow-x-auto">
                 <table class="w-full text-sm">
                   <thead>
-                    <tr class="text-[10px] font-bold uppercase tracking-wider text-text-soft border-y border-border bg-bg-muted">
+                    <tr
+                      class="text-[10px] font-bold uppercase tracking-wider text-text-soft border-y border-border bg-bg-muted"
+                    >
                       <th class="text-left py-2.5 pl-6 pr-4">SKU</th>
                       <th class="text-left py-2.5 pr-4">Producto</th>
                       <th class="text-right py-2.5 pr-6">Stock</th>

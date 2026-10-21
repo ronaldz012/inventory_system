@@ -23,6 +23,7 @@ import { SaleService } from '@features/sales/services/sale-service';
 import { CreateSaleDto, CreateSaleItemDto } from '@features/sales/dtos/create-sale-dto';
 import { ToastService } from '@core/services/toast-service';
 import { PermissionService } from '@features/auth/services/permmision-service';
+import CreateExpenseModal from '@features/sales/pages/expenses-page/create-expense-modal';
 
 @Component({
   selector: 'app-pos-page',
@@ -36,6 +37,7 @@ import { PermissionService } from '@features/auth/services/permmision-service';
     PosMobilePayModal,
     PosDesktopPayPanel,
     PosSearchModal,
+    CreateExpenseModal,
   ],
   templateUrl: './pos-page.html',
 })
@@ -212,6 +214,9 @@ export default class PosPage implements OnInit {
   closeSearch(): void {
     closeModal(this.router, this.route);
   }
+
+  /** "Gastos" ahora registra el gasto sobre el POS, sin saltear de pantalla. */
+  showCreateExpense = signal(false);
 
   /** Agrega al carrito la variante elegida en el modal de búsqueda */
   onVariantPicked(sku: string): void {
