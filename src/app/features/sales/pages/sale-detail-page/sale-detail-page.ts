@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SaleService } from '@features/sales/services/sale-service';
+import { PermissionService } from '@features/auth/services/permmision-service';
 import {
   DocumentType,
   PaymentMethod,
@@ -258,17 +259,21 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                         {{ item.returnedQuantity }} devuelto
                       </span>
                     }
-                    <span class="text-xs font-mono text-text-soft"
-                      >Costo {{ item.unitCost | money: 'symbol' }}</span
-                    >
+                    @if (canMargin()) {
+                      <span class="text-xs font-mono text-text-soft"
+                        >Costo {{ item.unitCost | money: 'symbol' }}</span
+                      >
+                    }
                   </div>
                   <div class="flex items-center justify-between text-xs font-mono">
-                    <span class="text-feedback-success-text"
-                      >Margen
-                      {{
-                        (item.unitPrice - (item.unitCost ?? 0)) * item.quantity | money: 'symbol'
-                      }}</span
-                    >
+                    @if (canMargin()) {
+                      <span class="text-feedback-success-text"
+                        >Margen
+                        {{
+                          (item.unitPrice - (item.unitCost ?? 0)) * item.quantity | money: 'symbol'
+                        }}</span
+                      >
+                    }
                     @if (item.discountAmount) {
                       <span class="text-feedback-error-text"
                         >Desc. {{ item.discountAmount | money: 'symbol' }}</span
@@ -291,11 +296,15 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                   >
                     <th class="text-left py-2.5 pl-6 pr-4">SKU</th>
                     <th class="text-left py-2.5 pr-4">Producto</th>
-                    <th class="text-right py-2.5 px-3">Costo</th>
+                    @if (canMargin()) {
+                      <th class="text-right py-2.5 px-3">Costo</th>
+                    }
                     <th class="text-right py-2.5 px-3">P. Unitario</th>
                     <th class="text-center py-2.5 px-3">Cant.</th>
                     <th class="text-center py-2.5 px-3">Devuelto</th>
-                    <th class="text-right py-2.5 px-3">Margen</th>
+                    @if (canMargin()) {
+                      <th class="text-right py-2.5 px-3">Margen</th>
+                    }
                     <th class="text-right py-2.5 px-3">Descuento</th>
                     <th class="text-right py-2.5 pr-6">Subtotal</th>
                   </tr>
@@ -309,9 +318,11 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                       <td class="py-2.5 pr-4 text-text-main font-medium break-words max-w-[22rem]">
                         {{ item.productDisplayName }}
                       </td>
-                      <td class="py-2.5 px-3 text-right text-text-soft font-mono tabular-nums">
-                        {{ item.unitCost | money: 'symbol' }}
-                      </td>
+                      @if (canMargin()) {
+                        <td class="py-2.5 px-3 text-right text-text-soft font-mono tabular-nums">
+                          {{ item.unitCost | money: 'symbol' }}
+                        </td>
+                      }
                       <td class="py-2.5 px-3 text-right text-text-muted font-mono tabular-nums">
                         {{ item.unitPrice | money: 'symbol' }}
                       </td>
@@ -331,13 +342,16 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                           <span class="text-xs text-text-soft">—</span>
                         }
                       </td>
-                      <td
-                        class="py-2.5 px-3 text-right font-mono tabular-nums text-feedback-success-text"
-                      >
-                        {{
-                          (item.unitPrice - (item.unitCost ?? 0)) * item.quantity | money: 'symbol'
-                        }}
-                      </td>
+                      @if (canMargin()) {
+                        <td
+                          class="py-2.5 px-3 text-right font-mono tabular-nums text-feedback-success-text"
+                        >
+                          {{
+                            (item.unitPrice - (item.unitCost ?? 0)) * item.quantity
+                              | money: 'symbol'
+                          }}
+                        </td>
+                      }
                       <td
                         class="py-2.5 px-3 text-right text-feedback-error-text font-mono tabular-nums"
                       >
@@ -432,6 +446,10 @@ export default class SaleDetailPage {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private saleService = inject(SaleService);
+
+  /** Ver columnas de Costo/Margen requiere el permiso extra `sales:margin`. */
+  readonly perm = inject(PermissionService);
+  readonly canMargin = computed(() => this.perm.can('sales', 'sales', 'margin'));
 
   sale = signal<SaleDetailDto | null>(null);
   loading = signal(true);

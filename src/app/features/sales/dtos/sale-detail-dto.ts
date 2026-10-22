@@ -49,7 +49,7 @@ export interface SaleItemDetailDto {
   productSku: string;
   productDisplayName: string;
   unitPrice: number;
-  unitCost?: number;
+  unitCost: number | null;
   quantity: number;
   returnedQuantity: number;
   discountAmount: number;
