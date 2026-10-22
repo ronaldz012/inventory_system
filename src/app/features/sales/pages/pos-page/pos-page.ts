@@ -1,7 +1,8 @@
-import { Component, OnInit, ViewChild, signal, inject, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild, signal, inject, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { closeModal, openModal } from '@shared/utils/modal-query';
+import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 import { blockNonNumericKeys } from '@shared/utils/list-query';
 import { SkuInput } from '@shared/components/sku-input/sku-input';
 import {
@@ -41,7 +42,7 @@ import CreateExpenseModal from '@features/sales/pages/expenses-page/create-expen
   ],
   templateUrl: './pos-page.html',
 })
-export default class PosPage implements OnInit {
+export default class PosPage implements OnInit, OnDestroy {
   /** El template no puede llamar imports: se expone el helper tal cual. */
   readonly blockKeys = blockNonNumericKeys;
   // ── Register state ────────────────────────────────────────────────────
@@ -55,6 +56,7 @@ export default class PosPage implements OnInit {
   private saleService = inject(SaleService);
   private toast = inject(ToastService);
   readonly perm = inject(PermissionService);
+  private stack = inject(ModalStackService);
 
   // ── POS state ──────────────────────────────────────────────────────────
 
@@ -64,8 +66,9 @@ export default class PosPage implements OnInit {
   private route = inject(ActivatedRoute);
   scannerAvailable = signal(false);
 
-  // Control de apertura para el BottomSheet de cobro en móviles
+  /** Sheet de cobro (mobile). Registrado en la pila: atrás lo oculta vía modalGuard. */
   isMobilePayOpen = signal(false);
+  payModal = useStackedModal(this.stack, this.isMobilePayOpen);
 
   /** El modal de búsqueda vive en la URL (?modal=search): "atrás" lo cierra. */
   private readonly queryParams = toSignal(this.route.queryParamMap, { initialValue: null });
@@ -217,6 +220,12 @@ export default class PosPage implements OnInit {
 
   /** "Gastos" ahora registra el gasto sobre el POS, sin saltear de pantalla. */
   showCreateExpense = signal(false);
+  expenseModal = useStackedModal(this.stack, this.showCreateExpense);
+
+  ngOnDestroy(): void {
+    this.payModal.destroy();
+    this.expenseModal.destroy();
+  }
 
   /** Agrega al carrito la variante elegida en el modal de búsqueda */
   onVariantPicked(sku: string): void {
@@ -252,7 +261,7 @@ export default class PosPage implements OnInit {
 
     this.saleService.createSale(dto).subscribe({
       next: () => {
-        this.isMobilePayOpen.set(false);
+        this.payModal.close();
         this.toast.success(`Venta procesada por Bs ${this.totalCart().toFixed(2)}`);
         this.posModel.set({
           paymentMethod: null,

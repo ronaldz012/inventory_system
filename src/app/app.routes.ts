@@ -158,6 +158,7 @@ export const routes: Routes = [
             path: 'pos',
             title: 'Punto de Venta',
             canActivate: [featureGuard],
+            canDeactivate: [modalGuard],
             data: { module: 'sales', feature: 'pos' },
             loadComponent: () => import('@features/sales/pages/pos-page/pos-page'),
           },
