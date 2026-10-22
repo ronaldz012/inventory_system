@@ -3,7 +3,7 @@ import { Router, CanActivateFn } from '@angular/router';
 import { BranchContextService } from '@core/services/branch-context-service';
 import { SessionFeatureDto } from '@features/auth/models/LoginResponse';
 
-export type FeaturePermission = 'read' | 'create' | 'update' | 'delete';
+export type FeaturePermission = 'read' | 'create' | 'update' | 'delete' | 'margin';
 
 export interface FeatureRouteData {
   module: string;

@@ -13,6 +13,7 @@ export interface ClosureSaleItemDetailDto {
 
 export interface ClosureSaleItemDto {
   id: GUID;
+  number: number;
   createdAt: string;
   soldByName: string;
   totalAmount: number;
@@ -40,7 +41,7 @@ export interface ClosureMovementDto {
   createdAt: string;
   amount: number;
   description: string;
-  type: string;
+  type: 'Outflow' | 'Inflow';
 }
 
 export interface ClosureDetailDto {

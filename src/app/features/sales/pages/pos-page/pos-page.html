@@ -72,8 +72,12 @@
     @case ('error') {
       <div class="flex flex-col items-center justify-center gap-4 py-20">
         <span class="material-icons text-4xl text-feedback-warning-text">wifi_off</span>
-        <p class="text-sm font-medium text-text-muted text-center max-w-sm">{{ registerError() }}</p>
-        <button type="button" (click)="checkRegister()" class="btn-primary btn-sm">Reintentar</button>
+        <p class="text-sm font-medium text-text-muted text-center max-w-sm">
+          {{ registerError() }}
+        </p>
+        <button type="button" (click)="checkRegister()" class="btn-primary btn-sm">
+          Reintentar
+        </button>
       </div>
     }
 
@@ -95,7 +99,9 @@
               [class.bg-feedback-warning-text]="registerDayStatus() === 'yesterday'"
               [class.bg-feedback-error-text]="registerDayStatus() === 'old'"
             ></span>
-            <span class="text-[12px] sm:text-[13px] font-medium tracking-tight truncate">{{ registerLabel() }}</span>
+            <span class="text-[12px] sm:text-[13px] font-medium tracking-tight truncate">{{
+              registerLabel()
+            }}</span>
           </div>
           <a
             routerLink="/sales/pos/close-register"
@@ -111,30 +117,43 @@
           <div class="bg-bg-surface rounded-xl border border-border shadow-xs">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-4">
               <div class="flex items-center gap-2 flex-1">
-                <app-sku-input class="flex-1" placeholder="Digitar SKU..." (skuSubmit)="onScanned($event)" />
+                <app-sku-input
+                  class="flex-1"
+                  placeholder="Digitar SKU..."
+                  (skuSubmit)="onScanned($event)"
+                />
                 @if (scannerAvailable()) {
-                  <button type="button" class="flex items-center justify-center bg-accent-ui text-white p-2.5 rounded-xl shadow-xs hover:bg-accent-ui/90 active:scale-95 transition-all shrink-0" (click)="openScanner()" title="Escanear Código">
+                  <button
+                    type="button"
+                    class="flex items-center justify-center bg-accent-ui text-white p-2.5 rounded-xl shadow-xs hover:bg-accent-ui/90 active:scale-95 transition-all shrink-0"
+                    (click)="openScanner()"
+                    title="Escanear Código"
+                  >
                     <span class="material-icons text-[18px]">qr_code_scanner</span>
                   </button>
                 }
-                <button type="button" (click)="openSearch()" class="flex items-center justify-center bg-bg-muted text-text-main p-2.5 rounded-xl border border-border shadow-xs hover:bg-accent-ui/10 hover:border-accent-ui active:scale-95 transition-all shrink-0" title="Buscar producto">
+                <button
+                  type="button"
+                  (click)="openSearch()"
+                  class="flex items-center justify-center bg-bg-muted text-text-main p-2.5 rounded-xl border border-border shadow-xs hover:bg-accent-ui/10 hover:border-accent-ui active:scale-95 transition-all shrink-0"
+                  title="Buscar producto"
+                >
                   <span class="material-icons text-[18px]">manage_search</span>
                 </button>
               </div>
             </div>
 
             <div class="flex items-center justify-end gap-2 px-4 py-2 border-t border-border">
-              <a
-                routerLink="/sales/pos/expenses"
-                class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 border border-border rounded-lg text-[11px] sm:text-[12px] font-semibold text-text-main hover:bg-bg-muted hover:border-border-strong transition-all"
+              <button
+                type="button"
+                (click)="showCreateExpense.set(true)"
+                [disabled]="registerState() !== 'open'"
+                class="btn-accent-soft btn-sm disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <span class="material-icons !text-[16px]">receipt_long</span>
                 Gastos
-              </a>
-              <a
-                routerLink="/sales/pos/returns"
-                class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 border border-border rounded-lg text-[11px] sm:text-[12px] font-semibold text-text-main hover:bg-bg-muted hover:border-border-strong transition-all"
-              >
+              </button>
+              <a routerLink="/sales/pos/returns" class="btn-secondary btn-sm">
                 <span class="material-icons !text-[16px]">assignment_return</span>
                 Reembolsos
               </a>
@@ -151,7 +170,6 @@
                 <app-pos-cart-item-card [item]="cartItem" (removed)="removeItem(i)" />
               }
             </div>
-
           } @else {
             <div
               class="flex flex-col items-center justify-center gap-3 py-20 bg-bg-surface border border-dashed border-border rounded-2xl text-text-soft"
@@ -223,4 +241,11 @@
 
 @if (isSearchOpen()) {
   <app-pos-search-modal (variantSelected)="onVariantPicked($event)" (closed)="closeSearch()" />
+}
+
+@if (showCreateExpense()) {
+  <app-create-expense-modal
+    (saved)="showCreateExpense.set(false)"
+    (close)="showCreateExpense.set(false)"
+  />
 }

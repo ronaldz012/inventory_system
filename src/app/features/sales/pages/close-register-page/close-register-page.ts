@@ -1,21 +1,38 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { CashRegisterService } from '@features/sales/services/cash-register-service';
 import { ToastService } from '@core/services/toast-service';
 import { PermissionService } from '@features/auth/services/permmision-service';
 import { ClosureDetailDto } from '@features/sales/dtos/closure-detail-dto';
-import { isReturnType, isCashPayment } from '@features/sales/dtos/sale-detail-dto';
 import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
 import { MoneyPipe } from '@shared/pipes/money-pipe';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
-import ReturnRefund from '@features/sales/pages/returns-page/return-refund';
+import { CloseSaleItem } from './close-sale-item/close-sale-item';
+import CreateExpenseModal from '@features/sales/pages/expenses-page/create-expense-modal';
+import EditExpenseModal from '@features/sales/pages/expenses-page/edit-expense-modal';
+import { ConfirmActionModal } from '@features/inventory/pages/transfer-page/confirm-action-modal/confirm-action-modal';
+import { MovementListDto } from '@features/sales/dtos/movement-list-dto';
 import { blockNonNumericKeys } from '@shared/utils/list-query';
-import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
+
+/** Los modales de gastos solo necesitan el movimiento sin su vínculo a la caja (el cierre no lo trae). */
+type ExpenseMovement = Pick<
+  MovementListDto,
+  'id' | 'amount' | 'description' | 'type' | 'createdAt'
+>;
 
 @Component({
   selector: 'app-close-register-page',
   standalone: true,
-  imports: [MoneyPipe, RouterLink, SkeletonList, SmartDatePipe, ReturnRefund],
+  imports: [
+    MoneyPipe,
+    RouterLink,
+    SkeletonList,
+    SmartDatePipe,
+    CloseSaleItem,
+    CreateExpenseModal,
+    EditExpenseModal,
+    ConfirmActionModal,
+  ],
   styles: `
     @keyframes fade-up {
       from {
@@ -72,7 +89,9 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
               {{ c.openingBalance | money }}
             </p>
 
-            <div class="grid grid-cols-3 sm:grid-cols-5 gap-x-3 gap-y-2 mt-2 pt-2 border-t border-border">
+            <div
+              class="grid grid-cols-3 sm:grid-cols-5 gap-x-3 gap-y-2 mt-2 pt-2 border-t border-border"
+            >
               <div>
                 <p class="table-header">Ventas</p>
                 <p class="text-base font-black text-text-main font-mono">
@@ -108,143 +127,56 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
 
           @if (c.sales.length > 0) {
             <div class="bg-bg-surface rounded-xl border border-border shadow-xs overflow-hidden">
-              <div class="px-6 pt-5 pb-3 flex items-center justify-between">
-                <p class="text-[11px] font-bold uppercase tracking-wider text-text-soft">Ventas del turno ({{ c.sales.length }})</p>
-                <span class="text-xs font-bold text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md">{{ c.sales.length }} venta(s)</span>
+              <div class="px-6 pt-5 pb-3">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-text-soft">
+                  Ventas del turno ({{ c.sales.length }})
+                </p>
               </div>
-              <div class="hidden lg:grid lg:grid-cols-[9rem_8rem_6rem_7rem_5rem_5rem] px-6 py-2 bg-bg-muted border-y border-border text-[10px] font-bold uppercase tracking-wider text-text-soft">
+              <div
+                class="hidden lg:grid lg:grid-cols-[12rem_8rem_6rem_7rem_5rem] px-6 py-2 bg-bg-muted border-y border-border text-[10px] font-bold uppercase tracking-wider text-text-soft"
+              >
                 <span>Hora</span>
                 <span class="text-right">Monto</span>
                 <span class="text-center">Tipo</span>
                 <span class="text-center">Pago</span>
                 <span class="text-right">Art.</span>
-                <span></span>
               </div>
               <ul class="flex flex-col divide-y divide-border">
                 @for (sale of c.sales; track sale.id) {
-                  <li class="bg-bg-surface">
-                    <!-- Mobile card -->
-                    <div class="lg:hidden px-4 py-4 flex flex-col gap-3">
-                      <div class="flex items-center justify-between gap-2">
-                        <span class="text-sm font-bold text-text-main font-mono">{{ sale.createdAt | smartDate }}</span>
-                        <span class="text-sm font-mono font-black text-text-main">{{ sale.totalAmount | money }}</span>
-                      </div>
-                      <div class="flex flex-wrap items-center gap-2">
-                        @if (isReturnType(sale.type)) {
-                          <span class="text-[11px] font-bold text-feedback-warning-text bg-feedback-warning/15 border border-feedback-warning/30 px-2 py-0.5 rounded-md">Devolución</span>
-                        } @else {
-                          <span class="text-[11px] font-bold text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md">Venta</span>
-                        }
-                        @if (isCashPayment(sale.paymentMethod)) {
-                          <span class="text-[11px] font-medium text-text-muted bg-bg-muted px-2 py-0.5 rounded-md">Efectivo</span>
-                        } @else {
-                          <span class="text-[11px] font-medium text-feedback-info-text bg-feedback-info-bg/15 px-2 py-0.5 rounded-md">Pago Móvil</span>
-                        }
-                        <span class="text-xs font-bold text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md">{{ sale.itemsCount }} art.</span>
-                      </div>
-                      @if (sale.items.length > 0) {
-                        <ul class="flex flex-col divide-y divide-border border border-border rounded-lg overflow-hidden">
-                          @for (item of sale.items; track item.productVariantId) {
-                            <li class="px-3 py-2.5 flex flex-col gap-1 bg-bg-surface">
-                              <span class="font-mono text-[11px] font-bold tracking-wide text-accent-ui">{{ item.productSku }}</span>
-                              <p class="text-[13px] font-semibold text-text-main break-words leading-snug">{{ item.productDisplayName }}</p>
-                              <div class="flex flex-wrap items-center gap-2 text-xs">
-                                <span class="px-2 py-0.5 rounded-md bg-bg-muted border border-border font-mono font-medium text-text-main">×{{ item.quantity }} · {{ item.finalPrice | money }}</span>
-                                <span class="text-text-soft font-mono">{{ item.unitPrice | money }} c/u</span>
-                              </div>
-                            </li>
-                          }
-                        </ul>
-                      }
-                      @if (perm.can('sales', 'pos', 'create')) {
-                        <div class="flex justify-end">
-                          @if (sale.hasReturn) {
-                            <span class="text-[11px] font-bold text-text-soft bg-bg-muted px-2 py-1 rounded-md" [title]="sale.cantReturnReason || 'Con reembolso'">Con reembolso</span>
-                          } @else if (!sale.canReturn) {
-                            @if (sale.cantReturnReason !== 'IS_RETURN') {
-                              <span class="text-[11px] font-bold text-text-soft bg-bg-muted px-2 py-1 rounded-md" [title]="sale.cantReturnReason || ''">No disponible</span>
-                            }
-                          } @else {
-                            <button type="button" (click)="goToRefund(sale.id)" class="action-text action-text--edit">Devolver</button>
-                          }
-                        </div>
-                      }
-                    </div>
-                    <!-- Desktop row -->
-                    <div class="hidden lg:block">
-                      <div class="grid lg:grid-cols-[9rem_8rem_6rem_7rem_5rem_5rem] items-center px-6 py-3 hover:bg-bg-muted/30 transition-colors">
-                        <span class="text-[13px] text-text-main font-mono">{{ sale.createdAt | smartDate }}</span>
-                        <span class="text-right text-[13px] font-mono font-bold text-text-main" [class.text-feedback-warning-text]="isReturnType(sale.type)">{{ sale.totalAmount | money }}</span>
-                        <span class="text-center">
-                          @if (isReturnType(sale.type)) {
-                            <span class="text-[11px] font-bold text-feedback-warning-text bg-feedback-warning/15 border border-feedback-warning/30 px-2 py-0.5 rounded-md">Devolución</span>
-                          } @else {
-                            <span class="text-[11px] font-bold text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md">Venta</span>
-                          }
-                        </span>
-                        <span class="text-center">
-                          @if (isCashPayment(sale.paymentMethod)) {
-                            <span class="text-[11px] font-medium text-text-muted bg-bg-muted px-2 py-0.5 rounded-md">Efectivo</span>
-                          } @else {
-                            <span class="text-[11px] font-medium text-feedback-info-text bg-feedback-info-bg/10 px-2 py-0.5 rounded-md">Pago Móvil</span>
-                          }
-                        </span>
-                        <span class="text-right text-xs font-bold font-mono text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md w-fit ml-auto">{{ sale.itemsCount }}</span>
-                        <span class="flex justify-end">
-                          @if (perm.can('sales', 'pos', 'create')) {
-                            @if (sale.hasReturn) {
-                              <span class="text-[11px] font-bold text-text-soft bg-bg-muted px-2 py-1 rounded-md" [title]="sale.cantReturnReason || 'Con reembolso ya realizado'">Con reembolso</span>
-                            } @else if (sale.canReturn) {
-                              <button type="button" (click)="goToRefund(sale.id)" class="action-btn action-btn--edit" title="Devolver">
-                                <span class="material-icons text-base">assignment_return</span>
-                              </button>
-                            }
-                          } @else {
-                            <span class="text-xs text-text-soft">—</span>
-                          }
-                        </span>
-                      </div>
-                      @if (sale.items.length > 0) {
-                        <div class="mx-6 mb-3 rounded-lg border border-border bg-bg-muted/30 overflow-hidden">
-                          <div class="hidden lg:grid lg:grid-cols-[8rem_1fr_6.5rem_5rem_7rem] px-3 py-1.5 bg-bg-muted border-b border-border text-[10px] font-bold uppercase tracking-wider text-text-soft">
-                            <span>SKU</span><span>Producto</span><span class="text-right">Precio</span><span class="text-right">Cant.</span><span class="text-right">Subtotal</span>
-                          </div>
-                          @for (item of sale.items; track item.productVariantId) {
-                            <div class="grid lg:grid-cols-[8rem_1fr_6.5rem_5rem_7rem] items-center px-3 py-2 text-xs gap-2 border-b border-border/50 last:border-0 bg-bg-surface">
-                              <span class="font-mono text-accent-ui font-bold truncate">{{ item.productSku }}</span>
-                              <span class="font-medium text-text-main truncate" [title]="item.productDisplayName">{{ item.productDisplayName }}</span>
-                              <span class="text-right font-mono text-text-soft">{{ item.unitPrice | money }}</span>
-                              <span class="text-right font-mono font-bold text-text-main">×{{ item.quantity }}</span>
-                              <span class="text-right font-mono font-bold text-text-main">{{ item.finalPrice | money }}</span>
-                            </div>
-                          }
-                        </div>
-                      }
-                    </div>
-                  </li>
+                  <li app-close-sale-item [sale]="sale"></li>
                 }
               </ul>
             </div>
           }
 
-          @if (c.movements.length > 0) {
-            <div class="bg-bg-surface rounded-xl border border-border-strong overflow-hidden">
-              <div class="px-6 pt-5 pb-3">
-                <p class="section-title mb-0">Gastos del turno ({{ c.movements.length }})</p>
-              </div>
+          <div class="bg-bg-surface rounded-xl border border-border-strong overflow-hidden">
+            <div class="px-6 pt-5 pb-3 flex items-center justify-between gap-3">
+              <p class="section-title mb-0">Gastos del turno ({{ c.movements.length }})</p>
+              @if (perm.can('sales', 'pos', 'create')) {
+                <button
+                  type="button"
+                  (click)="isCreateExpenseOpen.set(true)"
+                  class="btn-primary btn-sm"
+                >
+                  <span class="material-icons !text-[15px]">add</span>
+                  Registrar gasto
+                </button>
+              }
+            </div>
+            @if (c.movements.length > 0) {
               <div
-                class="hidden lg:grid lg:grid-cols-4 px-6 py-2 bg-bg-muted border-y border-border text-[10px] font-bold uppercase tracking-wider text-text-soft"
+                class="hidden lg:grid lg:grid-cols-[7rem_1fr_7rem_6rem_5rem] px-6 py-2 bg-bg-muted border-y border-border text-[10px] font-bold uppercase tracking-wider text-text-soft"
               >
                 <span>Tipo</span>
                 <span>Descripción</span>
                 <span class="text-right">Monto</span>
                 <span class="text-right">Hora</span>
+                <span class="text-right">Acciones</span>
               </div>
               <ul class="flex flex-col">
                 @for (m of c.movements; track m.id) {
-                  <li
-                    class="group bg-bg-surface border-b border-border last:border-b-0 transition-colors hover:bg-bg-muted/30"
-                  >
+                  <li class="bg-bg-surface">
+                    <!-- Móvil: descripción + saldo + acciones -->
                     <div class="flex items-center gap-4 px-6 py-3.5 lg:hidden">
                       <div class="flex flex-col min-w-0 flex-1">
                         <p class="text-sm font-semibold text-text-main">{{ m.description }}</p>
@@ -258,6 +190,30 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
                           <span class="mx-1">·</span>
                           {{ m.createdAt | smartDate }}
                         </p>
+                        @if (
+                          perm.can('sales', 'pos', 'update') || perm.can('sales', 'pos', 'delete')
+                        ) {
+                          <div class="flex items-center gap-3 mt-2">
+                            @if (perm.can('sales', 'pos', 'update')) {
+                              <button
+                                type="button"
+                                (click)="openEdit(m)"
+                                class="action-text action-text--edit"
+                              >
+                                Editar
+                              </button>
+                            }
+                            @if (perm.can('sales', 'pos', 'delete')) {
+                              <button
+                                type="button"
+                                (click)="openDelete(m)"
+                                class="action-text action-text--delete"
+                              >
+                                Eliminar
+                              </button>
+                            }
+                          </div>
+                        }
                       </div>
                       <div class="shrink-0 text-right">
                         <span
@@ -265,15 +221,13 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
                           [class.text-feedback-error-text]="m.type === 'Outflow'"
                           [class.text-feedback-success-text]="m.type !== 'Outflow'"
                         >
-                          {{
-                            (m.type === 'Outflow' ? -m.amount : m.amount)
-                              | money
-                          }}
+                          {{ (m.type === 'Outflow' ? -m.amount : m.amount) | money }}
                         </span>
                       </div>
                     </div>
+                    <!-- Desktop: fila de tabla con acciones -->
                     <div
-                      class="hidden lg:grid lg:grid-cols-4 items-center px-6 py-3 transition-colors hover:bg-bg-muted/30"
+                      class="hidden lg:grid lg:grid-cols-[7rem_1fr_7rem_6rem_5rem] items-center px-6 py-3 hover:bg-bg-muted/30"
                     >
                       <span>
                         <span
@@ -286,24 +240,59 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
                           {{ m.type === 'Outflow' ? 'Salida' : 'Entrada' }}
                         </span>
                       </span>
-                      <span class="text-[13px] text-text-main">{{ m.description }}</span>
+                      <span class="text-[13px] text-text-main truncate pr-4">{{
+                        m.description
+                      }}</span>
                       <span
                         class="text-right text-[13px] font-mono font-bold"
                         [class.text-feedback-error-text]="m.type === 'Outflow'"
                         [class.text-feedback-success-text]="m.type !== 'Outflow'"
                       >
-                        {{
-                          (m.type === 'Outflow' ? -m.amount : m.amount)
-                            | money
-                        }}
+                        {{ (m.type === 'Outflow' ? -m.amount : m.amount) | money }}
                       </span>
-                      <span class="text-right text-[13px] text-text-soft">{{ m.createdAt | smartDate }}</span>
+                      <span class="text-right text-[13px] text-text-soft">{{
+                        m.createdAt | smartDate
+                      }}</span>
+                      <span class="flex justify-end items-center gap-1">
+                        @if (perm.can('sales', 'pos', 'update')) {
+                          <button
+                            (click)="openEdit(m)"
+                            class="action-btn action-btn--edit"
+                            title="Editar"
+                          >
+                            <span class="material-icons text-base">edit</span>
+                          </button>
+                        }
+                        @if (perm.can('sales', 'pos', 'delete')) {
+                          <button
+                            (click)="openDelete(m)"
+                            class="action-btn action-btn--delete"
+                            title="Eliminar"
+                          >
+                            <span class="material-icons text-base">delete</span>
+                          </button>
+                        }
+                        @if (
+                          !perm.can('sales', 'pos', 'update') && !perm.can('sales', 'pos', 'delete')
+                        ) {
+                          <span class="text-xs text-text-soft">—</span>
+                        }
+                      </span>
                     </div>
                   </li>
                 }
               </ul>
-            </div>
-          }
+            } @else {
+              <div class="px-6 py-8 flex flex-col items-center gap-2 text-center">
+                <span class="material-icons text-3xl text-text-soft opacity-50">receipt_long</span>
+                <p class="text-sm font-semibold text-text-main">Sin gastos en este turno</p>
+                <p class="text-xs text-text-soft max-w-xs">
+                  Si retirás efectivo o pagás algo en efectivo, registralo acá para que el arqueo
+                  dé.
+                </p>
+              </div>
+            }
+          </div>
 
           @if (perm.can('sales', 'closures', 'update')) {
             <div class="bg-bg-surface rounded-xl border border-border-strong px-6 py-5">
@@ -323,28 +312,37 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
                       class="field-number w-full px-4 py-2.5 text-lg font-mono font-bold border border-border rounded-xl bg-bg-surface text-text-main focus:outline-none focus:border-accent-ui"
                     />
                   </div>
-                  <div class="flex-1 bg-accent-ui/10 border border-accent-ui/30 rounded-xl px-4 py-3 flex flex-col gap-1">
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-accent-ui">Esperado</span>
-                    <span class="text-xl font-black font-mono text-accent-ui">{{ expectedAmount() | money }}</span>
+                  <div
+                    class="flex-1 bg-accent-ui/10 border border-accent-ui/30 rounded-xl px-4 py-3 flex flex-col gap-1"
+                  >
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-accent-ui"
+                      >Esperado</span
+                    >
+                    <span class="text-xl font-black font-mono text-accent-ui">{{
+                      expectedAmount() | money
+                    }}</span>
                     @if (closingBalance() !== null) {
-                      <span class="text-xs font-mono" [class.text-feedback-success-text]="(closingBalance()! - expectedAmount()) === 0" [class.text-feedback-error-text]="(closingBalance()! - expectedAmount()) !== 0">
-                        Dif: {{ (closingBalance()! - expectedAmount()) | money }}
+                      <span
+                        class="text-xs font-mono"
+                        [class.text-feedback-success-text]="
+                          closingBalance()! - expectedAmount() === 0
+                        "
+                        [class.text-feedback-error-text]="
+                          closingBalance()! - expectedAmount() !== 0
+                        "
+                      >
+                        Dif: {{ closingBalance()! - expectedAmount() | money }}
                       </span>
                     }
                   </div>
                 </div>
                 <div class="flex gap-3">
-                  <a
-                    routerLink="/sales/pos"
-                    class="px-6 py-2.5 border border-border rounded-xl text-sm font-semibold text-text-muted hover:bg-bg-muted transition-all"
-                  >
-                    Cancelar
-                  </a>
+                  <a routerLink="/sales/pos" class="btn-secondary"> Cancelar </a>
                   <button
                     type="button"
                     (click)="confirmClose()"
                     [disabled]="closingBalance() === null || closingBalance()! < 0 || submitting()"
-                    class="px-6 py-2.5 bg-accent-ui text-white rounded-xl text-sm font-bold hover:bg-accent-ui/90 disabled:opacity-40 transition-all flex items-center gap-2"
+                    class="btn-primary disabled:opacity-40 flex items-center gap-2"
                   >
                     @if (submitting()) {
                       <span
@@ -361,31 +359,40 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
             </div>
           }
         </div>
-
       }
     </div>
 
-    <!-- Devolución: bottom-sheet en mobile, side-panel en desktop (fuera del contenedor animado para que el fixed use el viewport) -->
-    @if (refundSaleId(); as rid) {
-      <div class="fixed inset-0 z-50 flex items-end md:items-stretch md:justify-end" role="dialog" aria-modal="true">
-        <div class="absolute inset-0 bg-overlay backdrop-blur-[1px]" (click)="closeRefund()"></div>
-        <div class="relative z-10 w-full md:w-[600px] md:max-w-[90%] h-[92vh] md:h-screen bg-bg-surface rounded-t-2xl md:rounded-none md:border-l md:border-border md:shadow-[-20px_0_40px_-15px_rgba(0,0,0,0.15)] flex flex-col overflow-hidden animate-fade-in">
-          <app-return-refund class="flex-1 min-h-0 flex flex-col" [saleId]="rid" (closed)="closeRefund()" (refunded)="onRefunded()" />
-        </div>
-      </div>
+    <!-- CRUD de gastos del turno (bottom-sheet en mobile, centrado en desktop) -->
+    @if (isCreateExpenseOpen()) {
+      <app-create-expense-modal (saved)="loadClosure()" (close)="isCreateExpenseOpen.set(false)" />
+    }
+    @if (editTarget(); as em) {
+      <app-edit-expense-modal
+        [movement]="em"
+        (saved)="loadClosure()"
+        (close)="editTarget.set(null)"
+      />
+    }
+    @if (deleteTarget(); as dt) {
+      <app-confirm-action-modal
+        title="¿Eliminar gasto?"
+        [description]="deleteDescription()"
+        confirmLabel="Eliminar"
+        submittingLabel="Eliminando..."
+        [submitting]="deleting()"
+        (confirm)="confirmDelete()"
+        (close)="deleteTarget.set(null)"
+      />
     }
   `,
 })
 export default class CloseRegisterPage implements OnInit {
   private router = inject(Router);
-  private route = inject(ActivatedRoute);
   private cashRegisterService = inject(CashRegisterService);
   private toast = inject(ToastService);
   readonly perm = inject(PermissionService);
   /** El template no puede llamar imports: se expone el helper tal cual. */
   readonly blockKeys = blockNonNumericKeys;
-  protected isReturnType = isReturnType;
-  protected isCashPayment = isCashPayment;
 
   state = signal<'init' | 'ready' | 'already-closed' | 'error'>('init');
   closure = signal<ClosureDetailDto | null>(null);
@@ -393,7 +400,12 @@ export default class CloseRegisterPage implements OnInit {
   submitting = signal(false);
   closeError = signal<string | null>(null);
   errorMessage = signal('');
-  refundSaleId = signal<GUID | null>(null);
+
+  /** CRUD de gastos del turno: los modales ya existían y se comparten. */
+  isCreateExpenseOpen = signal(false);
+  editTarget = signal<ExpenseMovement | null>(null);
+  deleteTarget = signal<ExpenseMovement | null>(null);
+  deleting = signal(false);
 
   expectedAmount = computed(() => {
     const c = this.closure();
@@ -402,23 +414,16 @@ export default class CloseRegisterPage implements OnInit {
   });
 
   ngOnInit(): void {
-    this.route.queryParamMap.subscribe((params) => {
-      this.refundSaleId.set(getModalId(params.get('modal'), 'return'));
-    });
-    this.loadClosure(true);
+    this.loadClosure();
   }
 
-  private loadClosure(initial = false): void {
+  loadClosure(): void {
     this.cashRegisterService.getCurrentDetails().subscribe({
       next: (c) => {
         this.closure.set(c);
-        if (initial) this.state.set('ready');
+        this.state.set('ready');
       },
       error: (err) => {
-        if (!initial) {
-          this.toast.error('No se pudo actualizar los datos del turno.');
-          return;
-        }
         if (err?.status === 404) {
           this.state.set('already-closed');
           return;
@@ -438,17 +443,43 @@ export default class CloseRegisterPage implements OnInit {
     this.closingBalance.set(Number.isFinite(num) ? num : null);
   }
 
-  goToRefund(saleId: GUID): void {
-    openModal(this.router, this.route, `return:${saleId}`);
+  openEdit(m: ExpenseMovement): void {
+    if (!this.perm.can('sales', 'pos', 'update')) return;
+    this.editTarget.set(m);
   }
 
-  closeRefund(): void {
-    closeModal(this.router, this.route);
+  deleteDescription = (): string => {
+    const t = this.deleteTarget();
+    if (!t) return '';
+    return `Se eliminará "${t.description}" por Bs ${t.amount.toFixed(2)}. Esta acción no se puede deshacer.`;
+  };
+
+  openDelete(m: ExpenseMovement): void {
+    if (!this.perm.can('sales', 'pos', 'delete')) return;
+    this.deleteTarget.set(m);
   }
 
-  onRefunded(): void {
-    closeModal(this.router, this.route);
-    this.loadClosure();
+  confirmDelete(): void {
+    const m = this.deleteTarget();
+    if (!m) return;
+    this.deleting.set(true);
+    this.cashRegisterService.deleteMovement(m.id).subscribe({
+      next: () => {
+        this.toast.success('Gasto eliminado');
+        this.deleting.set(false);
+        this.deleteTarget.set(null);
+        this.loadClosure();
+      },
+      error: (err) => {
+        this.deleting.set(false);
+        this.toast.error(
+          (err as { error?: { detail?: string; title?: string }; message?: string })?.error
+            ?.detail ||
+            (err as { message?: string })?.message ||
+            'Error al eliminar el gasto',
+        );
+      },
+    });
   }
 
   confirmClose(): void {
@@ -465,8 +496,16 @@ export default class CloseRegisterPage implements OnInit {
       },
       error: (err) => {
         this.submitting.set(false);
-        const e = err as { error?: { detail?: string; title?: string; message?: string }; message?: string };
-        const msg = e?.error?.detail || e?.error?.title || e?.error?.message || e?.message || 'Error al cerrar la caja. Intentá de nuevo.';
+        const e = err as {
+          error?: { detail?: string; title?: string; message?: string };
+          message?: string;
+        };
+        const msg =
+          e?.error?.detail ||
+          e?.error?.title ||
+          e?.error?.message ||
+          e?.message ||
+          'Error al cerrar la caja. Intentá de nuevo.';
         this.closeError.set(msg);
         this.toast.error(msg);
       },
