@@ -12,9 +12,7 @@
     </div>
     <div class="flex justify-between items-baseline mt-2 pt-2 border-t border-border/60">
       <span class="text-xs font-bold text-text-main">Total Neto:</span>
-      <span class="text-2xl font-black text-accent-ui">{{
-        total() | money: 'symbol'
-      }}</span>
+      <span class="text-2xl font-black text-accent-ui">{{ total() | money: 'symbol' }}</span>
     </div>
   </div>
 
@@ -69,7 +67,7 @@
   <button
     type="button"
     (click)="submitted.emit()"
-    [disabled]="itemCount() === 0 || currentMethod().value() === null"
+    [disabled]="itemCount() === 0 || currentMethod().value() === null || submitting()"
     class="btn-primary w-full py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
   >
     <span class="material-icons text-[18px]">check_circle</span>

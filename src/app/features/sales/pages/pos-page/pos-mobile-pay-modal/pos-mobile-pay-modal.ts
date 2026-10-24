@@ -16,6 +16,7 @@ export class PosMobilePayModal {
   currentMethod = input.required<FieldState<PaymentMethod | null>>();
   transactionCode = input.required<FieldState<string | null>>();
   isValid = input.required<boolean>();
+  submitting = input<boolean>(false);
 
   closed = output<void>();
   submitted = output<void>();
