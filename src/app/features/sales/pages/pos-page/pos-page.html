@@ -196,6 +196,7 @@
             [itemCount]="posModel().items.length"
             [currentMethod]="posForm.paymentMethod()"
             [transactionCode]="posForm.transactionCode()"
+            [submitting]="submitting()"
             (submitted)="submitSale()"
           />
         </div>
@@ -232,7 +233,8 @@
     [currentMethod]="posForm.paymentMethod()"
     [transactionCode]="posForm.transactionCode()"
     [isValid]="isFormValid()"
-    (closed)="payModal.close()"
+    [submitting]="submitting()"
+    (closed)="payModal.close(); submitting.set(false)"
     (submitted)="submitSale()"
   />
 }

@@ -68,6 +68,7 @@ export default class PosPage implements OnInit, OnDestroy {
 
   /** Sheet de cobro (mobile). Registrado en la pila: atrás lo oculta vía modalGuard. */
   isMobilePayOpen = signal(false);
+  submitting = signal(false);
   payModal = useStackedModal(this.stack, this.isMobilePayOpen);
 
   /** El modal de búsqueda vive en la URL (?modal=search): "atrás" lo cierra. */
@@ -236,6 +237,8 @@ export default class PosPage implements OnInit, OnDestroy {
    * Ejecución final del guardado de la venta en el sistema
    */
   submitSale(): void {
+    if (this.submitting()) return;
+
     if (!this.perm.can('sales', 'pos', 'create')) {
       this.toast.error('No tenés permiso para procesar ventas.');
       return;
@@ -259,8 +262,10 @@ export default class PosPage implements OnInit, OnDestroy {
       })),
     };
 
+    this.submitting.set(true);
     this.saleService.createSale(dto).subscribe({
       next: () => {
+        this.submitting.set(false);
         this.payModal.close();
         this.toast.success(`Venta procesada por Bs ${this.totalCart().toFixed(2)}`);
         this.posModel.set({
@@ -271,8 +276,10 @@ export default class PosPage implements OnInit, OnDestroy {
           items: [],
         });
       },
-      error: (err) =>
-        this.toast.error(this.friendlyError(err, 'Error al procesar la venta. Intentá de nuevo.')),
+      error: (err) => {
+        this.submitting.set(false);
+        this.toast.error(this.friendlyError(err, 'Error al procesar la venta. Intentá de nuevo.'));
+      },
     });
   }
 

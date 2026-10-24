@@ -15,6 +15,7 @@ export class PosDesktopPayPanel {
   itemCount = input.required<number>();
   currentMethod = input.required<FieldState<PaymentMethod | null>>();
   transactionCode = input.required<FieldState<string | null>>();
+  submitting = input<boolean>(false);
   submitted = output<void>();
   protected readonly PaymentMethodEnum = PaymentMethod;
 
