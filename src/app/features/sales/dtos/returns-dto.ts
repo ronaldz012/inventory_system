@@ -1,4 +1,5 @@
 type GUID = string;
+import { PaymentMethod } from '@features/sales/dtos/sale-detail-dto';
 
 export interface SkuSearchQuery {
   sku?: string;
@@ -65,5 +66,7 @@ export interface SaleForReturnDto {
   totalAmount: number;
   soldByName: string;
   type: number | string;
+  /** Heredado de la venta original: el reembolso se reintegra por el mismo método. */
+  paymentMethod: PaymentMethod;
   items: ReturnableItemDto[];
 }
