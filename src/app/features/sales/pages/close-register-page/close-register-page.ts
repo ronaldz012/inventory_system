@@ -133,13 +133,14 @@ type ExpenseMovement = Pick<
                 </p>
               </div>
               <div
-                class="hidden lg:grid lg:grid-cols-[12rem_8rem_6rem_7rem_5rem] px-6 py-2 bg-bg-muted border-y border-border text-[10px] font-bold uppercase tracking-wider text-text-soft"
+                class="hidden lg:grid lg:grid-cols-[12rem_8rem_6rem_7rem_5rem_8rem] px-6 py-2 bg-bg-muted border-y border-border text-[10px] font-bold uppercase tracking-wider text-text-soft"
               >
                 <span>Hora</span>
                 <span class="text-right">Monto</span>
                 <span class="text-center">Tipo</span>
                 <span class="text-center">Pago</span>
                 <span class="text-right">Art.</span>
+                <span></span>
               </div>
               <ul class="flex flex-col divide-y divide-border">
                 @for (sale of c.sales; track sale.id) {
