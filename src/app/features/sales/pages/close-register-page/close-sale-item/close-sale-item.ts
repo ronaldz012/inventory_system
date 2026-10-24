@@ -1,6 +1,8 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { ClosureSaleItemDto } from '@features/sales/dtos/closure-detail-dto';
 import { isCashPayment, isReturnType } from '@features/sales/dtos/sale-detail-dto';
+import { PermissionService } from '@features/auth/services/permmision-service';
 import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
 
@@ -8,31 +10,51 @@ import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
  * Fila de una venta del turno dentro del cierre de caja, orientada al arqueo.
  *
  * Resumen (#, hora, monto, tipo, pago, art.) + ítems vendidos siempre visibles,
- * en mobile y desktop. El ">" es la puerta a "ver detalle" (fase 2); hoy no
- * navega ni reembolsa: eso vive en la feature de ventas.
+ * en mobile y desktop. Todo el resumen (mobile) y el "Ver más" (desktop) llevan
+ * al detalle de venta si el rol tiene `sales read`.
  */
 @Component({
   selector: 'li[app-close-sale-item]',
-  imports: [MoneyPipe, SmartDatePipe],
+  imports: [RouterLink, MoneyPipe, SmartDatePipe],
   host: { class: 'bg-bg-surface block' },
   template: `
     <!-- ── Móvil: card plana con ítems visibles ── -->
     <div class="lg:hidden px-4 py-3 flex flex-col gap-2">
-      <div class="flex items-center gap-2">
-        <span class="text-xs font-mono font-bold text-text-main shrink-0"
-          >#{{ sale().number }}</span
+      @if (canOpenDetail()) {
+        <a
+          [routerLink]="['/sales/sale', sale().id]"
+          class="flex items-center gap-2 min-w-0 -mx-1 px-1 py-0.5 rounded-lg hover:bg-bg-muted/60 transition-colors"
         >
-        <span class="text-[11px] text-text-soft truncate min-w-0">{{
-          sale().createdAt | smartDate
-        }}</span>
-        <span
-          class="ml-auto shrink-0 text-sm font-mono font-black text-text-main"
-          [class.text-feedback-warning-text]="isReturn()"
-        >
-          {{ sale().totalAmount | money }}
-        </span>
-        <span class="material-icons !text-[16px] text-text-soft shrink-0">chevron_right</span>
-      </div>
+          <span class="text-xs font-mono font-bold text-text-main shrink-0"
+            >#{{ sale().number }}</span
+          >
+          <span class="text-[11px] text-text-soft truncate min-w-0">{{
+            sale().createdAt | smartDate
+          }}</span>
+          <span
+            class="ml-auto shrink-0 text-sm font-mono font-black text-text-main"
+            [class.text-feedback-warning-text]="isReturn()"
+          >
+            {{ sale().totalAmount | money }}
+          </span>
+          <span class="material-icons text-xl text-accent-ui shrink-0">chevron_right</span>
+        </a>
+      } @else {
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-xs font-mono font-bold text-text-main shrink-0"
+            >#{{ sale().number }}</span
+          >
+          <span class="text-[11px] text-text-soft truncate min-w-0">{{
+            sale().createdAt | smartDate
+          }}</span>
+          <span
+            class="ml-auto shrink-0 text-sm font-mono font-black text-text-main"
+            [class.text-feedback-warning-text]="isReturn()"
+          >
+            {{ sale().totalAmount | money }}
+          </span>
+        </div>
+      }
       <div class="flex items-center gap-1.5 text-[10px] font-semibold">
         <span [class]="isReturn() ? 'text-feedback-warning-text' : 'text-accent-ui'">
           {{ isReturn() ? 'Devolución' : 'Venta' }}
@@ -70,7 +92,7 @@ import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
 
     <!-- ── Desktop: fila de tabla + ítems siempre listados ── -->
     <div
-      class="hidden lg:grid lg:grid-cols-[12rem_8rem_6rem_7rem_5rem] items-center px-6 py-3 hover:bg-bg-muted/30 transition-colors"
+      class="hidden lg:grid lg:grid-cols-[12rem_8rem_6rem_7rem_5rem_8rem] items-center px-6 py-3 hover:bg-bg-muted/30 transition-colors"
     >
       <span class="text-[13px] text-text-main font-mono truncate">
         <span class="font-bold">#{{ sale().number }}</span>
@@ -98,6 +120,16 @@ import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
       <span class="chip-accent font-mono w-fit ml-auto">
         {{ sale().itemsCount }}
       </span>
+      @if (canOpenDetail()) {
+        <div class="flex justify-end">
+          <a [routerLink]="['/sales', 'sale', sale().id]" class="btn-link">
+            <span class="btn-link-text">Ver más</span>
+            <span class="material-icons text-base">chevron_right</span>
+          </a>
+        </div>
+      } @else {
+        <span></span>
+      }
     </div>
     @if (sale().items.length > 0) {
       <div class="hidden lg:flex lg:flex-col gap-1 pl-[13.5rem] pr-6 pb-3 -mt-1.5">
@@ -126,6 +158,10 @@ import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
 })
 export class CloseSaleItem {
   sale = input.required<ClosureSaleItemDto>();
+
+  readonly perm = inject(PermissionService);
+  /** "Ver más"/detalle solo si el rol puede leer la feature de ventas. */
+  canOpenDetail = computed(() => this.perm.canRead('sales', 'sales'));
 
   isReturn = computed(() => isReturnType(this.sale().type));
   isCash = computed(() => isCashPayment(this.sale().paymentMethod));

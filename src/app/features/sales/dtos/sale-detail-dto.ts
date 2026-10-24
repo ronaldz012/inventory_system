@@ -81,4 +81,6 @@ export interface SaleDetailDto {
   originalSaleId?: GUID | null;
   items: SaleItemDetailDto[];
   returns: SaleRefundDto[];
+  /** Backend: false si la venta no admite devolución (ya devuelta, es Return, etc). */
+  canReturn: boolean;
 }

@@ -1,7 +1,9 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SaleService } from '@features/sales/services/sale-service';
 import { PermissionService } from '@features/auth/services/permmision-service';
+import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
+import ReturnRefund from '@features/sales/pages/returns-page/return-refund';
 import {
   DocumentType,
   PaymentMethod,
@@ -15,7 +17,7 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 @Component({
   selector: 'app-sale-detail-page',
   standalone: true,
-  imports: [MoneyPipe, RouterLink, SkeletonList, SmartDatePipe],
+  imports: [MoneyPipe, RouterLink, SkeletonList, SmartDatePipe, ReturnRefund],
   styles: `
     @keyframes fade-up {
       from {
@@ -388,6 +390,19 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
             </div>
           </div>
 
+          @if (canReimburse()) {
+            <div class="flex justify-end">
+              <button
+                type="button"
+                (click)="refundModal.open()"
+                class="btn-primary w-full sm:w-auto justify-center flex items-center gap-2"
+              >
+                <span class="material-icons !text-[16px]">assignment_return</span>
+                Reembolsar venta
+              </button>
+            </div>
+          }
+
           @if (hasReturns()) {
             <div
               id="returns-section"
@@ -440,12 +455,37 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
         </div>
       }
     </div>
+
+    <!-- Reembolso: bottom-sheet en mobile, side-panel en desktop (mismo shell de returns-search) -->
+    @if (isRefundOpen() && sale(); as d) {
+      <div
+        class="fixed inset-0 z-50 flex items-end md:items-stretch md:justify-end"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div
+          class="absolute inset-0 bg-overlay backdrop-blur-[1px]"
+          (click)="refundModal.close()"
+        ></div>
+        <div
+          class="relative z-10 w-full md:w-[600px] md:max-w-[90%] h-[92vh] md:h-screen bg-bg-surface rounded-t-2xl md:rounded-none md:border-l md:border-border md:shadow-[-20px_0_40px_-15px_rgba(0,0,0,0.15)] flex flex-col overflow-hidden"
+        >
+          <app-return-refund
+            class="flex-1 min-h-0 flex flex-col"
+            [saleId]="d.id"
+            (closed)="refundModal.close()"
+            (refunded)="onRefunded()"
+          />
+        </div>
+      </div>
+    }
   `,
 })
-export default class SaleDetailPage {
+export default class SaleDetailPage implements OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private saleService = inject(SaleService);
+  private stack = inject(ModalStackService);
 
   /** Ver columnas de Costo/Margen requiere el permiso extra `sales:margin`. */
   readonly perm = inject(PermissionService);
@@ -453,6 +493,18 @@ export default class SaleDetailPage {
 
   sale = signal<SaleDetailDto | null>(null);
   loading = signal(true);
+
+  /** Reembolso: overlay ReturnRefund (bottom-sheet mobile / side-panel desktop). Atrás lo cierra. */
+  isRefundOpen = signal(false);
+  refundModal = useStackedModal(this.stack, this.isRefundOpen);
+  canReturn = computed(() => this.sale()?.canReturn ?? false);
+
+  /** Reembolsar exige elegibilidad (`canReturn` del backend) + permiso de crear sobre POS. */
+  canReimburse = computed(() => this.canReturn() && this.perm.canCreate('sales', 'pos'));
+
+  ngOnDestroy(): void {
+    this.refundModal.destroy();
+  }
 
   SaleType = SaleType;
   DocumentType = DocumentType;
@@ -478,6 +530,12 @@ export default class SaleDetailPage {
     document
       .getElementById('returns-section')
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  onRefunded(): void {
+    this.refundModal.close();
+    const id = this.sale()?.id;
+    if (id) this.loadDetail(id);
   }
 
   goBack(): void {
