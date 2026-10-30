@@ -38,6 +38,10 @@ export class ReceptionService {
     return this.http.get<StockReceptionRevertCheckDto>(`${this.url}/${id}/can-revert`);
   }
 
+  confirmReception(id: GUID): Observable<StockReceptionResultDto> {
+    return this.http.post<StockReceptionResultDto>(`${this.url}/${id}/confirm`, null);
+  }
+
   rollbackReception(id: GUID): Observable<boolean> {
     return this.http.post<boolean>(`${this.url}/${id}/revert`, null);
   }

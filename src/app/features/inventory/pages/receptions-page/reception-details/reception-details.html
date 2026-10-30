@@ -86,7 +86,8 @@
                 <p class="text-sm font-bold text-text-main truncate">
                   @if (product.brandName) {
                     <span>{{ product.brandName }} · </span>
-                  }{{ product.productName }}
+                  }
+                  {{ product.productName }}
                   <span class="font-normal text-text-soft">· {{ product.units }} uds</span>
                 </p>
                 <p class="shrink-0 text-sm font-semibold text-text-main tabular-nums">
@@ -139,6 +140,14 @@
       </div>
 
       <!-- Acciones -->
+      @if (r.status === Status.Borrador) {
+        @if (perm.canUpdate('inventory', 'receptions')) {
+          <button (click)="openConfirmModal()" class="btn-primary w-full py-3 rounded-xl">
+            Confirmar recepción
+          </button>
+        }
+      }
+
       @if (r.status === Status.Confirmado) {
         <button (click)="openRollbackModal()" class="btn-danger btn-sm w-full py-3 rounded-xl">
           Revertir recepción
@@ -178,5 +187,19 @@
     [executeFn]="executeRollback"
     (confirmed)="onRollbackSuccess()"
     (closed)="closeRollbackModal()"
+  />
+}
+
+<!-- ── Modal: Confirmar borrador ── -->
+@if (confirmModalOpen()) {
+  <app-confirm-action-modal
+    title="¿Confirmar recepción?"
+    description="El stock de esta recepción ingresará a la sucursal y dejará de ser borrador."
+    confirmLabel="Sí, confirmar"
+    submittingLabel="Confirmando..."
+    confirmButtonClass="bg-btn-primary-bg text-btn-primary-text hover:bg-btn-primary-hover"
+    [submitting]="confirming()"
+    (confirm)="executeConfirm()"
+    (close)="closeConfirmModal()"
   />
 }
