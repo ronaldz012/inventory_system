@@ -98,6 +98,14 @@
         </button>
         <button
           type="button"
+          (click)="saveDraft()"
+          [disabled]="isSubmitting()"
+          class="px-3 py-1.5 text-sm font-semibold text-btn-secondary-text border border-border bg-btn-secondary-bg rounded-md hover:bg-btn-secondary-hover disabled:opacity-50 transition-colors duration-150 shadow-sm"
+        >
+          Guardar borrador
+        </button>
+        <button
+          type="button"
           (click)="onSubmit()"
           [disabled]="isSubmitting()"
           class="px-5 py-1.5 text-sm font-semibold bg-btn-primary-bg text-btn-primary-text rounded-md hover:bg-btn-primary-hover disabled:opacity-50 transition-colors duration-150 shadow-sm"

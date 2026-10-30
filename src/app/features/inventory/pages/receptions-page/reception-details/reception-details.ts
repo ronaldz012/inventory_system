@@ -13,15 +13,16 @@ import { LabelData } from '../../../interfaces/reception-labels';
 import { LabelPrintService, SheetFormat } from '../../../services/print-label-service';
 import { ReceptionLabelsDto } from '../../../dtos/receptions/reception-labels-dto';
 import { ReceptionStatus } from '../../../dtos/receptions/stock-reception-list-dto';
-import {
-  StockReceptionDetailDto,
-} from '../../../dtos/receptions/stock-reception-details-dto';
+import { StockReceptionDetailDto } from '../../../dtos/receptions/stock-reception-details-dto';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
+import { ConfirmActionModal } from '../../transfer-page/confirm-action-modal/confirm-action-modal';
+import { ToastService } from '@core/services/toast-service';
+import { PermissionService } from '@features/auth/services/permmision-service';
 
 @Component({
   selector: 'app-reception-details',
-  imports: [DatePipe, MoneyPipe, SkeletonList, VerifyActionModal],
+  imports: [DatePipe, MoneyPipe, SkeletonList, VerifyActionModal, ConfirmActionModal],
   templateUrl: './reception-details.html',
   styles: `
     @keyframes fade-up {
@@ -44,6 +45,8 @@ export default class ReceptionDetails implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private stack = inject(ModalStackService);
   readonly router = inject(Router);
+  private toast = inject(ToastService);
+  readonly perm = inject(PermissionService);
 
   readonly Status = ReceptionStatus;
 
@@ -53,6 +56,15 @@ export default class ReceptionDetails implements OnInit, OnDestroy {
 
   rollbackModalOpen = signal(false);
   private rollbackModal = useStackedModal(this.stack, this.rollbackModalOpen);
+
+  /** Confirmación de borrador → deja de ser draft e ingresa stock. */
+  confirming = signal(false);
+  confirmModalOpen = signal(false);
+  private confirmModal = useStackedModal(
+    this.stack,
+    this.confirmModalOpen,
+    () => !this.confirming(),
+  );
   private printService = inject(LabelPrintService);
 
   sheetFormat = signal<SheetFormat>('a4');
@@ -81,6 +93,7 @@ export default class ReceptionDetails implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.rollbackModal.destroy();
+    this.confirmModal.destroy();
   }
 
   private loadDetail(id: GUID): void {
@@ -109,6 +122,39 @@ export default class ReceptionDetails implements OnInit, OnDestroy {
   onRollbackSuccess(): void {
     this.closeRollbackModal();
     this.goBack();
+  }
+
+  // ── Modal: Confirmar borrador ─────────────────────────────────────────────
+  openConfirmModal(): void {
+    this.confirmModal.open();
+  }
+
+  closeConfirmModal(): void {
+    this.confirmModal.close();
+  }
+
+  executeConfirm(): void {
+    const id = this.reception()?.id;
+    if (!id || this.confirming()) return;
+
+    this.confirming.set(true);
+    this.receptionService.confirmReception(id).subscribe({
+      next: () => {
+        this.confirming.set(false);
+        this.closeConfirmModal();
+        this.toast.success('Recepción confirmada.');
+        this.loadDetail(id);
+      },
+      error: (err: unknown) => {
+        this.confirming.set(false);
+        const e = err as { error?: { detail?: string; title?: string }; message?: string };
+        const msg =
+          e?.error?.detail ||
+          e?.error?.title ||
+          'No se pudo confirmar la recepción. Intentá de nuevo.';
+        this.toast.error(msg);
+      },
+    });
   }
 
   readonly rollbackReasonMessages: Record<string, string> = {
@@ -173,16 +219,37 @@ export default class ReceptionDetails implements OnInit, OnDestroy {
     for (const item of items) {
       let p = products.get(item.productId);
       if (!p) {
-        p = { productId: item.productId, productName: item.productName, brandName: item.brandName, units: 0, subtotal: 0, colors: [] };
+        p = {
+          productId: item.productId,
+          productName: item.productName,
+          brandName: item.brandName,
+          units: 0,
+          subtotal: 0,
+          colors: [],
+        };
         products.set(item.productId, p);
       }
       let c = p.colors.find((g) => g.color === item.color);
       if (!c) {
-        c = { color: item.color, units: 0, subtotal: 0, unitCost: item.unitCost, summary: '', skus: '', sizes: [] };
+        c = {
+          color: item.color,
+          units: 0,
+          subtotal: 0,
+          unitCost: item.unitCost,
+          summary: '',
+          skus: '',
+          sizes: [],
+        };
         p.colors.push(c);
       }
       if (c.unitCost !== item.unitCost) c.unitCost = null;
-      c.sizes.push({ size: item.size, qty: item.quantityReceived, unitCost: item.unitCost, subtotal: item.subtotal, sku: item.sku });
+      c.sizes.push({
+        size: item.size,
+        qty: item.quantityReceived,
+        unitCost: item.unitCost,
+        subtotal: item.subtotal,
+        sku: item.sku,
+      });
       c.units += item.quantityReceived;
       c.subtotal += item.subtotal;
       p.units += item.quantityReceived;
@@ -224,7 +291,9 @@ export default class ReceptionDetails implements OnInit, OnDestroy {
             })),
           );
           const doc = await this.printService.generatePdfCompact(labels, this.sheetFormat());
-          doc.save(`etiquetas-recepcion-${data.number ?? data.receptionId}-${this.sheetFormat()}.pdf`);
+          doc.save(
+            `etiquetas-recepcion-${data.number ?? data.receptionId}-${this.sheetFormat()}.pdf`,
+          );
         } catch (e) {
           console.error('Error generando PDF de etiquetas', e);
         } finally {

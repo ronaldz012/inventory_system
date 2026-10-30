@@ -170,24 +170,38 @@ export default class ReceptionForm implements OnInit, OnDestroy {
   }
 
   onSubmit(): void {
-    if (!this.reception().items.length || this.isSubmitting()) return;
-
-    this.providerForm().markAsTouched();
-    if (this.providerForm().invalid()) {
-      this.submitError.set('Seleccioná un proveedor antes de guardar.');
-      return;
-    }
+    if (!this.validateForSave()) return;
 
     this.submitError.set(null);
     this.openConfirm();
   }
 
-  executeCreate(): void {
+  /** Guarda directo como borrador: no mueve stock, por eso no pasa por el confirm. */
+  saveDraft(): void {
+    if (!this.validateForSave()) return;
+
+    this.submitError.set(null);
+    this.executeCreate(true);
+  }
+
+  private validateForSave(): boolean {
+    if (!this.reception().items.length || this.isSubmitting()) return false;
+
+    this.providerForm().markAsTouched();
+    if (this.providerForm().invalid()) {
+      this.submitError.set('Seleccioná un proveedor antes de guardar.');
+      return false;
+    }
+    return true;
+  }
+
+  executeCreate(saveAsDraft = false): void {
     if (this.isSubmitting()) return;
 
     const payload: CreateReceptionDto = {
       notes: this.reception().notes,
       providerId: this.providerModel().id!,
+      saveAsDraft,
       items: this.reception().items.flatMap((g) =>
         g.variants.map((v) => ({
           productVariantId: v.id!,
