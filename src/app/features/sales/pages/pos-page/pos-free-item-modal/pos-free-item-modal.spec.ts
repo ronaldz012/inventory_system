@@ -1,13 +1,24 @@
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FreeItemDraft, PosFreeItemModal } from './pos-free-item-modal';
 
 describe('PosFreeItemModal', () => {
-  async function setup(): Promise<{ modal: PosFreeItemModal }> {
+  async function setup(): Promise<{
+    fixture: ComponentFixture<PosFreeItemModal>;
+    modal: PosFreeItemModal;
+  }> {
     await TestBed.configureTestingModule({ imports: [PosFreeItemModal] }).compileComponents();
     const fixture = TestBed.createComponent(PosFreeItemModal);
     fixture.detectChanges();
-    return { modal: fixture.componentInstance };
+    return { fixture, modal: fixture.componentInstance };
   }
+
+  it('enfoca la descripción al abrir para tipear directo', async () => {
+    const { fixture } = await setup();
+    await fixture.whenStable();
+
+    const input = (fixture.nativeElement as HTMLElement).querySelector('#free-item-description');
+    expect(document.activeElement).toBe(input);
+  });
 
   it('no emite mientras las validaciones no pasan', async () => {
     const { modal } = await setup();

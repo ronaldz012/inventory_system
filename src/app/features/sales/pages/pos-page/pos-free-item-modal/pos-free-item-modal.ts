@@ -1,4 +1,12 @@
-import { Component, computed, output, signal } from '@angular/core';
+import {
+  afterNextRender,
+  Component,
+  computed,
+  ElementRef,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { blockNonNumericKeys } from '@shared/utils/list-query';
 
@@ -45,6 +53,7 @@ export interface FreeItemDraft {
             <label class="field-label" for="free-item-description">Descripción</label>
             <input
               id="free-item-description"
+              #descriptionInput
               type="text"
               maxlength="120"
               placeholder="Ej. Pantalón diesel slim mujer 42 negro"
@@ -52,7 +61,6 @@ export interface FreeItemDraft {
               (input)="description.set($any($event.target).value)"
               [class.border-feedback-error-text]="submitted() && descriptionInvalid()"
               class="w-full px-3 py-2.5 border border-border rounded-xl text-sm text-text-main bg-bg-surface focus:outline-none focus:border-accent-ui transition-all placeholder:text-text-soft"
-              autofocus
             />
             <div class="flex items-center justify-between">
               @if (submitted() && descriptionInvalid()) {
@@ -170,6 +178,14 @@ export class PosFreeItemModal {
   quantity = signal(1);
   unitPrice = signal<number | null>(null);
   submitted = signal(false);
+
+  private readonly descriptionInput = viewChild<ElementRef<HTMLInputElement>>('descriptionInput');
+
+  constructor() {
+    // El modal nace con cada apertura (@if): enfocar acá es determinista,
+    // a diferencia de `autofocus`, que no corre en contenido dinámico.
+    afterNextRender(() => this.descriptionInput()?.nativeElement.focus());
+  }
 
   private readonly trimmedDescription = computed(() => this.description().trim());
 
