@@ -17,6 +17,25 @@ const testItem: PosCartItem = {
   originalPrice: 250,
   sellingPrice: 240,
   discountAmount: 10,
+  isFree: false,
+  description: null,
+};
+
+const freeItem: PosCartItem = {
+  productVariantId: null,
+  productName: '',
+  quantity: 1,
+  categoryName: '',
+  brandName: '',
+  sku: '',
+  size: '',
+  colorName: '',
+  stock: null,
+  originalPrice: 45,
+  sellingPrice: 45,
+  discountAmount: 0,
+  isFree: true,
+  description: 'Pantalon diesel slim mujer 42 negro',
 };
 
 const baseModel = (): PosSaleState => ({
@@ -46,9 +65,24 @@ class Host {
   }
 }
 
+@Component({
+  standalone: true,
+  imports: [PosCartItemCardComponent],
+  template: `<app-pos-cart-item-card [item]="tree" />`,
+})
+class FreeHost {
+  model = signal<PosSaleState>({ ...baseModel(), items: [{ ...freeItem }] });
+  cartForm = form(this.model, (schemaPath) => {
+    applyEach(schemaPath.items, (item) => {
+      min(item.quantity, 1, { message: 'Mínimo 1 unidad.' });
+    });
+  });
+  tree = this.cartForm.items[0];
+}
+
 describe('PosCartItemCard', () => {
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [Host] }).compileComponents();
+    await TestBed.configureTestingModule({ imports: [Host, FreeHost] }).compileComponents();
   });
 
   function setup(): { fixture: ComponentFixture<Host>; host: Host } {
@@ -105,5 +139,20 @@ describe('PosCartItemCard', () => {
     for (const el of [qty, price]) {
       expect(el.className).toContain('field-number');
     }
+  });
+
+  it('ítem libre: muestra "Venta libre", la descripción y no limita por stock', () => {
+    const fixture = TestBed.createComponent(FreeHost);
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement.textContent ?? '').replace(/\s+/g, ' ');
+    expect(text).toContain('Venta libre');
+    expect(text).toContain('Pantalon diesel slim mujer 42 negro');
+    expect(text).not.toContain('disp.');
+
+    const plus = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+      '[aria-label="Agregar uno"]',
+    )!;
+    expect(plus.disabled).toBe(false);
   });
 });

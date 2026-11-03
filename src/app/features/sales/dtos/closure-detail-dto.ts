@@ -1,12 +1,13 @@
 import { DocumentType, PaymentMethod, SaleType } from './sale-detail-dto';
 
 export interface ClosureSaleItemDetailDto {
-  productVariantId: GUID;
+  /** null = ítem libre (venta sin producto registrado). */
+  productVariantId: GUID | null;
   productSku: string;
   productDisplayName: string;
   quantity: number;
   unitPrice: number;
-  unitCost?: number;
+  unitCost?: number | null;
   discountAmount: number;
   finalPrice: number;
 }

@@ -234,9 +234,16 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                       <p class="text-[15px] font-bold text-text-main break-words leading-snug">
                         {{ item.productDisplayName }}
                       </p>
-                      <p class="font-mono text-xs font-bold tracking-wide text-accent-ui">
-                        {{ item.productSku }}
-                      </p>
+                      @if (item.productVariantId != null) {
+                        <p class="font-mono text-xs font-bold tracking-wide text-accent-ui">
+                          {{ item.productSku }}
+                        </p>
+                      } @else {
+                        <span
+                          class="inline-flex items-center px-2 py-0.5 rounded-md bg-feedback-warning/15 border border-feedback-warning/30 text-[10px] font-bold text-feedback-warning-text"
+                          >Venta libre</span
+                        >
+                      }
                     </div>
                     <div class="shrink-0 text-right">
                       <p class="text-sm font-semibold tabular-nums text-text-main">
@@ -269,12 +276,16 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                   </div>
                   <div class="flex items-center justify-between text-xs font-mono">
                     @if (canMargin()) {
-                      <span class="text-feedback-success-text"
-                        >Margen
-                        {{
-                          (item.unitPrice - (item.unitCost ?? 0)) * item.quantity | money: 'symbol'
-                        }}</span
-                      >
+                      @if (item.unitCost != null) {
+                        <span class="text-xs font-mono text-feedback-success-text"
+                          >Margen
+                          {{
+                            (item.unitPrice - item.unitCost) * item.quantity | money: 'symbol'
+                          }}</span
+                        >
+                      } @else {
+                        <span class="text-xs font-mono text-text-soft">Margen —</span>
+                      }
                     }
                     @if (item.discountAmount) {
                       <span class="text-feedback-error-text"
@@ -315,7 +326,14 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                   @for (item of s.items; track item.id) {
                     <tr [class.bg-feedback-warning/5]="item.returnedQuantity > 0">
                       <td class="py-2.5 pl-6 pr-4 font-mono text-xs text-text-muted">
-                        {{ item.productSku }}
+                        @if (item.productVariantId != null) {
+                          {{ item.productSku }}
+                        } @else {
+                          <span
+                            class="inline-flex items-center px-2 py-0.5 rounded-md bg-feedback-warning/15 border border-feedback-warning/30 text-[10px] font-bold text-feedback-warning-text"
+                            >Libre</span
+                          >
+                        }
                       </td>
                       <td class="py-2.5 pr-4 text-text-main font-medium break-words max-w-[22rem]">
                         {{ item.productDisplayName }}
@@ -348,10 +366,11 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                         <td
                           class="py-2.5 px-3 text-right font-mono tabular-nums text-feedback-success-text"
                         >
-                          {{
-                            (item.unitPrice - (item.unitCost ?? 0)) * item.quantity
-                              | money: 'symbol'
-                          }}
+                          @if (item.unitCost != null) {
+                            {{ (item.unitPrice - item.unitCost) * item.quantity | money: 'symbol' }}
+                          } @else {
+                            <span class="text-text-soft">—</span>
+                          }
                         </td>
                       }
                       <td

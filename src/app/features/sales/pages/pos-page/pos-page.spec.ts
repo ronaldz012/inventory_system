@@ -7,10 +7,12 @@ import { SaleService } from '@features/sales/services/sale-service';
 import { ToastService } from '@core/services/toast-service';
 import { PermissionService } from '@features/auth/services/permmision-service';
 import { ProductService } from '@features/inventory/services/product-service';
+import { CreateSaleDto } from '@features/sales/dtos/create-sale-dto';
 
 describe('PosPage — modal de búsqueda en la URL', () => {
   let params$: BehaviorSubject<ParamMap>;
   let calls: { commands: unknown[]; extras: Record<string, unknown> }[];
+  let capturedSale: CreateSaleDto | null;
 
   const setParams = (raw: Record<string, string>) => {
     params$.next(convertToParamMap(raw));
@@ -19,6 +21,7 @@ describe('PosPage — modal de búsqueda en la URL', () => {
   beforeEach(async () => {
     params$ = new BehaviorSubject<ParamMap>(convertToParamMap({}));
     calls = [];
+    capturedSale = null;
 
     await TestBed.configureTestingModule({
       imports: [PosPage],
@@ -37,7 +40,15 @@ describe('PosPage — modal de búsqueda en la URL', () => {
           provide: CashRegisterService,
           useValue: { getCurrentRegister: () => of({ isOpen: true }) },
         },
-        { provide: SaleService, useValue: {} },
+        {
+          provide: SaleService,
+          useValue: {
+            createSale: (dto: CreateSaleDto) => {
+              capturedSale = dto;
+              return of(void 0);
+            },
+          },
+        },
         {
           provide: ToastService,
           useValue: { success: () => {}, error: () => {}, warning: () => {} },
@@ -89,5 +100,85 @@ describe('PosPage — modal de búsqueda en la URL', () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].extras['queryParams']).toEqual({ modal: null });
     expect(calls[0].extras['replaceUrl']).toBe(true);
+  });
+
+  it('onFreeItemSaved agrega una línea libre al carrito', () => {
+    const { page } = setup();
+    page.onFreeItemSaved({ description: 'Pantalon diesel', quantity: 2, unitPrice: 45 });
+
+    expect(page.posModel().items).toHaveLength(1);
+    const item = page.posModel().items[0];
+    expect(item.isFree).toBe(true);
+    expect(item.productVariantId).toBeNull();
+    expect(item.quantity).toBe(2);
+    expect(item.originalPrice).toBe(45);
+    expect(item.sellingPrice).toBe(45);
+    expect(item.discountAmount).toBe(0);
+  });
+
+  it('submitSale envía libres y de catálogo con la forma dual del contrato', () => {
+    const { page } = setup();
+    page.posModel.set({
+      paymentMethod: 0,
+      transactionCode: null,
+      publicName: '',
+      cashReceived: 0,
+      items: [
+        {
+          productVariantId: 'v1',
+          quantity: 1,
+          productName: 'Zapato',
+          categoryName: '',
+          brandName: '',
+          sku: 'SKU-1',
+          size: '42',
+          colorName: 'Azul',
+          stock: 5,
+          originalPrice: 100,
+          sellingPrice: 90,
+          discountAmount: 10,
+          isFree: false,
+          description: null,
+        },
+        {
+          productVariantId: null,
+          quantity: 2,
+          productName: '',
+          categoryName: '',
+          brandName: '',
+          sku: '',
+          size: '',
+          colorName: '',
+          stock: null,
+          originalPrice: 40,
+          sellingPrice: 45,
+          discountAmount: -5,
+          isFree: true,
+          description: 'Pantalon libre',
+        },
+      ],
+    });
+
+    page.submitSale();
+
+    expect(capturedSale).not.toBeNull();
+    expect(capturedSale!.items).toEqual([
+      { productVariantId: 'v1', quantity: 1, discountAmount: 10 },
+      { description: 'Pantalon libre', unitPrice: 45, quantity: 2, discountAmount: 0 },
+    ]);
+  });
+
+  it('venta libre con precio menor a Bs 0.50 invalida el formulario', () => {
+    const { page } = setup();
+    page.onFreeItemSaved({ description: 'Pantalon libre', quantity: 1, unitPrice: 45 });
+    expect(page.posForm().valid()).toBe(true);
+
+    page.posModel.update((state) => ({
+      ...state,
+      items: state.items.map((item) => ({ ...item, sellingPrice: 0.4 })),
+    }));
+
+    expect(page.posForm().valid()).toBe(false);
+    expect(page.isFormValid()).toBe(false);
   });
 });

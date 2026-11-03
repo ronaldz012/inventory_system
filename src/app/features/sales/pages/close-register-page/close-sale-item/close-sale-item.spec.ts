@@ -138,4 +138,17 @@ describe('CloseSaleItem', () => {
     expect(root.querySelector('button')).toBeNull();
     expect(root.querySelector('.material-icons')?.textContent?.trim()).toBe('chevron_right');
   });
+
+  it('marca los ítems libres (sin SKU) como "Libre"', async () => {
+    const { fixture, host, root } = await setup();
+    host.sale.set(
+      baseSale({
+        items: [{ ...saleItems[0], productVariantId: null, productSku: '' }],
+      }),
+    );
+    fixture.detectChanges();
+
+    expect(text(root)).toContain('Libre');
+    expect(root.querySelector('[title="Venta libre"]')).not.toBeNull();
+  });
 });

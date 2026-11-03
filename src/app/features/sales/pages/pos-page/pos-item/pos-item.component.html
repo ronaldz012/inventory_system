@@ -6,11 +6,20 @@
     (item().quantity().touched() && item().quantity().invalid())
   "
 >
-  <!-- Fila 1: SKU + eliminar -->
+  <!-- Fila 1: SKU / venta libre + eliminar -->
   <div class="flex items-center gap-2">
-    <p class="flex-1 min-w-0 font-mono text-[11px] font-bold tracking-wide text-accent-ui truncate">
-      {{ item().sku().value() }}
-    </p>
+    <div class="flex-1 min-w-0">
+      @if (isFree()) {
+        <span
+          class="inline-flex items-center px-2 py-0.5 rounded-md bg-feedback-warning/15 border border-feedback-warning/30 text-[10px] font-bold text-feedback-warning-text"
+          >Venta libre</span
+        >
+      } @else {
+        <p class="font-mono text-[11px] font-bold tracking-wide text-accent-ui truncate">
+          {{ item().sku().value() }}
+        </p>
+      }
+    </div>
     <button
       type="button"
       (click)="onRemove()"
@@ -28,29 +37,37 @@
     </button>
   </div>
 
-  <!-- Fila 2: Marca · Nombre -->
+  <!-- Fila 2: Marca · Nombre | descripción libre -->
   <p class="text-sm font-semibold text-text-main break-words leading-snug">
-    @if (item().brandName().value()) {
-      <span>{{ item().brandName().value() }} · </span>
+    @if (isFree()) {
+      {{ item().description().value() }}
+    } @else {
+      @if (item().brandName().value()) {
+        <span>{{ item().brandName().value() }} · </span>
+      }
+      {{ item().productName().value() }}
     }
-    {{ item().productName().value() }}
   </p>
 
   <!-- Fila 3: variante + cantidad -->
   <div class="flex items-center gap-2">
-    <div class="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap">
-      <span
-        class="inline-flex items-center px-2 py-0.5 rounded-md bg-accent-ui/10 border border-accent-ui/20 text-[11px] font-bold text-accent-ui"
-        >{{ item().colorName().value() }}</span
-      >
-      <span
-        class="inline-flex items-center px-2 py-0.5 rounded-md bg-bg-muted border border-border text-[11px] font-bold text-text-main"
-        >#{{ item().size().value() }}</span
-      >
-      <span class="text-[11px] text-text-soft tabular-nums"
-        >{{ item().stock().value() }} disp.</span
-      >
-    </div>
+    @if (!isFree()) {
+      <div class="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap">
+        <span
+          class="inline-flex items-center px-2 py-0.5 rounded-md bg-accent-ui/10 border border-accent-ui/20 text-[11px] font-bold text-accent-ui"
+          >{{ item().colorName().value() }}</span
+        >
+        <span
+          class="inline-flex items-center px-2 py-0.5 rounded-md bg-bg-muted border border-border text-[11px] font-bold text-text-main"
+          >#{{ item().size().value() }}</span
+        >
+        <span class="text-[11px] text-text-soft tabular-nums"
+          >{{ item().stock().value() }} disp.</span
+        >
+      </div>
+    } @else {
+      <div class="flex-1 min-w-0"></div>
+    }
     <div class="flex items-center gap-1 shrink-0" aria-label="Cantidad">
       <button
         type="button"
@@ -72,7 +89,7 @@
       <button
         type="button"
         (click)="adjustQty(1)"
-        [disabled]="item().quantity().value() >= item().stock().value()"
+        [disabled]="!canIncrease()"
         aria-label="Agregar uno"
         class="w-8 h-8 rounded-lg border border-border bg-bg-muted text-text-main flex items-center justify-center text-base font-bold leading-none disabled:opacity-30 disabled:cursor-not-allowed hover:bg-bg-elevated active:scale-95 transition-all"
       >

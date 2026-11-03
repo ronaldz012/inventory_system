@@ -10,7 +10,12 @@ export interface CreateSaleDto {
 }
 
 export interface CreateSaleItemDto {
-  productVariantId: GUID;
+  /** Variante de catálogo. Se omite/null en ítems libres. */
+  productVariantId?: GUID | null;
+  /** Solo ítems libres: descripción tipeada por el vendedor (máx. 120). */
+  description?: string | null;
+  /** Solo ítems libres: precio base (mín. 0.5). */
+  unitPrice?: number | null;
   quantity: number;
   discountAmount: number;
 }

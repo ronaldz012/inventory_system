@@ -69,6 +69,8 @@ export default class CatalogueItemModal implements OnInit, OnDestroy {
   // ── Estado UI ─────────────────────────────────────────────────────────
   error = signal<string | null>(null);
   selectedProduct = signal<ProductSearchResult | null>(null);
+  /** El search trae el listado plano; las filas salen del detalle por id. */
+  loadingProduct = signal(false);
 
   /** Modal anidado para crear una variante nueva sin salir del panel. */
   showAddVariant = signal(false);
@@ -194,7 +196,12 @@ export default class CatalogueItemModal implements OnInit, OnDestroy {
   rowsByColor = computed(() => {
     const groups = new Map<
       GUID,
-      { colorId: GUID; colorName: string; units: number; rows: { variant: VariantForm; index: number }[] }
+      {
+        colorId: GUID;
+        colorName: string;
+        units: number;
+        rows: { variant: VariantForm; index: number }[];
+      }
     >();
     this.itemModel().variants.forEach((variant, index) => {
       let g = groups.get(variant.colorId);
@@ -317,35 +324,48 @@ export default class CatalogueItemModal implements OnInit, OnDestroy {
 
   private loadProduct(product: ProductSearchResult): void {
     this.selectedProduct.set(product);
+    this.error.set(null);
+    this.loadingProduct.set(true);
 
-    this.itemModel.set({
-      product: {
-        id: product.id,
-        productName: product.name,
-        internalCode: product.internalCode,
-        categoryName: product.categoryName,
-        brandName: product.brandName,
-        genderName: Gender[product.gender],
-        description: product.description,
+    this.productService.getById(product.id).subscribe({
+      next: (detail) => {
+        this.loadingProduct.set(false);
+        this.itemModel.set({
+          product: {
+            id: detail.id,
+            productName: detail.name,
+            internalCode: detail.internalCode,
+            categoryName: detail.categoryName,
+            brandName: detail.brandName,
+            genderName: Gender[detail.gender],
+            description: detail.description,
+          },
+          variants: detail.variants.map((v) => ({
+            mode: 'ex' as const,
+            id: v.id,
+            sizeId: v.sizeId,
+            sizeName: v.size,
+            sizeOrder: v.sizeOrder ?? 0,
+            colorId: v.colorId,
+            colorCode: '',
+            colorName: v.color,
+            price: v.price,
+            quantityReceived: null,
+            // Prefill tipo Zoho: último costo de compra (null si nunca se compró).
+            unitCost: v.lastPurchaseCost ?? null,
+            sku: v.sku,
+          })),
+        });
       },
-        variants: product.productVariants.map((v) => ({
-          mode: 'ex' as const,
-          id: v.id,
-          sizeId: v.sizeId,
-          sizeName: v.size,
-          sizeOrder: v.sizeOrder ?? 0,
-          colorId: v.colorId,
-        colorCode: '',
-        colorName: v.colorName,
-        price: v.price,
-        quantityReceived: null,
-        unitCost: null,
-        sku: v.sku,
-      })),
+      error: () => {
+        this.loadingProduct.set(false);
+        this.error.set('No se pudieron cargar las variantes del producto.');
+      },
     });
   }
 
   private clearProduct(): void {
+    this.loadingProduct.set(false);
     this.selectedProduct.set(null);
     this.itemModel.set({
       product: {

@@ -13,7 +13,8 @@ export interface ProductSearchResult {
   isActive?: boolean;
   variantsCount?: number;
   createdAt?: string;
-  productVariants: ProductVariantOption[];
+  /** Ya no se usa para llenar el panel (se hace getById). Opcional: el search puede omitirlo. */
+  productVariants?: ProductVariantOption[];
 }
 export interface ProductVariantOption {
   id: GUID;

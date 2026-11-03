@@ -33,6 +33,9 @@ export interface ProductVariantDto {
   colorId: GUID;
   price: number;
   averageCost?: number;
+  /** Último costo de compra confirmado (null si nunca se compró). */
+  lastPurchaseCost?: number | null;
+  lastPurchaseAt?: string | null;
   totalAvailable: number;
   branchStocks: BranchStockDto[];
 }

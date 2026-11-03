@@ -207,12 +207,19 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                         <ul
                           class="flex flex-col divide-y divide-border border border-border rounded-lg overflow-hidden"
                         >
-                          @for (item of sale.items; track item.productVariantId) {
+                          @for (item of sale.items; track $index) {
                             <li class="px-3 py-2.5 flex flex-col gap-1 bg-bg-surface">
-                              <span
-                                class="font-mono text-[11px] font-bold tracking-wide text-accent-ui"
-                                >{{ item.productSku }}</span
-                              >
+                              @if (item.productVariantId != null) {
+                                <span
+                                  class="font-mono text-[11px] font-bold tracking-wide text-accent-ui"
+                                  >{{ item.productSku }}</span
+                                >
+                              } @else {
+                                <span
+                                  class="inline-flex w-fit items-center px-2 py-0.5 rounded-md bg-feedback-warning/15 border border-feedback-warning/30 text-[10px] font-bold text-feedback-warning-text"
+                                  >Venta libre</span
+                                >
+                              }
                               <p
                                 class="text-[13px] font-semibold text-text-main break-words leading-snug"
                               >
@@ -227,17 +234,21 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                                 <span class="text-text-soft font-mono"
                                   >costo {{ item.unitCost | money: 'symbol' }}</span
                                 >
-                                <span
-                                  class="font-mono font-bold"
-                                  [class.text-feedback-success-text]="
-                                    (item.unitPrice - (item.unitCost ?? 0)) * item.quantity > 0
-                                  "
-                                  >{{
-                                    (item.unitPrice - (item.unitCost ?? 0)) * item.quantity
-                                      | money: 'symbol'
-                                  }}
-                                  margen</span
-                                >
+                                @if (item.unitCost != null) {
+                                  <span
+                                    class="font-mono font-bold"
+                                    [class.text-feedback-success-text]="
+                                      (item.unitPrice - item.unitCost) * item.quantity > 0
+                                    "
+                                    >{{
+                                      (item.unitPrice - item.unitCost) * item.quantity
+                                        | money: 'symbol'
+                                    }}
+                                    margen</span
+                                  >
+                                } @else {
+                                  <span class="font-mono text-text-soft">margen —</span>
+                                }
                               </div>
                             </li>
                           }
@@ -300,13 +311,20 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                             ><span class="text-right">Margen</span
                             ><span class="text-right">Subtotal</span>
                           </div>
-                          @for (item of sale.items; track item.productVariantId) {
+                          @for (item of sale.items; track $index) {
                             <div
                               class="grid lg:grid-cols-[8rem_1fr_6rem_6rem_7rem] items-center px-3 py-2 text-xs gap-2 border-b border-border/50 last:border-0 bg-bg-surface"
                             >
-                              <span class="font-mono text-accent-ui font-bold truncate">{{
-                                item.productSku
-                              }}</span>
+                              @if (item.productVariantId != null) {
+                                <span class="font-mono text-accent-ui font-bold truncate">{{
+                                  item.productSku
+                                }}</span>
+                              } @else {
+                                <span
+                                  class="inline-flex w-fit items-center px-2 py-0.5 rounded-md bg-feedback-warning/15 border border-feedback-warning/30 text-[10px] font-bold text-feedback-warning-text"
+                                  >Libre</span
+                                >
+                              }
                               <span
                                 class="font-medium text-text-main truncate"
                                 [title]="item.productDisplayName"
@@ -317,11 +335,16 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                               }}</span>
                               <span
                                 class="text-right font-mono font-bold text-feedback-success-text"
-                                >{{
-                                  (item.unitPrice - (item.unitCost ?? 0)) * item.quantity
-                                    | money: 'symbol'
-                                }}</span
                               >
+                                @if (item.unitCost != null) {
+                                  {{
+                                    (item.unitPrice - item.unitCost) * item.quantity
+                                      | money: 'symbol'
+                                  }}
+                                } @else {
+                                  <span class="text-text-soft">—</span>
+                                }
+                              </span>
                               <span class="text-right font-mono font-bold text-text-main"
                                 >×{{ item.quantity }} ·
                                 {{ item.finalPrice | money: 'symbol' }}</span

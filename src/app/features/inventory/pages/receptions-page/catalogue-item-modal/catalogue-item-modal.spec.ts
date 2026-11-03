@@ -4,6 +4,7 @@ import CatalogueItemModal from './catalogue-item-modal';
 import { ProductService } from '@features/inventory/services/product-service';
 import { SizeService } from '@features/inventory/services/size-service';
 import { ProductSearchResult } from '../../../components/product-search/product-search-result.component';
+import { ProductDetailDto } from '@features/inventory/dtos/products/product-detail-dto';
 import { Gender } from '@features/inventory/interfaces/gender';
 import { ItemForm } from '@features/inventory/models/variant-form.model';
 import { ProductVariantCreatedDto } from '@features/inventory/dtos/products/create-product-variant-dto';
@@ -17,26 +18,53 @@ const fakeProduct: ProductSearchResult = {
   brandName: 'Nike',
   categoryName: 'Calzado',
   gender: Gender.Hombre,
-  productVariants: [
+};
+
+const fakeDetail: ProductDetailDto = {
+  id: 'p1',
+  name: 'Zapato',
+  internalCode: 'ZAP',
+  description: '',
+  basePrice: 100,
+  gender: Gender.Hombre,
+  isActive: true,
+  categoryId: 'c1',
+  categoryName: 'Calzado',
+  brandId: 'b1',
+  brandName: 'Nike',
+  totalAvailable: 0,
+  variants: [
     {
       id: 'v1',
       sku: 'SKU-1',
+      description: '',
       size: '42',
       sizeId: 's42',
       sizeOrder: 3,
       colorId: 'c-azul',
-      colorName: 'Azul',
+      color: 'Azul',
       price: 100,
+      averageCost: undefined,
+      lastPurchaseCost: null,
+      lastPurchaseAt: null,
+      totalAvailable: 0,
+      branchStocks: [],
     },
     {
       id: 'v2',
       sku: 'SKU-2',
+      description: '',
       size: '44',
       sizeId: 's44',
       sizeOrder: 5,
       colorId: 'c-azul',
-      colorName: 'Azul',
+      color: 'Azul',
       price: 100,
+      averageCost: undefined,
+      lastPurchaseCost: null,
+      lastPurchaseAt: null,
+      totalAvailable: 0,
+      branchStocks: [],
     },
   ],
 };
@@ -44,18 +72,20 @@ const fakeProduct: ProductSearchResult = {
 describe('CatalogueItemModal — inclusión por cantidad', () => {
   let searchResults: ProductSearchResult[];
   let createdResponse: ProductVariantCreatedDto[];
+  let detailResponse: ProductDetailDto;
 
   beforeEach(async () => {
     searchResults = [];
     createdResponse = [];
+    detailResponse = fakeDetail;
     await TestBed.configureTestingModule({
       imports: [CatalogueItemModal],
-      // modo add: no hace HTTP (solo initFromEdit llamaría a getById)
       providers: [
         {
           provide: ProductService,
           useValue: {
             searchProduct: () => of(searchResults),
+            getById: () => of(detailResponse),
             createVariants: () => of(createdResponse),
           },
         },
@@ -63,7 +93,11 @@ describe('CatalogueItemModal — inclusión por cantidad', () => {
           provide: SizeService,
           useValue: {
             load: () => {},
-            sizes: () => [{ id: 's42', sortOrder: 3 }, { id: 's43', sortOrder: 4 }, { id: 's44', sortOrder: 5 }],
+            sizes: () => [
+              { id: 's42', sortOrder: 3 },
+              { id: 's43', sortOrder: 4 },
+              { id: 's44', sortOrder: 5 },
+            ],
           },
         },
       ],
@@ -144,6 +178,33 @@ describe('CatalogueItemModal — inclusión por cantidad', () => {
     expect(modal.itemModel().variants.map((v) => v.unitCost)).toEqual([50, null]);
   });
 
+  it('prellena el costo de compra con el último costo del backend', () => {
+    detailResponse = {
+      ...fakeDetail,
+      variants: fakeDetail.variants.map((v, i) => ({
+        ...v,
+        lastPurchaseCost: i === 0 ? 12.5 : null,
+      })),
+    };
+    const modal = setup();
+    modal.onProductSelected(fakeProduct);
+
+    expect(modal.itemModel().variants.map((v) => v.unitCost)).toEqual([12.5, null]);
+  });
+
+  it('el masivo pisa el costo prellenado', () => {
+    detailResponse = {
+      ...fakeDetail,
+      variants: fakeDetail.variants.map((v) => ({ ...v, lastPurchaseCost: 12.5 })),
+    };
+    const modal = setup();
+    modal.onProductSelected(fakeProduct);
+    modal.onUniqueCostChange('30');
+    modal.applyMasterCost();
+
+    expect(modal.itemModel().variants.map((v) => v.unitCost)).toEqual([30, 30]);
+  });
+
   it('al salir del campo masivo se conserva el borrador y las filas', () => {
     const fixture = TestBed.createComponent(CatalogueItemModal);
     fixture.detectChanges();
@@ -222,14 +283,56 @@ describe('CatalogueItemModal — inclusión por cantidad', () => {
   });
 
   describe('agrupado por color', () => {
-    const mixed: ProductSearchResult = {
-      ...fakeProduct,
-      productVariants: [
-        { id: 'v1', sku: 'SKU-1', size: '42', sizeId: 's42', sizeOrder: 3, colorId: 'c-azul', colorName: 'Azul', price: 100 },
-        { id: 'v3', sku: 'SKU-3', size: '43', sizeId: 's43', sizeOrder: 4, colorId: 'c-azul', colorName: 'Azul', price: 100 },
-        { id: 'v2', sku: 'SKU-2', size: '44', sizeId: 's44', sizeOrder: 5, colorId: 'c-rojo', colorName: 'Rojo', price: 100 },
+    const mixed: ProductSearchResult = { ...fakeProduct };
+
+    const mixedDetail: ProductDetailDto = {
+      ...fakeDetail,
+      variants: [
+        {
+          id: 'v1',
+          sku: 'SKU-1',
+          description: '',
+          size: '42',
+          sizeId: 's42',
+          sizeOrder: 3,
+          colorId: 'c-azul',
+          color: 'Azul',
+          price: 100,
+          totalAvailable: 0,
+          branchStocks: [],
+        },
+        {
+          id: 'v3',
+          sku: 'SKU-3',
+          description: '',
+          size: '43',
+          sizeId: 's43',
+          sizeOrder: 4,
+          colorId: 'c-azul',
+          color: 'Azul',
+          price: 100,
+          totalAvailable: 0,
+          branchStocks: [],
+        },
+        {
+          id: 'v2',
+          sku: 'SKU-2',
+          description: '',
+          size: '44',
+          sizeId: 's44',
+          sizeOrder: 5,
+          colorId: 'c-rojo',
+          color: 'Rojo',
+          price: 100,
+          totalAvailable: 0,
+          branchStocks: [],
+        },
       ],
     };
+
+    beforeEach(() => {
+      detailResponse = mixedDetail;
+    });
 
     it('agrupa por color preservando orden e índices planos', () => {
       const modal = setup();
@@ -297,7 +400,7 @@ describe('CatalogueItemModal — inclusión por cantidad', () => {
       expect(text).toContain('Escribí al menos 2 caracteres');
     });
 
-    it('buscar pinta filas con marca, nombre y conteo de tallas', () => {
+    it('buscar pinta filas con marca y nombre', () => {
       searchResults = [fakeProduct];
       const { fixture, root } = setupDom();
       type(fixture, root, 'zap');
@@ -305,7 +408,6 @@ describe('CatalogueItemModal — inclusión por cantidad', () => {
       const text = (root.textContent ?? '').replace(/\s+/g, ' ');
       expect(text).toContain('Nike');
       expect(text).toContain('Zapato');
-      expect(text).toContain('2 tallas');
     });
 
     it('Enter elige el primero y pasa a variantes', () => {
@@ -325,7 +427,6 @@ describe('CatalogueItemModal — inclusión por cantidad', () => {
       expect(header).toContain('Nike');
       expect(header).toContain('Zapato');
       expect(header.indexOf('Nike')).toBeLessThan(header.indexOf('Zapato'));
-      expect(header).toContain('2 tallas');
     });
 
     it('Cambiar vuelve al paso de búsqueda', () => {

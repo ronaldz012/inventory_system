@@ -1,7 +1,8 @@
 import { PaymentMethod } from '../models/payment-method';
 
 export interface PosCartItem {
-  productVariantId: GUID;
+  /** null = venta libre (sin producto de catálogo). */
+  productVariantId: GUID | null;
   quantity: number;
   productName: string;
   categoryName: string;
@@ -9,10 +10,14 @@ export interface PosCartItem {
   sku: string;
   size: string;
   colorName: string;
-  stock: number;
+  /** Stock disponible; null en ítems libres (no descuenta inventario). */
+  stock: number | null;
   originalPrice: number;
   sellingPrice: number;
   discountAmount: number;
+  /** Venta libre: descripción tipeada, sin SKU ni variante. */
+  isFree: boolean;
+  description: string | null;
 }
 
 export interface PosSaleState {

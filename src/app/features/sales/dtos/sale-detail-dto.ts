@@ -45,7 +45,8 @@ export function isReturnType(v: SaleType | string | number): boolean {
 
 export interface SaleItemDetailDto {
   id: GUID;
-  productVariantId: GUID;
+  /** null = ítem libre (venta sin producto registrado). */
+  productVariantId: GUID | null;
   productSku: string;
   productDisplayName: string;
   unitPrice: number;

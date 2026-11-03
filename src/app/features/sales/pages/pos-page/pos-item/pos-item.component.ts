@@ -19,6 +19,14 @@ export class PosCartItemCardComponent {
 
   removed = output<void>();
 
+  isFree = computed(() => this.item().isFree().value());
+
+  /** Los ítems libres no tienen stock: el + nunca se bloquea por disponibilidad. */
+  canIncrease = computed(() => {
+    const stock = this.item().stock().value();
+    return stock == null || this.item().quantity().value() < stock;
+  });
+
   hasDiscount = computed(() => {
     const original = this.item().originalPrice().value();
     const selling = this.item().sellingPrice().value();
@@ -60,7 +68,8 @@ export class PosCartItemCardComponent {
     const currentQty = this.item().quantity().value();
     const maxStock = this.item().stock().value();
 
-    const newQty = Math.max(1, Math.min(maxStock, currentQty + delta));
+    const upper = maxStock ?? Number.MAX_SAFE_INTEGER;
+    const newQty = Math.max(1, Math.min(upper, currentQty + delta));
 
     this.item().quantity().value.set(newQty);
   }

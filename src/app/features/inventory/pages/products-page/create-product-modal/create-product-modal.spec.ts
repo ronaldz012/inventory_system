@@ -172,7 +172,7 @@ describe('CreateProductModal', () => {
     expect(emitted).toHaveLength(1);
     expect(emitted[0].variantsCount).toBe(2);
     expect(
-      emitted[0].productVariants.map(({ id, sizeId, colorId, price }) => ({
+      emitted[0].productVariants!.map(({ id, sizeId, colorId, price }) => ({
         id,
         sizeId,
         colorId,
