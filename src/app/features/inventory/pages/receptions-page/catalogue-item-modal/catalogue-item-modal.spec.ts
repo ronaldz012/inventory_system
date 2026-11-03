@@ -178,6 +178,33 @@ describe('CatalogueItemModal — inclusión por cantidad', () => {
     expect(modal.itemModel().variants.map((v) => v.unitCost)).toEqual([50, null]);
   });
 
+  it('prellena el costo de compra con el último costo del backend', () => {
+    detailResponse = {
+      ...fakeDetail,
+      variants: fakeDetail.variants.map((v, i) => ({
+        ...v,
+        lastPurchaseCost: i === 0 ? 12.5 : null,
+      })),
+    };
+    const modal = setup();
+    modal.onProductSelected(fakeProduct);
+
+    expect(modal.itemModel().variants.map((v) => v.unitCost)).toEqual([12.5, null]);
+  });
+
+  it('el masivo pisa el costo prellenado', () => {
+    detailResponse = {
+      ...fakeDetail,
+      variants: fakeDetail.variants.map((v) => ({ ...v, lastPurchaseCost: 12.5 })),
+    };
+    const modal = setup();
+    modal.onProductSelected(fakeProduct);
+    modal.onUniqueCostChange('30');
+    modal.applyMasterCost();
+
+    expect(modal.itemModel().variants.map((v) => v.unitCost)).toEqual([30, 30]);
+  });
+
   it('al salir del campo masivo se conserva el borrador y las filas', () => {
     const fixture = TestBed.createComponent(CatalogueItemModal);
     fixture.detectChanges();

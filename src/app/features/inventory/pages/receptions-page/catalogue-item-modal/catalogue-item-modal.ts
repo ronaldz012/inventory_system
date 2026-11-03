@@ -351,7 +351,8 @@ export default class CatalogueItemModal implements OnInit, OnDestroy {
             colorName: v.color,
             price: v.price,
             quantityReceived: null,
-            unitCost: null,
+            // Prefill tipo Zoho: último costo de compra (null si nunca se compró).
+            unitCost: v.lastPurchaseCost ?? null,
             sku: v.sku,
           })),
         });
