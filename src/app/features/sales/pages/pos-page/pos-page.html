@@ -144,23 +144,30 @@
             </div>
 
             <div
-              class="flex flex-wrap items-center justify-end gap-2 px-4 py-2 border-t border-border"
+              class="grid grid-cols-3 gap-1.5 px-3 py-2 border-t border-border sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-2 sm:px-4"
             >
-              <button type="button" (click)="freeItemModal.open()" class="btn-accent-soft btn-sm">
-                <span class="material-icons !text-[16px]">sell</span>
+              <button
+                type="button"
+                (click)="freeItemModal.open()"
+                class="btn-accent-soft btn-sm w-full whitespace-nowrap !px-2 !text-[11px] sm:!px-3 sm:!text-sm"
+              >
+                <span class="material-icons !text-[16px] hidden sm:inline">sell</span>
                 Venta libre
               </button>
               <button
                 type="button"
                 (click)="expenseModal.open()"
                 [disabled]="registerState() !== 'open'"
-                class="btn-accent-soft btn-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                class="btn-accent-soft btn-sm w-full whitespace-nowrap !px-2 !text-[11px] sm:!px-3 sm:!text-sm disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <span class="material-icons !text-[16px]">receipt_long</span>
+                <span class="material-icons !text-[16px] hidden sm:inline">receipt_long</span>
                 Gastos
               </button>
-              <a routerLink="/sales/pos/returns" class="btn-secondary btn-sm">
-                <span class="material-icons !text-[16px]">assignment_return</span>
+              <a
+                routerLink="/sales/pos/returns"
+                class="btn-secondary btn-sm w-full whitespace-nowrap !px-2 !text-[11px] sm:!px-3 sm:!text-sm"
+              >
+                <span class="material-icons !text-[16px] hidden sm:inline">assignment_return</span>
                 Reembolsos
               </a>
             </div>

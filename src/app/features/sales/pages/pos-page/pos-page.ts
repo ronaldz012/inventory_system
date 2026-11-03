@@ -101,6 +101,13 @@ export default class PosPage implements OnInit, OnDestroy {
         }
         return null;
       });
+
+      // Venta libre: el backend exige unitPrice >= 0.5. El precio también se
+      // edita desde el carrito, así que el mínimo se valida acá.
+      validate(item.sellingPrice, ({ value, valueOf }) => {
+        if (!valueOf(item.isFree)) return null;
+        return value() < 0.5 ? { kind: 'minPrice', message: 'Mínimo Bs 0.50.' } : null;
+      });
     });
   });
 

@@ -167,4 +167,18 @@ describe('PosPage — modal de búsqueda en la URL', () => {
       { description: 'Pantalon libre', unitPrice: 45, quantity: 2, discountAmount: 0 },
     ]);
   });
+
+  it('venta libre con precio menor a Bs 0.50 invalida el formulario', () => {
+    const { page } = setup();
+    page.onFreeItemSaved({ description: 'Pantalon libre', quantity: 1, unitPrice: 45 });
+    expect(page.posForm().valid()).toBe(true);
+
+    page.posModel.update((state) => ({
+      ...state,
+      items: state.items.map((item) => ({ ...item, sellingPrice: 0.4 })),
+    }));
+
+    expect(page.posForm().valid()).toBe(false);
+    expect(page.isFormValid()).toBe(false);
+  });
 });
