@@ -161,9 +161,16 @@ interface RefundFormModel {
                       <p class="text-[15px] font-bold text-text-main break-words leading-snug">
                         {{ line.productDisplayName }}
                       </p>
-                      <p class="font-mono text-xs font-bold tracking-wide text-accent-ui">
-                        {{ line.productSku }}
-                      </p>
+                      @if (line.productSku) {
+                        <p class="font-mono text-xs font-bold tracking-wide text-accent-ui">
+                          {{ line.productSku }}
+                        </p>
+                      } @else {
+                        <span
+                          class="inline-flex items-center px-2 py-0.5 rounded-md bg-feedback-warning/15 border border-feedback-warning/30 text-[10px] font-bold text-feedback-warning-text"
+                          >Venta libre</span
+                        >
+                      }
                     </div>
                   </label>
                   <div class="flex flex-wrap items-center gap-2 pl-8">
@@ -232,10 +239,17 @@ interface RefundFormModel {
                       class="mt-1 h-5 w-5 rounded border-border text-accent-ui focus:ring-accent-ui shrink-0 disabled:opacity-50"
                     />
                     <div class="flex-1 min-w-0 flex flex-col">
-                      <span
-                        class="font-mono text-xs font-bold tracking-wide text-accent-ui break-all"
-                        >{{ line.productSku }}</span
-                      >
+                      @if (line.productSku) {
+                        <span
+                          class="font-mono text-xs font-bold tracking-wide text-accent-ui break-all"
+                          >{{ line.productSku }}</span
+                        >
+                      } @else {
+                        <span
+                          class="inline-flex w-fit items-center px-2 py-0.5 rounded-md bg-feedback-warning/15 border border-feedback-warning/30 text-[10px] font-bold text-feedback-warning-text"
+                          >Venta libre</span
+                        >
+                      }
                       <p
                         class="text-sm font-bold text-text-main break-words leading-snug"
                         [title]="line.productDisplayName"

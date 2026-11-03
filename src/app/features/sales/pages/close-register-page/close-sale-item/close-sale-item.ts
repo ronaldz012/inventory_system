@@ -136,10 +136,12 @@ import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
         @for (item of sale().items; track $index) {
           <div class="flex items-baseline gap-2 text-xs">
             <span
-              class="shrink-0 w-20 truncate font-mono text-accent-ui font-bold"
-              [title]="item.productSku"
+              class="shrink-0 w-20 truncate font-mono font-bold"
+              [class.text-accent-ui]="item.productVariantId != null"
+              [class.text-feedback-warning-text]="item.productVariantId == null"
+              [title]="item.productVariantId != null ? item.productSku : 'Venta libre'"
             >
-              {{ item.productSku }}
+              {{ item.productVariantId != null ? item.productSku : 'Libre' }}
             </span>
             <span class="shrink-0 w-7 text-right font-mono font-bold text-text-muted">
               ×{{ item.quantity }}

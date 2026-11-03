@@ -18,10 +18,11 @@ import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { PosMobilePayModal } from './pos-mobile-pay-modal/pos-mobile-pay-modal';
 import { PosDesktopPayPanel } from './pos-desktop-pay-panel/pos-desktop-pay-panel';
 import { PosSearchModal } from './pos-search-modal/pos-search-modal';
+import { PosFreeItemModal, FreeItemDraft } from './pos-free-item-modal/pos-free-item-modal';
 import { CashRegisterService } from '@features/sales/services/cash-register-service';
 import { CurrentRegisterDto } from '@features/sales/dtos/current-register-dto';
 import { SaleService } from '@features/sales/services/sale-service';
-import { CreateSaleDto, CreateSaleItemDto } from '@features/sales/dtos/create-sale-dto';
+import { CreateSaleDto } from '@features/sales/dtos/create-sale-dto';
 import { ToastService } from '@core/services/toast-service';
 import { PermissionService } from '@features/auth/services/permmision-service';
 import CreateExpenseModal from '@features/sales/pages/expenses-page/create-expense-modal';
@@ -38,6 +39,7 @@ import CreateExpenseModal from '@features/sales/pages/expenses-page/create-expen
     PosMobilePayModal,
     PosDesktopPayPanel,
     PosSearchModal,
+    PosFreeItemModal,
     CreateExpenseModal,
   ],
   templateUrl: './pos-page.html',
@@ -89,9 +91,12 @@ export default class PosPage implements OnInit, OnDestroy {
     applyEach(schemaPath.items, (item) => {
       min(item.quantity, 1, { message: 'Mínimo 1 unidad.' });
 
-      // Control reactivo de stock por prenda en el carrito
+      // Control reactivo de stock por prenda en el carrito.
+      // Los ítems libres (stock null) no descuentan inventario: sin tope.
       validate(item.quantity, ({ value, valueOf }) => {
-        if (value() > valueOf(item.stock)) {
+        const stock = valueOf(item.stock);
+        if (stock == null) return null;
+        if (value() > stock) {
           return { kind: 'outOfStock', message: 'Supera el stock.' };
         }
         return null;
@@ -223,9 +228,14 @@ export default class PosPage implements OnInit, OnDestroy {
   showCreateExpense = signal(false);
   expenseModal = useStackedModal(this.stack, this.showCreateExpense);
 
+  /** Venta libre: ítem sin producto registrado (solo descripción, cantidad y precio). */
+  isFreeItemOpen = signal(false);
+  freeItemModal = useStackedModal(this.stack, this.isFreeItemOpen);
+
   ngOnDestroy(): void {
     this.payModal.destroy();
     this.expenseModal.destroy();
+    this.freeItemModal.destroy();
   }
 
   /** Agrega al carrito la variante elegida en el modal de búsqueda */
@@ -255,11 +265,25 @@ export default class PosPage implements OnInit, OnDestroy {
       documentType: 0, // Ticket
       transactionCode: state.transactionCode,
       notes: null,
-      items: state.items.map((item) => ({
-        productVariantId: item.productVariantId,
-        quantity: item.quantity,
-        discountAmount: item.discountAmount,
-      })),
+      items: state.items.map((item) => {
+        // Venta libre: se envía descripción + precio, nunca productVariantId.
+        if (item.isFree) {
+          const basePrice = item.originalPrice;
+          const unitPrice = Math.max(basePrice, item.sellingPrice);
+          return {
+            description: item.description ?? '',
+            unitPrice,
+            quantity: item.quantity,
+            discountAmount: Math.max(0, basePrice - item.sellingPrice),
+          };
+        }
+
+        return {
+          productVariantId: item.productVariantId,
+          quantity: item.quantity,
+          discountAmount: item.discountAmount,
+        };
+      }),
     };
 
     this.submitting.set(true);
@@ -324,6 +348,8 @@ export default class PosPage implements OnInit, OnDestroy {
               originalPrice: variant.price,
               sellingPrice: variant.price,
               discountAmount: 0,
+              isFree: false,
+              description: null,
             };
             updatedItems.unshift(newItem);
           }
@@ -345,6 +371,32 @@ export default class PosPage implements OnInit, OnDestroy {
         );
       },
     });
+  }
+
+  /**
+   * Agrega al carrito un ítem libre (venta sin producto registrado).
+   * Se trata como cualquier otra línea: precio, cantidad y descuento editables.
+   */
+  onFreeItemSaved(draft: FreeItemDraft): void {
+    const newItem: PosCartItem = {
+      productVariantId: null,
+      quantity: Math.max(1, Math.trunc(draft.quantity)),
+      productName: '',
+      categoryName: '',
+      brandName: '',
+      sku: '',
+      size: '',
+      colorName: '',
+      stock: null,
+      originalPrice: draft.unitPrice,
+      sellingPrice: draft.unitPrice,
+      discountAmount: 0,
+      isFree: true,
+      description: draft.description,
+    };
+
+    this.posModel.update((state) => ({ ...state, items: [newItem, ...state.items] }));
+    this.freeItemModal.close();
   }
 
   /**

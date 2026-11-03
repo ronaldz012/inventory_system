@@ -143,7 +143,13 @@
               </div>
             </div>
 
-            <div class="flex items-center justify-end gap-2 px-4 py-2 border-t border-border">
+            <div
+              class="flex flex-wrap items-center justify-end gap-2 px-4 py-2 border-t border-border"
+            >
+              <button type="button" (click)="freeItemModal.open()" class="btn-accent-soft btn-sm">
+                <span class="material-icons !text-[16px]">sell</span>
+                Venta libre
+              </button>
               <button
                 type="button"
                 (click)="expenseModal.open()"
@@ -162,11 +168,7 @@
 
           @if (posModel().items.length) {
             <div class="flex flex-col gap-3">
-              @for (
-                cartItem of posForm.items;
-                track cartItem().value().productVariantId;
-                let i = $index
-              ) {
+              @for (cartItem of posForm.items; track $index; let i = $index) {
                 <app-pos-cart-item-card [item]="cartItem" (removed)="removeItem(i)" />
               }
             </div>
@@ -183,7 +185,7 @@
                 <p class="font-bold text-text-main text-sm">El carrito está vacío</p>
                 <p class="text-xs max-w-xs mt-1">
                   Digita el código SKU arriba presionando Enter, usa la pistola de barras o activa
-                  el escáner de cámara.
+                  el escáner de cámara. También podés agregar una venta libre.
                 </p>
               </div>
             </div>
@@ -243,6 +245,10 @@
 
 @if (isSearchOpen()) {
   <app-pos-search-modal (variantSelected)="onVariantPicked($event)" (closed)="closeSearch()" />
+}
+
+@if (isFreeItemOpen()) {
+  <app-pos-free-item-modal (saved)="onFreeItemSaved($event)" (closed)="freeItemModal.close()" />
 }
 
 @if (showCreateExpense()) {
