@@ -1,7 +1,12 @@
 import { Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ClosureSaleItemDto } from '@features/sales/dtos/closure-detail-dto';
-import { isCashPayment, isReturnType } from '@features/sales/dtos/sale-detail-dto';
+import {
+  SaleReturnStatus,
+  isCashPayment,
+  isReturnType,
+  returnStatusValue,
+} from '@features/sales/dtos/sale-detail-dto';
 import { PermissionService } from '@features/auth/services/permmision-service';
 import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
@@ -55,17 +60,20 @@ import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
           </span>
         </div>
       }
-      <div class="flex items-center gap-1.5 text-[10px] font-semibold">
+      <div class="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold">
         <span [class]="isReturn() ? 'text-feedback-warning-text' : 'text-accent-ui'">
           {{ isReturn() ? 'Devolución' : 'Venta' }}
         </span>
+        @if (originalSaleNumber(); as original) {
+          <span class="text-text-soft">de #{{ original }}</span>
+        }
+        @if (returnBadge(); as badge) {
+          <span class="text-feedback-warning-text">· {{ badge }}</span>
+        }
         <span class="text-text-soft">·</span>
         <span class="text-text-muted">{{ isCash() ? 'Efectivo' : 'QR' }}</span>
         <span class="text-text-soft">·</span>
-        <span class="text-text-muted">{{ sale().itemsCount }} art.</span>
-        @if (sale().hasReturn) {
-          <span class="text-text-soft">· Devuelta</span>
-        }
+        <span class="text-text-muted">{{ articles() }} art.</span>
       </div>
 
       @if (sale().items.length > 0) {
@@ -94,9 +102,14 @@ import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
     <div
       class="hidden lg:grid lg:grid-cols-[12rem_8rem_6rem_7rem_5rem_8rem] items-center px-6 py-3 hover:bg-bg-muted/30 transition-colors"
     >
-      <span class="text-[13px] text-text-main font-mono truncate">
-        <span class="font-bold">#{{ sale().number }}</span>
-        <span class="text-text-soft"> · {{ sale().createdAt | smartDate }}</span>
+      <span class="flex flex-col leading-tight min-w-0">
+        <span class="text-[13px] text-text-main font-mono truncate">
+          <span class="font-bold">#{{ sale().number }}</span>
+          <span class="text-text-soft"> · {{ sale().createdAt | smartDate }}</span>
+        </span>
+        @if (originalSaleNumber(); as original) {
+          <span class="text-[10px] font-mono text-feedback-warning-text">de #{{ original }}</span>
+        }
       </span>
       <span
         class="text-right text-[13px] font-mono font-bold text-text-main"
@@ -108,17 +121,19 @@ import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
         <span [class]="isReturn() ? 'chip-warning' : 'chip-accent'">
           {{ isReturn() ? 'Devolución' : 'Venta' }}
         </span>
+        @if (returnBadge(); as badge) {
+          <span class="block text-[10px] font-semibold text-feedback-warning-text mt-0.5">{{
+            badge
+          }}</span>
+        }
       </span>
       <span class="text-center">
         <span [class]="isCash() ? 'chip-neutral' : 'chip-info'">
           {{ isCash() ? 'Efectivo' : 'QR' }}
         </span>
-        @if (sale().hasReturn) {
-          <span class="block text-[10px] text-text-soft mt-0.5">Devuelta</span>
-        }
       </span>
       <span class="chip-accent font-mono w-fit ml-auto">
-        {{ sale().itemsCount }}
+        {{ articles() }}
       </span>
       @if (canOpenDetail()) {
         <div class="flex justify-end">
@@ -167,4 +182,19 @@ export class CloseSaleItem {
 
   isReturn = computed(() => isReturnType(this.sale().type));
   isCash = computed(() => isCashPayment(this.sale().paymentMethod));
+
+  /** Artículos para mostrar: en devoluciones el backend guarda la cantidad negativa. */
+  articles = computed(() => Math.abs(this.sale().itemsCount));
+
+  /** "Parcial"/"Devuelta" en ventas con devolución; null si no aplica. */
+  returnBadge = computed(() => {
+    if (this.isReturn()) return null;
+    const status = returnStatusValue(this.sale().returnStatus);
+    if (status === SaleReturnStatus.Partial) return 'Parcial';
+    if (status === SaleReturnStatus.Full) return 'Devuelta';
+    return null;
+  });
+
+  /** Nº de la venta original cuando esta fila es una devolución. */
+  originalSaleNumber = computed(() => (this.isReturn() ? this.sale().originalSaleNumber : null));
 }

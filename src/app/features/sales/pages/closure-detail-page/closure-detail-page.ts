@@ -1,8 +1,13 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CashRegisterService } from '@features/sales/services/cash-register-service';
-import { ClosureDetailDto } from '@features/sales/dtos/closure-detail-dto';
-import { isReturnType, isCashPayment } from '@features/sales/dtos/sale-detail-dto';
+import { ClosureDetailDto, ClosureSaleItemDto } from '@features/sales/dtos/closure-detail-dto';
+import {
+  SaleReturnStatus,
+  isCashPayment,
+  isReturnType,
+  returnStatusValue,
+} from '@features/sales/dtos/sale-detail-dto';
 import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
 import { MoneyPipe } from '@shared/pipes/money-pipe';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
@@ -143,19 +148,28 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 
           @if (c.sales.length > 0) {
             <div class="bg-bg-surface rounded-xl border border-border shadow-xs overflow-hidden">
-              <div class="px-6 pt-5 pb-3 flex items-center justify-between">
+              <div
+                class="px-6 pt-5 pb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"
+              >
                 <p class="text-[11px] font-bold uppercase tracking-wider text-text-soft">
-                  Ventas del turno ({{ c.sales.length }})
+                  Ventas y devoluciones ({{ c.sales.length }})
                 </p>
-                <span
-                  class="text-xs font-bold text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md"
-                  >{{ c.sales.length }} venta(s)</span
-                >
+                <p class="text-xs text-text-muted">
+                  <span class="font-semibold text-text-main">{{ salesCount() }}</span>
+                  {{ salesCount() === 1 ? 'venta' : 'ventas' }}
+                  @if (returnsCount() > 0) {
+                    · <span class="font-semibold text-text-main">{{ returnsCount() }}</span>
+                    {{ returnsCount() === 1 ? 'devolución' : 'devoluciones' }} ·
+                    <span class="font-mono font-semibold text-feedback-warning-text">{{
+                      returnedAmount() | money
+                    }}</span>
+                  }
+                </p>
               </div>
               <div
                 class="hidden lg:grid lg:grid-cols-[9rem_8rem_6rem_7rem_6rem] px-6 py-2 bg-bg-muted border-y border-border text-[10px] font-bold uppercase tracking-wider text-text-soft"
               >
-                <span>Hora</span>
+                <span>Nº / Hora</span>
                 <span class="text-right">Monto</span>
                 <span class="text-center">Tipo</span>
                 <span class="text-center">Pago</span>
@@ -167,12 +181,19 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                     <!-- Mobile card -->
                     <div class="lg:hidden px-4 py-4 flex flex-col gap-3">
                       <div class="flex items-center justify-between gap-2">
-                        <span class="text-sm font-bold text-text-main font-mono">{{
-                          sale.createdAt | smartDate
-                        }}</span>
-                        <span class="text-sm font-mono font-black text-text-main">{{
-                          sale.totalAmount | money: 'symbol'
-                        }}</span>
+                        <div class="flex items-baseline gap-2 min-w-0">
+                          <span class="text-sm font-bold text-text-main font-mono"
+                            >#{{ sale.number }}</span
+                          >
+                          <span class="text-xs text-text-soft truncate">{{
+                            sale.createdAt | smartDate
+                          }}</span>
+                        </div>
+                        <span
+                          class="shrink-0 text-sm font-mono font-black text-text-main"
+                          [class.text-feedback-warning-text]="isReturnType(sale.type)"
+                          >{{ sale.totalAmount | money: 'symbol' }}</span
+                        >
                       </div>
                       <div class="flex flex-wrap items-center gap-2">
                         @if (isReturnType(sale.type)) {
@@ -197,9 +218,20 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                             >QR</span
                           >
                         }
+                        @if (isReturnType(sale.type) && sale.originalSaleNumber != null) {
+                          <span class="text-[11px] font-medium text-text-soft"
+                            >de venta #{{ sale.originalSaleNumber }}</span
+                          >
+                        }
+                        @if (returnBadge(sale); as badge) {
+                          <span
+                            class="text-[11px] font-bold text-feedback-warning-text bg-feedback-warning/15 border border-feedback-warning/30 px-2 py-0.5 rounded-md"
+                            >{{ badge }}</span
+                          >
+                        }
                         <span
                           class="text-xs font-bold text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md"
-                          >{{ sale.itemsCount }} art.</span
+                          >{{ articles(sale) }} art.</span
                         >
                         <span class="text-xs text-text-soft truncate">· {{ sale.soldByName }}</span>
                       </div>
@@ -260,9 +292,19 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                       <div
                         class="grid lg:grid-cols-[9rem_8rem_6rem_7rem_6rem] items-center px-6 py-3 hover:bg-bg-muted/30 transition-colors"
                       >
-                        <span class="text-[13px] text-text-main font-mono">{{
-                          sale.createdAt | smartDate
-                        }}</span>
+                        <span class="flex flex-col leading-tight min-w-0">
+                          <span class="text-[13px] text-text-main font-mono truncate"
+                            >#{{ sale.number }} ·
+                            <span class="text-text-soft">{{
+                              sale.createdAt | smartDate
+                            }}</span></span
+                          >
+                          @if (isReturnType(sale.type) && sale.originalSaleNumber != null) {
+                            <span class="text-[10px] font-mono text-feedback-warning-text"
+                              >de #{{ sale.originalSaleNumber }}</span
+                            >
+                          }
+                        </span>
                         <span
                           class="text-right text-[13px] font-mono font-bold text-text-main"
                           [class.text-feedback-warning-text]="isReturnType(sale.type)"
@@ -279,6 +321,12 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                               class="text-[11px] font-bold text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md"
                               >Venta</span
                             >
+                            @if (returnBadge(sale); as badge) {
+                              <span
+                                class="block text-[10px] font-semibold text-feedback-warning-text mt-0.5"
+                                >{{ badge }}</span
+                              >
+                            }
                           }
                         </span>
                         <span class="text-center">
@@ -296,7 +344,7 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                         </span>
                         <span
                           class="text-right text-xs font-bold font-mono text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md w-fit ml-auto"
-                          >{{ sale.itemsCount }}</span
+                          >{{ articles(sale) }}</span
                         >
                       </div>
                       @if (sale.items.length > 0) {
@@ -505,6 +553,36 @@ export default class ClosureDetailPage implements OnInit {
 
   closure = signal<ClosureDetailDto | null>(null);
   loading = signal(true);
+
+  /** Ventas y devoluciones comparten el array; se separan para el encabezado. */
+  readonly salesCount = computed(
+    () => this.closure()?.sales.filter((s) => !isReturnType(s.type)).length ?? 0,
+  );
+  readonly returnsCount = computed(
+    () => this.closure()?.sales.filter((s) => isReturnType(s.type)).length ?? 0,
+  );
+  /** Las devoluciones guardan monto negativo; se muestra el valor devuelto. */
+  readonly returnedAmount = computed(() =>
+    Math.abs(
+      (this.closure()?.sales ?? [])
+        .filter((s) => isReturnType(s.type))
+        .reduce((sum, s) => sum + s.totalAmount, 0),
+    ),
+  );
+
+  /** Artículos para mostrar: en devoluciones el backend guarda la cantidad negativa. */
+  articles(sale: ClosureSaleItemDto): number {
+    return Math.abs(sale.itemsCount);
+  }
+
+  /** "Parcial"/"Devuelta" en ventas con devolución; null si no aplica. */
+  returnBadge(sale: ClosureSaleItemDto): string | null {
+    if (isReturnType(sale.type)) return null;
+    const status = returnStatusValue(sale.returnStatus);
+    if (status === SaleReturnStatus.Partial) return 'Parcial';
+    if (status === SaleReturnStatus.Full) return 'Devuelta';
+    return null;
+  }
 
   goBack(): void {
     if (window.history.length > 1) {

@@ -2,7 +2,12 @@ import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { ClosureSaleItemDto } from '@features/sales/dtos/closure-detail-dto';
-import { DocumentType, PaymentMethod, SaleType } from '@features/sales/dtos/sale-detail-dto';
+import {
+  DocumentType,
+  PaymentMethod,
+  SaleReturnStatus,
+  SaleType,
+} from '@features/sales/dtos/sale-detail-dto';
 import { PermissionService } from '@features/auth/services/permmision-service';
 import { CloseSaleItem } from './close-sale-item';
 
@@ -38,10 +43,13 @@ const baseSale = (overrides: Partial<ClosureSaleItemDto> = {}): ClosureSaleItemD
   paymentMethod: PaymentMethod.QrCode,
   documentType: DocumentType.Ticket,
   type: SaleType.Sale,
+  originalSaleId: null,
+  originalSaleNumber: null,
   invoiceNumber: null,
   transactionCode: null,
   itemsCount: 3,
   hasReturn: false,
+  returnStatus: SaleReturnStatus.None,
   canReturn: true,
   cantReturnReason: null,
   items: [],
@@ -101,12 +109,43 @@ describe('CloseSaleItem', () => {
     expect(root.querySelector('.chip-warning')).not.toBeNull();
   });
 
-  it('muestra "Devuelta" cuando la venta ya tiene devolución', async () => {
+  it('muestra "Devuelta" cuando la venta tiene devolución completa', async () => {
     const { fixture, host, root } = await setup();
-    host.sale.set(baseSale({ number: 28, hasReturn: true }));
+    host.sale.set(baseSale({ number: 28, hasReturn: true, returnStatus: SaleReturnStatus.Full }));
     fixture.detectChanges();
 
     expect(text(root)).toContain('Devuelta');
+    expect(text(root)).not.toContain('Parcial');
+  });
+
+  it('distingue la devolución parcial de la completa', async () => {
+    const { fixture, host, root } = await setup();
+    host.sale.set(
+      baseSale({ number: 28, hasReturn: true, returnStatus: SaleReturnStatus.Partial }),
+    );
+    fixture.detectChanges();
+
+    expect(text(root)).toContain('Parcial');
+    expect(text(root)).not.toContain('Devuelta');
+  });
+
+  it('enlaza la devolución con su venta original y cuenta los artículos en positivo', async () => {
+    const { fixture, host, root } = await setup();
+    host.sale.set(
+      baseSale({
+        number: 29,
+        type: SaleType.Return,
+        totalAmount: -100,
+        itemsCount: -2,
+        originalSaleId: 'sale-28',
+        originalSaleNumber: 28,
+      }),
+    );
+    fixture.detectChanges();
+
+    expect(text(root)).toContain('de #28');
+    expect(text(root)).not.toContain('-2');
+    expect(text(root)).toContain('2 art.');
   });
 
   it('muestra "Efectivo" para pagos en efectivo', async () => {

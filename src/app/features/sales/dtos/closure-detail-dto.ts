@@ -1,4 +1,4 @@
-import { DocumentType, PaymentMethod, SaleType } from './sale-detail-dto';
+import { DocumentType, PaymentMethod, SaleReturnStatus, SaleType } from './sale-detail-dto';
 
 export interface ClosureSaleItemDetailDto {
   /** null = ítem libre (venta sin producto registrado). */
@@ -21,10 +21,15 @@ export interface ClosureSaleItemDto {
   paymentMethod: PaymentMethod;
   documentType: DocumentType;
   type: SaleType;
+  /** Vínculo de una devolución con la venta que la originó (null en ventas). */
+  originalSaleId: GUID | null;
+  originalSaleNumber: number | null;
   invoiceNumber: number | null;
   transactionCode: string | null;
   itemsCount: number;
   hasReturn: boolean;
+  /** Estado de devolución de una venta; `None` en documentos de devolución. */
+  returnStatus: SaleReturnStatus;
   canReturn: boolean;
   cantReturnReason: string | null;
   items: ClosureSaleItemDetailDto[];

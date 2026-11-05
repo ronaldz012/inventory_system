@@ -4,6 +4,7 @@ import { CashRegisterService } from '@features/sales/services/cash-register-serv
 import { ToastService } from '@core/services/toast-service';
 import { PermissionService } from '@features/auth/services/permmision-service';
 import { ClosureDetailDto } from '@features/sales/dtos/closure-detail-dto';
+import { isReturnType } from '@features/sales/dtos/sale-detail-dto';
 import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
 import { MoneyPipe } from '@shared/pipes/money-pipe';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
@@ -127,9 +128,22 @@ type ExpenseMovement = Pick<
 
           @if (c.sales.length > 0) {
             <div class="bg-bg-surface rounded-xl border border-border shadow-xs overflow-hidden">
-              <div class="px-6 pt-5 pb-3">
+              <div
+                class="px-6 pt-5 pb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"
+              >
                 <p class="text-[11px] font-bold uppercase tracking-wider text-text-soft">
-                  Ventas del turno ({{ c.sales.length }})
+                  Ventas y devoluciones ({{ c.sales.length }})
+                </p>
+                <p class="text-xs text-text-muted">
+                  <span class="font-semibold text-text-main">{{ salesCount() }}</span>
+                  {{ salesCount() === 1 ? 'venta' : 'ventas' }}
+                  @if (returnsCount() > 0) {
+                    · <span class="font-semibold text-text-main">{{ returnsCount() }}</span>
+                    {{ returnsCount() === 1 ? 'devolución' : 'devoluciones' }} ·
+                    <span class="font-mono font-semibold text-feedback-warning-text">{{
+                      returnedAmount() | money
+                    }}</span>
+                  }
                 </p>
               </div>
               <div
@@ -413,6 +427,22 @@ export default class CloseRegisterPage implements OnInit {
     if (!c) return 0;
     return c.openingBalance + c.cashSales - c.totalExpenses;
   });
+
+  /** Ventas y devoluciones comparten el array; se separan para el encabezado. */
+  readonly salesCount = computed(
+    () => this.closure()?.sales.filter((s) => !isReturnType(s.type)).length ?? 0,
+  );
+  readonly returnsCount = computed(
+    () => this.closure()?.sales.filter((s) => isReturnType(s.type)).length ?? 0,
+  );
+  /** Las devoluciones guardan monto negativo; se muestra el valor devuelto. */
+  readonly returnedAmount = computed(() =>
+    Math.abs(
+      (this.closure()?.sales ?? [])
+        .filter((s) => isReturnType(s.type))
+        .reduce((sum, s) => sum + s.totalAmount, 0),
+    ),
+  );
 
   ngOnInit(): void {
     this.loadClosure();
