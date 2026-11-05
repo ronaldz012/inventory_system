@@ -101,12 +101,12 @@ describe('CloseSaleItem', () => {
     expect(root.querySelector('.chip-warning')).not.toBeNull();
   });
 
-  it('muestra "Reembolsada" cuando la venta ya tiene reembolso', async () => {
+  it('muestra "Devuelta" cuando la venta ya tiene devolución', async () => {
     const { fixture, host, root } = await setup();
     host.sale.set(baseSale({ number: 28, hasReturn: true }));
     fixture.detectChanges();
 
-    expect(text(root)).toContain('Reembolsada');
+    expect(text(root)).toContain('Devuelta');
   });
 
   it('muestra "Efectivo" para pagos en efectivo', async () => {

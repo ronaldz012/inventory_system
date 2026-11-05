@@ -1,159 +1,285 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { SaleService } from '@features/sales/services/sale-service';
 import { SaleListDto } from '@features/sales/dtos/sale-list-dto';
-import { SalesQueryDto } from '@features/sales/dtos/sales-query-dto';
-import { DateRangeFilter, DateRange } from '@shared/components/date-range-filter/date-range-filter';
+import {
+  parseSalesQuery,
+  SalesQueryDto,
+  sameSalesQuery,
+  serializeSalesQuery,
+} from '@features/sales/dtos/sales-query-dto';
 import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
 import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { Paginator } from '@shared/components/app-paginator/app-paginator';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
-import { SaleType, isReturnType } from '@features/sales/dtos/sale-detail-dto';
+import {
+  SaleReturnStatus,
+  SaleType,
+  isReturnType,
+  returnStatusValue,
+} from '@features/sales/dtos/sale-detail-dto';
+import { SalesFilterBar } from './sales-filter-bar/sales-filter-bar';
+import { readQuery, writeQuery } from '@shared/utils/list-query';
 
 @Component({
   selector: 'app-sales-list-page',
   standalone: true,
-  imports: [MoneyPipe, RouterLink, DateRangeFilter, SmartDatePipe, Paginator, SkeletonList],
+  imports: [MoneyPipe, RouterLink, SmartDatePipe, Paginator, SkeletonList, SalesFilterBar],
+  styles: `
+    @keyframes fade-up {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .row-enter {
+      animation: fade-up 200ms ease both;
+    }
+  `,
   template: `
     <div class="flex flex-col gap-4 w-full">
       <div class="flex items-center justify-between gap-3">
-        <h1 class="text-lg font-black text-text-main">Ventas</h1>
+        <h1 class="text-lg font-black text-text-main">
+          {{ isReturnsView() ? 'Devoluciones' : 'Ventas' }}
+        </h1>
       </div>
 
-      <app-date-range-filter (rangeChange)="onDateRange($event)" />
-
-      <!-- Filtros tipo + reembolso -->
-      <div class="flex flex-wrap items-center gap-2">
-        <div class="flex items-center gap-1.5 bg-bg-surface rounded-xl border border-border p-1">
-          <button type="button" (click)="setType(null)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-            [class]="query().type == null ? 'bg-accent-ui text-white shadow-sm' : 'text-text-muted hover:bg-bg-muted'">Todos</button>
-          <button type="button" (click)="setType(SaleType.Sale)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-            [class]="query().type === SaleType.Sale ? 'bg-accent-ui text-white shadow-sm' : 'text-text-muted hover:bg-bg-muted'">Ventas</button>
-          <button type="button" (click)="setType(SaleType.Return)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-            [class]="query().type === SaleType.Return ? 'bg-accent-ui text-white shadow-sm' : 'text-text-muted hover:bg-bg-muted'">Devoluciones</button>
-        </div>
-        <div class="flex items-center gap-1.5 bg-bg-surface rounded-xl border border-border p-1">
-          <button type="button" (click)="setHasReturn(null)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-            [class]="query().hasReturn == null ? 'bg-bg-muted text-text-main border border-border' : 'text-text-muted hover:bg-bg-muted'">Todos</button>
-          <button type="button" (click)="setHasReturn(true)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-            [class]="query().hasReturn === true ? 'bg-feedback-warning/15 text-feedback-warning-text border border-feedback-warning/30' : 'text-text-muted hover:bg-bg-muted'">Con reembolso</button>
-          <button type="button" (click)="setHasReturn(false)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-            [class]="query().hasReturn === false ? 'bg-bg-muted text-text-main border border-border' : 'text-text-muted hover:bg-bg-muted'">Sin reembolso</button>
-        </div>
-        @if (hasActiveFilters()) {
-          <button type="button" (click)="clearFilters()" class="text-xs font-bold text-accent-ui hover:underline ml-1">Limpiar</button>
-        }
-      </div>
+      <app-sales-filter-bar
+        [params]="query()"
+        (change)="patchQuery($event)"
+        (clear)="clearFilters()"
+      />
 
       @if (loading()) {
         <app-skeleton-list [rows]="4" [columns]="3" />
       } @else if (error()) {
-        <div class="flex flex-col items-center gap-3 p-8 rounded border border-border bg-bg-surface shadow-sm">
+        <div
+          class="flex flex-col items-center gap-3 p-8 rounded border border-border bg-bg-surface shadow-sm"
+        >
           <span class="material-icons text-3xl text-feedback-error-text">error_outline</span>
           <p class="text-sm text-text-main">{{ error() }}</p>
           <button class="btn btn-primary btn-sm" (click)="load()">Reintentar</button>
         </div>
       } @else if (sales().length === 0) {
-        <div class="flex flex-col items-center justify-center gap-3 py-20 bg-bg-surface border border-dashed border-border rounded-2xl text-text-soft">
-          <div class="w-16 h-16 rounded-full bg-bg-muted flex items-center justify-center text-text-soft/40">
+        <div
+          class="flex flex-col items-center justify-center gap-3 py-20 bg-bg-surface border border-dashed border-border rounded-2xl text-text-soft"
+        >
+          <div
+            class="w-16 h-16 rounded-full bg-bg-muted flex items-center justify-center text-text-soft/40"
+          >
             <span class="material-icons text-[36px]">receipt</span>
           </div>
           <div class="text-center px-6">
-            <p class="font-bold text-text-main text-sm">Sin ventas</p>
-            <p class="text-xs max-w-xs mt-1">No se encontraron ventas{{ hasDateFilter() || hasActiveFilters() ? ' con los filtros seleccionados' : '' }}.</p>
+            <p class="font-bold text-text-main text-sm">
+              {{ isReturnsView() ? 'Sin devoluciones' : 'Sin ventas' }}
+            </p>
+            <p class="text-xs max-w-xs mt-1">
+              No se encontraron
+              {{ isReturnsView() ? 'devoluciones' : 'ventas'
+              }}{{ hasActiveFilters() ? ' con los filtros seleccionados' : '' }}.
+            </p>
           </div>
-          @if (hasDateFilter() || hasActiveFilters()) {
-            <button class="text-xs font-bold text-accent-ui hover:underline" (click)="clearFilters()">Limpiar filtros</button>
+          @if (hasActiveFilters()) {
+            <button
+              class="text-xs font-bold text-accent-ui hover:underline"
+              (click)="clearFilters()"
+            >
+              Limpiar filtros
+            </button>
           }
         </div>
       } @else {
         <div class="bg-bg-surface rounded-xl border border-border shadow-xs overflow-hidden">
-          <div class="hidden lg:grid px-4 py-3 bg-bg-muted border-b border-border table-header"
+          <div
+            class="hidden lg:grid px-4 py-3 bg-bg-muted border-b border-border table-header"
             [style.grid-template-columns]="gridCols"
           >
             <span>Nº</span>
             <span>Fecha</span>
             <span>Producto</span>
-            <span class="text-center">Tipo</span>
+            <span class="text-center">Estado</span>
             <span class="text-center">Artículos</span>
             <span class="text-right">Total</span>
-            <span class="text-center">Reembolso</span>
+            <span class="text-center">Devuelto</span>
             <span></span>
           </div>
 
           <ul class="flex flex-col divide-y divide-border">
             @for (sale of sales(); track sale.id) {
-              <li class="row-enter bg-bg-surface relative overflow-hidden border-b border-border transition-all duration-200 hover:shadow-md"
-                  [class.border-l-4]="isReturnType(sale.type)"
-                  [class.border-feedback-warning]="isReturnType(sale.type)">
-                <div class="absolute bottom-0 left-0 top-0 w-[4px] opacity-0 transition-opacity duration-150 group-hover:opacity-100 lg:block hidden"
-                     [class.bg-accent-ui]="!isReturnType(sale.type)" [class.bg-feedback-warning]="isReturnType(sale.type)"></div>
+              <li
+                class="group row-enter bg-bg-surface relative overflow-hidden transition-all duration-200 hover:shadow-md"
+                [class.border-l-4]="isReturnType(sale.type)"
+                [class.border-feedback-warning]="isReturnType(sale.type)"
+              >
+                <div
+                  class="absolute bottom-0 left-0 top-0 w-[4px] opacity-0 transition-opacity duration-150 group-hover:opacity-100 lg:block hidden"
+                  [class.bg-accent-ui]="!isReturnType(sale.type)"
+                  [class.bg-feedback-warning]="isReturnType(sale.type)"
+                ></div>
 
                 <!-- MOBILE -->
-                <div class="flex items-center gap-4 px-4 py-3.5 lg:hidden">
+                <div class="flex items-center gap-3 px-4 py-3.5 lg:hidden">
                   <div class="flex flex-col min-w-0 flex-1">
-                    <p class="flex items-center gap-1.5 truncate font-inter text-sm font-bold leading-tight text-text-main">
-                      <span class="font-mono">#{{ sale.number }}</span>
-                      ·
-                      {{ sale.createdAt | smartDate }}
+                    <div class="flex flex-wrap items-center gap-x-1.5 gap-y-1 min-w-0">
+                      <span class="font-mono text-sm font-bold text-text-main">
+                        #{{ sale.number }}
+                      </span>
+                      <span class="text-xs text-text-muted">{{ sale.createdAt | smartDate }}</span>
                       @if (isReturnType(sale.type)) {
-                        <span class="px-1.5 py-0.5 rounded text-[10px] font-black bg-feedback-warning/15 text-feedback-warning-text border border-feedback-warning/30">Devolución</span>
+                        <span
+                          class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-feedback-warning/15 text-feedback-warning-text border border-feedback-warning/30"
+                        >
+                          Devolución
+                        </span>
+                      } @else if (sale.returnStatus === SaleReturnStatus.Partial) {
+                        <span
+                          class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-feedback-warning/15 text-feedback-warning-text border border-feedback-warning/30"
+                        >
+                          Parcial
+                        </span>
+                      } @else if (sale.returnStatus === SaleReturnStatus.Full) {
+                        <span
+                          class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-feedback-warning/15 text-feedback-warning-text border border-feedback-warning/30"
+                        >
+                          Devuelta
+                        </span>
                       }
-                      @if (sale.hasReturn) {
-                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-accent-ui/10 text-accent-ui">Reembolsada</span>
-                      }
+                    </div>
+
+                    <p
+                      class="mt-0.5 truncate text-xs text-text-muted"
+                      [title]="sale.firstItemDisplayName"
+                    >
+                      {{ sale.firstItemDisplayName || '—' }}
                     </p>
-                    <p class="truncate text-xs text-text-muted mt-0.5">{{ sale.firstItemDisplayName || '—' }}</p>
-                    <p class="mt-1 font-inter text-xs text-text-muted flex flex-wrap items-center gap-1.5">
-                      <span class="font-bold" [class.text-accent-ui]="!isReturnType(sale.type)" [class.text-feedback-warning-text]="isReturnType(sale.type)">{{ sale.totalAmount | money: 'symbol' }}</span>
-                      <span class="font-bold text-accent-ui bg-accent-ui/10 px-1.5 py-0.5 rounded text-[11px]">{{ sale.totalDistinctItems }} art. · {{ sale.totalQuantity }} unid.</span>
-                      @if (sale.hasReturn) {
-                        <span class="text-feedback-warning-text bg-feedback-warning/10 px-1.5 py-0.5 rounded text-[11px]">Dev. {{ sale.returnedAmount | money: 'symbol' }}</span>
+
+                    <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
+                      <span
+                        class="font-mono font-bold text-sm"
+                        [class.text-feedback-warning-text]="isReturnType(sale.type)"
+                        [class.text-text-main]="!isReturnType(sale.type)"
+                      >
+                        {{ sale.totalAmount | money: 'symbol' }}
+                      </span>
+                      <span class="text-text-muted">
+                        {{ sale.totalDistinctItems }} art. · {{ sale.totalQuantity }} unid.
+                      </span>
+                      @if (
+                        !isReturnType(sale.type) && sale.returnStatus !== SaleReturnStatus.None
+                      ) {
+                        <span class="font-bold text-feedback-warning-text">
+                          Devuelto {{ sale.returnedAmount | money: 'symbol' }}
+                        </span>
                       }
-                      <span class="truncate">· {{ sale.soldByName }}</span>
-                    </p>
+                      @if (isReturnType(sale.type) && sale.originalSaleNumber != null) {
+                        <span class="text-text-soft">de venta #{{ sale.originalSaleNumber }}</span>
+                      }
+                    </div>
                   </div>
-                  <div class="shrink-0">
-                    <a [routerLink]="['/sales', 'sale', sale.id]" class="btn-link">
-                      <span class="btn-link-text">Ver más</span>
-                      <span class="material-icons text-base">chevron_right</span>
-                    </a>
-                  </div>
+
+                  <a
+                    [routerLink]="['/sales', 'sale', sale.id]"
+                    class="shrink-0 -mr-1 p-1.5 rounded-lg text-text-soft hover:bg-bg-muted hover:text-text-main transition-colors"
+                    [attr.aria-label]="
+                      'Ver ' +
+                      (isReturnType(sale.type) ? 'devolución' : 'venta') +
+                      ' #' +
+                      sale.number
+                    "
+                  >
+                    <span class="material-icons text-xl leading-none">chevron_right</span>
+                  </a>
                 </div>
 
                 <!-- DESKTOP -->
-                <div class="group hidden lg:grid items-center px-4 py-3 transition-colors duration-150 hover:bg-bg-muted"
+                <div
+                  class="group hidden lg:grid items-center px-4 py-3 transition-colors duration-150 hover:bg-bg-muted"
                   [style.grid-template-columns]="gridCols"
                 >
-                  <span class="font-mono text-[13px] font-bold text-text-main">
-                    #{{ sale.number }}
+                  <span class="flex flex-col leading-tight">
+                    <span class="font-mono text-[13px] font-bold text-text-main">
+                      #{{ sale.number }}
+                    </span>
+                    @if (isReturnType(sale.type) && sale.originalSaleNumber != null) {
+                      <span class="text-[10px] text-text-soft"
+                        >de #{{ sale.originalSaleNumber }}</span
+                      >
+                    }
                   </span>
-                  <span class="text-[13px] font-medium text-text-main">{{ sale.createdAt | smartDate }}</span>
-                  <span class="text-xs text-text-main font-medium truncate pr-2" [title]="sale.firstItemDisplayName">{{ sale.firstItemDisplayName || '—' }}</span>
+                  <span class="text-[13px] font-medium text-text-main">
+                    {{ sale.createdAt | smartDate }}
+                  </span>
+                  <span
+                    class="text-xs text-text-main font-medium truncate pr-2"
+                    [title]="sale.firstItemDisplayName"
+                  >
+                    {{ sale.firstItemDisplayName || '—' }}
+                  </span>
                   <span class="flex justify-center">
                     @if (isReturnType(sale.type)) {
-                      <span class="text-[11px] font-bold text-feedback-warning-text bg-feedback-warning/15 border border-feedback-warning/30 px-2 py-0.5 rounded-md">Devolución</span>
+                      <span
+                        class="text-[11px] font-bold text-feedback-warning-text bg-feedback-warning/15 border border-feedback-warning/30 px-2 py-0.5 rounded-md"
+                      >
+                        Devolución
+                      </span>
+                    } @else if (sale.returnStatus === SaleReturnStatus.Partial) {
+                      <span
+                        class="text-[11px] font-bold text-feedback-warning-text bg-feedback-warning/15 border border-feedback-warning/30 px-2 py-0.5 rounded-md"
+                      >
+                        Parcial
+                      </span>
+                    } @else if (sale.returnStatus === SaleReturnStatus.Full) {
+                      <span
+                        class="text-[11px] font-bold text-feedback-warning-text bg-feedback-warning/15 border border-feedback-warning/30 px-2 py-0.5 rounded-md"
+                      >
+                        Devuelta
+                      </span>
                     } @else {
-                      <span class="text-[11px] font-medium text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md">Venta</span>
+                      <span class="text-xs text-text-soft">—</span>
                     }
                   </span>
                   <span class="text-center">
-                    <span class="text-xs font-bold font-mono text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md">{{ sale.totalDistinctItems }} · {{ sale.totalQuantity }}</span>
+                    <span
+                      class="text-xs font-bold font-mono text-accent-ui bg-accent-ui/10 px-2 py-0.5 rounded-md"
+                    >
+                      {{ sale.totalDistinctItems }} · {{ sale.totalQuantity }}
+                    </span>
                   </span>
-                  <span class="text-right text-[13px] font-mono font-bold" [class.text-feedback-warning-text]="isReturnType(sale.type)" [class.text-text-main]="!isReturnType(sale.type)">{{ sale.totalAmount | money: 'symbol' }}</span>
+                  <span
+                    class="text-right text-[13px] font-mono font-bold"
+                    [class.text-feedback-warning-text]="isReturnType(sale.type)"
+                    [class.text-text-main]="!isReturnType(sale.type)"
+                  >
+                    {{ sale.totalAmount | money: 'symbol' }}
+                  </span>
                   <span class="text-center">
-                    @if (sale.hasReturn) {
-                      <span class="text-xs font-bold text-feedback-warning-text bg-feedback-warning/10 px-2 py-0.5 rounded-md">{{ sale.returnedAmount | money: 'symbol' }}</span>
-                    } @else if (isReturnType(sale.type)) {
-                      <span class="text-xs text-text-soft">—</span>
+                    @if (!isReturnType(sale.type) && sale.returnStatus !== SaleReturnStatus.None) {
+                      <span
+                        class="text-xs font-bold text-feedback-warning-text bg-feedback-warning/10 px-2 py-0.5 rounded-md"
+                      >
+                        {{ sale.returnedAmount | money: 'symbol' }}
+                      </span>
                     } @else {
-                      <span class="text-xs text-text-soft">Sin reembolso</span>
+                      <span class="text-xs text-text-soft">—</span>
                     }
                   </span>
                   <div class="flex justify-end">
-                    <a [routerLink]="['/sales', 'sale', sale.id]" class="btn-link">
-                      <span class="btn-link-text">Ver más</span>
-                      <span class="material-icons text-base">chevron_right</span>
+                    <a
+                      [routerLink]="['/sales', 'sale', sale.id]"
+                      class="-mr-1 p-1.5 rounded-lg text-text-soft hover:bg-bg-muted hover:text-text-main transition-colors"
+                      [attr.aria-label]="
+                        'Ver ' +
+                        (isReturnType(sale.type) ? 'devolución' : 'venta') +
+                        ' #' +
+                        sale.number
+                      "
+                    >
+                      <span class="material-icons text-xl leading-none">chevron_right</span>
                     </a>
                   </div>
                 </div>
@@ -164,76 +290,94 @@ import { SaleType, isReturnType } from '@features/sales/dtos/sale-detail-dto';
       }
 
       @if (!loading() && totalItems() > 0) {
-        <app-paginator [page]="query().page!" [pageSize]="query().pageSize!" [totalItems]="totalItems()" (pageChange)="onPage($event)" (pageSizeChange)="onPageSize($event)" />
+        <app-paginator
+          [page]="query().page"
+          [pageSize]="query().pageSize"
+          [totalItems]="totalItems()"
+          (pageChange)="patchQuery({ page: $event })"
+          (pageSizeChange)="patchQuery({ pageSize: $event, page: 1 })"
+        />
       }
     </div>
   `,
 })
-export default class SalesListPage implements OnInit {
-  private saleService = inject(SaleService);
+export default class SalesListPage {
+  private readonly saleService = inject(SaleService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
-  SaleType = SaleType;
-  protected isReturnType = isReturnType;
+  readonly SaleType = SaleType;
+  readonly SaleReturnStatus = SaleReturnStatus;
+  protected readonly isReturnType = isReturnType;
+
   /** Columnas del grid desktop: header y filas comparten esta única fuente. */
-  readonly gridCols = '5rem 10rem 1fr 6rem 6rem 7rem 8rem 7rem';
+  readonly gridCols = '5rem 10rem 1fr 8rem 6rem 7rem 8rem 3rem';
 
   sales = signal<SaleListDto[]>([]);
   totalItems = signal(0);
   loading = signal(true);
   error = signal<string | null>(null);
 
-  query = signal<SalesQueryDto>({ page: 1, pageSize: 10 });
+  /** Estado de la lista derivado de la URL: refresh y "atrás" lo restauran. */
+  private readonly queryParams = toSignal(this.route.queryParamMap, {
+    initialValue: this.route.snapshot.queryParamMap,
+  });
 
-  hasDateFilter = computed(() => !!(this.query().dateFrom || this.query().dateTo));
-  hasActiveFilters = computed(() => this.query().type != null || this.query().hasReturn != null);
+  readonly query = computed<SalesQueryDto>(() => parseSalesQuery(readQuery(this.queryParams())), {
+    equal: sameSalesQuery,
+  });
 
-  ngOnInit(): void {
-    this.load();
-  }
+  readonly isReturnsView = computed(() => this.query().type === SaleType.Return);
 
-  load(): void {
-    this.loading.set(true);
-    this.error.set(null);
-    this.saleService.getSales(this.query()).subscribe({
-      next: (data: any) => {
-        // El backend puede devolver array plano o el wrapper paginado
-        const items: SaleListDto[] = Array.isArray(data) ? data : (data?.items ?? []);
-        const total: number = Array.isArray(data) ? data.length : (data?.totalCount ?? items.length);
-        this.sales.set(items);
-        this.totalItems.set(total);
-        this.loading.set(false);
-      },
-      error: (err: any) => { this.loading.set(false); const e = err as { error?: { detail?: string; title?: string }; message?: string }; this.error.set(e?.error?.detail || e?.error?.title || e?.message || 'Error al cargar ventas.'); },
+  readonly hasActiveFilters = computed(() => {
+    const q = this.query();
+    return !!(q.filter || q.dateFrom || q.dateTo || q.returnStatus !== undefined);
+  });
+
+  constructor() {
+    effect(() => {
+      const q = this.query();
+      untracked(() => this.load(q));
     });
   }
 
-  onDateRange(range: DateRange): void {
-    this.query.update((q) => ({ ...q, dateFrom: range.from, dateTo: range.to, page: 1 }));
-    this.load();
+  load(q: SalesQueryDto = this.query()): void {
+    this.loading.set(true);
+    this.error.set(null);
+    this.saleService.getSales(q).subscribe({
+      next: (data) => {
+        this.sales.set(
+          (data.items ?? []).map((sale) => ({
+            ...sale,
+            // Tolerante a enum serializado como string ("Partial"/"Full").
+            returnStatus: returnStatusValue(sale.returnStatus),
+          })),
+        );
+        this.totalItems.set(data.totalCount ?? 0);
+        this.loading.set(false);
+      },
+      error: (err: unknown) => {
+        this.loading.set(false);
+        const e = err as { error?: { detail?: string; title?: string }; message?: string };
+        this.error.set(
+          e?.error?.detail || e?.error?.title || e?.message || 'Error al cargar ventas.',
+        );
+      },
+    });
   }
 
-  setType(type: SaleType | null): void {
-    this.query.update((q) => ({ ...q, type, page: 1 }));
-    this.load();
+  patchQuery(patch: Partial<SalesQueryDto>): void {
+    writeQuery(this.router, this.route, serializeSalesQuery({ ...this.query(), ...patch }));
   }
 
-  setHasReturn(hasReturn: boolean | null): void {
-    this.query.update((q) => ({ ...q, hasReturn, page: 1 }));
-    this.load();
-  }
-
-  onPage(page: number): void {
-    this.query.update((q) => ({ ...q, page }));
-    this.load();
-  }
-
-  onPageSize(pageSize: number): void {
-    this.query.update((q) => ({ ...q, pageSize, page: 1 }));
-    this.load();
-  }
-
+  /** Limpia búsqueda, fecha y estado; conserva la pestaña activa. */
   clearFilters(): void {
-    this.query.set({ page: 1, pageSize: this.query().pageSize });
-    this.load();
+    this.patchQuery({
+      filter: undefined,
+      dateFrom: undefined,
+      dateTo: undefined,
+      returnStatus: undefined,
+      page: 1,
+    });
   }
 }

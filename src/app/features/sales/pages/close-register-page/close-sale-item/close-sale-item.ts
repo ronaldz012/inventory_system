@@ -64,7 +64,7 @@ import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
         <span class="text-text-soft">·</span>
         <span class="text-text-muted">{{ sale().itemsCount }} art.</span>
         @if (sale().hasReturn) {
-          <span class="text-text-soft">· Reembolsada</span>
+          <span class="text-text-soft">· Devuelta</span>
         }
       </div>
 
@@ -114,7 +114,7 @@ import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
           {{ isCash() ? 'Efectivo' : 'QR' }}
         </span>
         @if (sale().hasReturn) {
-          <span class="block text-[10px] text-text-soft mt-0.5">Reembolsada</span>
+          <span class="block text-[10px] text-text-soft mt-0.5">Devuelta</span>
         }
       </span>
       <span class="chip-accent font-mono w-fit ml-auto">

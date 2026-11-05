@@ -1,0 +1,167 @@
+<div class="flex flex-col gap-2">
+  <!-- ── Fila 1: pestañas + búsqueda + QR + filtros ─────────────────────── -->
+  <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+    <!-- Pestañas: ventas (default) o devoluciones (auditoría) -->
+    <div
+      class="flex items-center gap-0.5 bg-bg-muted rounded-xl p-0.5 self-start shrink-0"
+      role="group"
+      aria-label="Tipo de transacción"
+    >
+      <button
+        type="button"
+        (click)="setType(SaleType.Sale)"
+        [attr.aria-pressed]="!isReturnsView()"
+        class="px-3 py-1.5 rounded-lg text-xs transition-colors whitespace-nowrap"
+        [class]="
+          !isReturnsView()
+            ? 'bg-accent-ui text-white font-bold shadow-sm'
+            : 'text-text-muted hover:text-text-main'
+        "
+      >
+        Ventas
+      </button>
+      <button
+        type="button"
+        (click)="setType(SaleType.Return)"
+        [attr.aria-pressed]="isReturnsView()"
+        class="px-3 py-1.5 rounded-lg text-xs transition-colors whitespace-nowrap"
+        [class]="
+          isReturnsView()
+            ? 'bg-accent-ui text-white font-bold shadow-sm'
+            : 'text-text-muted hover:text-text-main'
+        "
+      >
+        Devoluciones
+      </button>
+    </div>
+
+    <div class="flex items-center gap-2 flex-1 min-w-0">
+      <!-- Búsqueda: el backend resuelve Nº de venta, SKU o nombre -->
+      <div class="relative flex-1 min-w-0">
+        <input
+          type="text"
+          placeholder="Buscar por Nº de venta, SKU o producto…"
+          aria-label="Buscar ventas por número, SKU o producto"
+          enterkeyhint="search"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          class="w-full py-2 pl-3 text-sm bg-bg-muted border border-border rounded-xl text-text-main placeholder:text-text-soft focus:outline-none focus:ring-2 focus:ring-ring-focus-ring transition-colors"
+          [class.pr-8]="searchValue()"
+          [value]="searchValue()"
+          (input)="onSearch(valueOf($event))"
+          (keydown.enter)="onSearchEnter($event)"
+        />
+        @if (searchValue()) {
+          <button
+            type="button"
+            (click)="clearSearch()"
+            class="absolute right-2 top-1/2 -translate-y-1/2 text-text-soft hover:text-text-main transition-colors"
+            aria-label="Limpiar búsqueda"
+          >
+            <span class="material-icons text-base">close</span>
+          </button>
+        }
+      </div>
+
+      @if (scannerAvailable()) {
+        <button
+          type="button"
+          (click)="openScanner(scanner)"
+          class="flex items-center justify-center h-10 w-10 shrink-0 bg-accent-ui text-white rounded-xl shadow-xs hover:bg-accent-ui/90 active:scale-95 transition-all"
+          title="Escanear código"
+          aria-label="Escanear código con la cámara"
+        >
+          <span class="material-icons text-[18px]">qr_code_scanner</span>
+        </button>
+      }
+
+      <!-- Estado de devolución: solo tiene sentido en ventas -->
+      @if (!isReturnsView()) {
+        <div class="relative shrink-0" data-sales-filters>
+          <button
+            #filtersTrigger
+            type="button"
+            (click)="toggleFilters()"
+            class="btn btn-sm gap-1"
+            [class.btn-secondary]="!hasReturnStatusFilter()"
+            [class.border-accent-ui]="hasReturnStatusFilter()"
+            [class.bg-accent-ui/10]="hasReturnStatusFilter()"
+            [class.text-accent-ui]="hasReturnStatusFilter()"
+            aria-haspopup="dialog"
+            [attr.aria-expanded]="filtersOpen()"
+            title="Filtros"
+          >
+            <span class="material-icons text-base leading-none">filter_list</span>
+            <span class="hidden sm:inline">Filtros</span>
+            @if (hasReturnStatusFilter()) {
+              <span
+                class="inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-accent-ui text-[10px] font-bold text-white"
+              >
+                1
+              </span>
+            }
+          </button>
+
+          @if (filtersOpen()) {
+            <div
+              role="dialog"
+              aria-label="Filtros de ventas"
+              class="absolute top-[calc(100%+6px)] right-0 z-50 w-[min(16rem,calc(100vw-2rem))] rounded-xl border border-border bg-bg-surface p-3 shadow-lg flex flex-col gap-2"
+            >
+              <label class="field-label" for="filtro-estado-devolucion">
+                Estado de devolución
+              </label>
+              <select
+                #filtersSelect
+                id="filtro-estado-devolucion"
+                (change)="onReturnStatusChange(valueOf($event))"
+                class="w-full py-2 px-3 text-sm bg-bg-muted border border-border rounded-xl text-text-main focus:outline-none focus:ring-2 focus:ring-ring-focus-ring transition-colors"
+              >
+                <option value="" [selected]="params().returnStatus === undefined">Todas</option>
+                @for (opt of returnStatusOptions; track opt.value) {
+                  <option [value]="opt.value" [selected]="params().returnStatus === opt.value">
+                    {{ opt.label }}
+                  </option>
+                }
+              </select>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- ── Fila 2: fecha + chips de filtros activos ──────────────────────── -->
+  <div class="flex flex-wrap items-center gap-2">
+    <app-date-range-filter
+      [from]="params().dateFrom"
+      [to]="params().dateTo"
+      (rangeChange)="onDateRange($event)"
+    />
+
+    @if (hasReturnStatusFilter()) {
+      <button
+        type="button"
+        (click)="clearReturnStatus()"
+        class="inline-flex items-center gap-1 py-1 pl-2 pr-1.5 rounded-lg bg-accent-ui/10 text-accent-ui text-xs font-medium border border-accent-ui/30 hover:bg-accent-ui/20 transition-colors"
+        [attr.aria-label]="'Quitar filtro ' + returnStatusLabel(params().returnStatus!)"
+      >
+        {{ returnStatusLabel(params().returnStatus!) }}
+        <span class="material-icons text-sm leading-none">close</span>
+      </button>
+    }
+
+    @if (hasAnyFilter()) {
+      <button
+        type="button"
+        (click)="clearAll()"
+        class="text-xs text-text-soft hover:text-text-muted hover:underline px-1"
+      >
+        Limpiar
+      </button>
+    }
+  </div>
+</div>
+
+<app-qr-scanner-modal #scanner (scanned)="onScanned($event)" />

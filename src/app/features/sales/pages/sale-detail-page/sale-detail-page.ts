@@ -81,7 +81,7 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                 >
                 <span class="text-sm font-semibold text-text-main"
                   >{{ returnsCount() }} devolución(es) ·
-                  {{ totalRefunded() | money: 'symbol' }} reembolsado</span
+                  {{ totalRefunded() | money: 'symbol' }} devuelto</span
                 >
               </div>
               <a
@@ -102,8 +102,7 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                   >Devolución vinculada</span
                 >
                 <span class="text-sm font-medium text-text-main"
-                  >Venta original:
-                  <span class="font-mono text-xs">{{ s.originalSaleId }}</span></span
+                  >Esta devolución pertenece a una venta anterior.</span
                 >
               </div>
               <a [routerLink]="['/sales/sale', s.originalSaleId]" class="btn-link">
@@ -402,7 +401,7 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                 >{{ s.totalAmount | money: 'symbol' }}
                 @if (hasReturns()) {
                   <span class="text-xs font-normal text-feedback-warning-text"
-                    >· reembolsado {{ totalRefunded() | money: 'symbol' }}</span
+                    >· devuelto {{ totalRefunded() | money: 'symbol' }}</span
                   >
                 }
               </span>
@@ -417,7 +416,7 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                 class="btn-primary w-full sm:w-auto justify-center flex items-center gap-2"
               >
                 <span class="material-icons !text-[16px]">assignment_return</span>
-                Reembolsar venta
+                Devolver productos
               </button>
             </div>
           }
@@ -464,7 +463,7 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
               <div
                 class="px-6 py-3 bg-bg-muted/30 border-t border-border flex justify-between items-center"
               >
-                <span class="text-xs font-medium text-text-soft">Total reembolsado</span>
+                <span class="text-xs font-medium text-text-soft">Total devuelto</span>
                 <span class="text-sm font-black font-mono text-feedback-warning-text">{{
                   totalRefunded() | money: 'symbol'
                 }}</span>
@@ -475,7 +474,7 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
       }
     </div>
 
-    <!-- Reembolso: bottom-sheet en mobile, side-panel en desktop (mismo shell de returns-search) -->
+    <!-- Devolución: bottom-sheet en mobile, side-panel en desktop (mismo shell de returns-search) -->
     @if (isRefundOpen() && sale(); as d) {
       <div
         class="fixed inset-0 z-50 flex items-end md:items-stretch md:justify-end"
@@ -513,12 +512,12 @@ export default class SaleDetailPage implements OnDestroy {
   sale = signal<SaleDetailDto | null>(null);
   loading = signal(true);
 
-  /** Reembolso: overlay ReturnRefund (bottom-sheet mobile / side-panel desktop). Atrás lo cierra. */
+  /** Devolución: overlay ReturnRefund (bottom-sheet mobile / side-panel desktop). Atrás lo cierra. */
   isRefundOpen = signal(false);
   refundModal = useStackedModal(this.stack, this.isRefundOpen);
   canReturn = computed(() => this.sale()?.canReturn ?? false);
 
-  /** Reembolsar exige elegibilidad (`canReturn` del backend) + permiso de crear sobre POS. */
+  /** Devolver exige elegibilidad (`canReturn` del backend) + permiso de crear sobre POS. */
   canReimburse = computed(() => this.canReturn() && this.perm.canCreate('sales', 'pos'));
 
   ngOnDestroy(): void {
@@ -535,7 +534,8 @@ export default class SaleDetailPage implements OnDestroy {
   hasReturns = computed(() => (this.sale()?.returns?.length ?? 0) > 0);
   returnsCount = computed(() => this.sale()?.returns.length ?? 0);
   totalRefunded = computed(
-    () => this.sale()?.returns.reduce((sum, r) => sum + r.totalAmount, 0) ?? 0,
+    // El backend guarda las devoluciones en negativo; acá se muestra el monto devuelto.
+    () => this.sale()?.returns.reduce((sum, r) => sum + Math.abs(r.totalAmount), 0) ?? 0,
   );
   totalReturnedUnits = computed(
     () => this.sale()?.items.reduce((sum, i) => sum + (i.returnedQuantity ?? 0), 0) ?? 0,

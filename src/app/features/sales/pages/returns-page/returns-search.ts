@@ -29,7 +29,7 @@ import { closeModal, getModalId, openModal } from '@shared/utils/modal-query';
         <a routerLink="/sales/pos" class="btn-icon">
           <span class="material-icons text-base">arrow_back</span>
         </a>
-        <h1 class="text-lg font-black text-text-main">Reembolsos</h1>
+        <h1 class="text-lg font-black text-text-main">Devoluciones</h1>
       </div>
 
       <!-- Buscador -->

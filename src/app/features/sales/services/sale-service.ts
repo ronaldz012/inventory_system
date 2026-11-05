@@ -22,10 +22,12 @@ export class SaleService {
 
   getSales(query: SalesQueryDto): Observable<PagedResult<SaleListDto>> {
     let params = new HttpParams();
+    params = params.set('type', query.type.toString());
+    if (query.filter) params = params.set('filter', query.filter);
     if (query.dateFrom) params = params.set('dateFrom', query.dateFrom);
     if (query.dateTo) params = params.set('dateTo', query.dateTo);
-    if (query.type !== undefined && query.type !== null) params = params.set('type', query.type.toString());
-    if (query.hasReturn !== undefined && query.hasReturn !== null) params = params.set('hasReturn', query.hasReturn.toString());
+    if (query.returnStatus !== undefined && query.returnStatus !== null)
+      params = params.set('returnStatus', query.returnStatus.toString());
     if (query.page) params = params.set('page', query.page);
     if (query.pageSize) params = params.set('pageSize', query.pageSize);
     return this.http.get<PagedResult<SaleListDto>>(this.baseUrl, { params });
@@ -55,6 +57,6 @@ export class SaleService {
   }
 
   getSaleForReturn(saleId: GUID): Observable<SaleForReturnDto> {
-    return this.http.get<SaleForReturnDto>(`${this.baseUrl}/${saleId}/returnable`, {  });
+    return this.http.get<SaleForReturnDto>(`${this.baseUrl}/${saleId}/returnable`, {});
   }
 }

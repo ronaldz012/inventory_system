@@ -107,7 +107,7 @@ interface RefundFormModel {
             </div>
           </div>
 
-          <!-- Toggle reembolso completo -->
+          <!-- Toggle devolución completa -->
           <label
             class="flex items-center gap-3 bg-bg-surface rounded-xl border border-border px-4 py-3 cursor-pointer hover:bg-bg-muted/40 transition-colors select-none"
           >
@@ -118,7 +118,7 @@ interface RefundFormModel {
               class="h-5 w-5 rounded border-border text-accent-ui focus:ring-accent-ui"
             />
             <div class="flex flex-col">
-              <span class="text-sm font-bold text-text-main">Reembolso completo</span>
+              <span class="text-sm font-bold text-text-main">Devolución completa</span>
               <span class="text-xs text-text-soft"
                 >Todas las unidades ({{ maxRefundUnits() }} unid. ·
                 {{ maxRefundAmount() | money: 'symbol' }})</span
@@ -312,7 +312,7 @@ interface RefundFormModel {
           <div
             class="rounded-xl border border-feedback-warning/40 bg-feedback-warning/10 px-4 py-3 text-xs text-feedback-warning-text"
           >
-            El reembolso se hace mediante <span class="font-bold">{{ refundMethodLabel() }}</span
+            El dinero se devuelve mediante <span class="font-bold">{{ refundMethodLabel() }}</span
             >. Verificá el monto antes de confirmar.
           </div>
         </div>
@@ -521,7 +521,7 @@ export default class ReturnRefund implements OnInit {
       err?.error?.detail ||
       err?.error?.title ||
       (err?.status === 404 ? 'No se encontró una venta elegible.' : null);
-    return backendMsg ?? 'Esta venta ya fue reembolsada o no es elegible para devolución.';
+    return backendMsg ?? 'Esta venta ya fue devuelta o no es elegible para devolución.';
   }
 
   // ── Acciones del formulario (el modelo se actualiza acá, sin [formField]) ──

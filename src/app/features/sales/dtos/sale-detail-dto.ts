@@ -16,6 +16,32 @@ export function isCashPayment(v: PaymentMethod | string | number): boolean {
   return paymentMethodLabel(v) === 'Efectivo';
 }
 
+export enum SaleReturnStatus {
+  None = 0,
+  Partial = 1,
+  Full = 2,
+}
+
+/** Estado de devolución de una venta, tolerante a enum serializado como string. */
+export function returnStatusValue(v: SaleReturnStatus | string | number): SaleReturnStatus {
+  if (typeof v === 'string') {
+    const byName = SaleReturnStatus[v as keyof typeof SaleReturnStatus];
+    if (typeof byName === 'number') return byName;
+    const n = Number(v);
+    return n === SaleReturnStatus.Partial || n === SaleReturnStatus.Full
+      ? (n as SaleReturnStatus)
+      : SaleReturnStatus.None;
+  }
+  return v === SaleReturnStatus.Partial || v === SaleReturnStatus.Full ? v : SaleReturnStatus.None;
+}
+
+export function returnStatusLabel(v: SaleReturnStatus | string | number): string {
+  const status = returnStatusValue(v);
+  if (status === SaleReturnStatus.Partial) return 'Parcialmente devuelta';
+  if (status === SaleReturnStatus.Full) return 'Devuelta';
+  return 'Sin devolución';
+}
+
 export enum DocumentType {
   Ticket = 0,
   Invoice = 1,

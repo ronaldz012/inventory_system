@@ -172,15 +172,17 @@ export const routes: Routes = [
           },
           {
             path: 'pos/returns',
-            canActivate: [featureGuard],
-            data: { module: 'sales', feature: 'pos' },
-            title: 'Reembolsos',
-            loadComponent: () => import('@features/sales/pages/returns-page/returns-search'),
+            title: 'Devoluciones',
+            // El listado de ventas es el nuevo panel de devoluciones.
+            redirectTo: '/sales/sales?type=1',
+            pathMatch: 'full',
           },
           {
             path: 'sales',
             title: 'Ventas',
             canActivate: [featureGuard],
+            // El modal del escáner QR se cierra con el atrás del sistema.
+            canDeactivate: [modalGuard],
             data: { module: 'sales', feature: 'sales' },
             loadComponent: () => import('@features/sales/pages/sales-list-page/sales-list-page'),
           },

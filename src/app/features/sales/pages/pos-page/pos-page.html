@@ -164,11 +164,12 @@
                 Gastos
               </button>
               <a
-                routerLink="/sales/pos/returns"
+                routerLink="/sales/sales"
+                [queryParams]="{ type: 1 }"
                 class="btn-secondary btn-sm w-full whitespace-nowrap !px-2 !text-[11px] sm:!px-3 sm:!text-sm"
               >
                 <span class="material-icons !text-[16px] hidden sm:inline">assignment_return</span>
-                Reembolsos
+                Devoluciones
               </a>
             </div>
           </div>
