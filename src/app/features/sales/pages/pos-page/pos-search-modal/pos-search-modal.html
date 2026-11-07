@@ -4,133 +4,146 @@
   aria-modal="true"
   aria-label="Buscar producto"
 >
-    <!-- Backdrop -->
-    <div class="absolute inset-0 bg-overlay" (click)="close()"></div>
+  <!-- Backdrop -->
+  <div class="absolute inset-0 bg-overlay" (click)="close()"></div>
 
-    <!-- Panel: pantalla completa en mobile, diálogo en desktop -->
-    <div
-      class="modal-enter relative z-10 w-full max-w-lg mx-auto
-             bg-bg-surface rounded-none
-             sm:rounded-2xl
-             shadow-lg overflow-hidden
-             flex flex-col h-[100dvh] max-h-[100dvh]
-             sm:h-auto sm:max-h-[85dvh]"
-    >
-      <!-- Header -->
-      <div class="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border">
-        <div class="flex items-center gap-2">
-          <span class="material-icons text-accent-ui text-[20px]">manage_search</span>
-          <span class="text-sm font-semibold text-text-main font-sora">Buscar producto</span>
-        </div>
-        <button
-          type="button"
-          class="btn-icon hover:bg-bg-muted"
-          (click)="close()"
-          aria-label="Cerrar búsqueda"
+  <!-- Panel: pantalla completa en mobile, diálogo en desktop -->
+  <div
+    class="modal-enter relative z-10 w-full max-w-lg mx-auto bg-bg-surface rounded-none sm:rounded-2xl shadow-lg overflow-hidden flex flex-col h-[100dvh] max-h-[100dvh] sm:h-auto sm:max-h-[85dvh]"
+  >
+    <!-- Header -->
+    <div class="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border">
+      <div class="flex items-center gap-2">
+        <span class="material-icons text-accent-ui text-[20px]">manage_search</span>
+        <span class="text-sm font-semibold text-text-main font-sora">Buscar producto</span>
+      </div>
+      <button
+        type="button"
+        class="btn-icon hover:bg-bg-muted"
+        (click)="close()"
+        aria-label="Cerrar búsqueda"
+      >
+        <span class="material-icons text-[18px]">close</span>
+      </button>
+    </div>
+
+    <!-- Search input -->
+    <div class="px-4 pt-3">
+      <div class="relative">
+        <input
+          #searchInput
+          type="text"
+          [value]="query()"
+          (input)="onInput($event)"
+          (keydown.enter)="onSearchEnter($event)"
+          placeholder="Buscar por nombre, código o marca..."
+          aria-label="Buscar productos por nombre, código o marca"
+          enterkeyhint="search"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          class="w-full pl-9 pr-9 py-2.5 text-sm text-text-main bg-bg-muted border border-border rounded-xl placeholder:text-text-soft focus:outline-none focus:ring-1 focus:ring-accent-ui focus:border-accent-ui transition-colors duration-150"
+        />
+        <span
+          class="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-text-soft text-[18px]"
         >
-          <span class="material-icons text-[18px]">close</span>
-        </button>
-      </div>
-
-      <!-- Search input -->
-      <div class="px-4 pt-3">
-        <div class="relative">
-          <input
-            #searchInput
-            type="text"
-            [value]="query()"
-            (input)="onInput($event)"
-            (keydown.enter)="onSearchEnter($event)"
-            placeholder="Buscar por nombre, código o marca..."
-            aria-label="Buscar productos por nombre, código o marca"
-            enterkeyhint="search"
-            autocomplete="off"
-            autocapitalize="off"
-            spellcheck="false"
-            class="w-full pl-9 pr-9 py-2.5 text-sm text-text-main bg-bg-muted border border-border rounded-xl
-                   placeholder:text-text-soft focus:outline-none focus:ring-1 focus:ring-accent-ui focus:border-accent-ui
-                   transition-colors duration-150"
-          />
-          <span class="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-text-soft text-[18px]">
-            search
-          </span>
-          @if (isSearching()) {
-            <span
-              class="material-icons absolute right-2.5 top-1/2 -translate-y-1/2 text-accent-ui text-[18px] animate-spin"
-            >sync</span>
-          }
-        </div>
-      </div>
-
-      <!-- Body -->
-      <div class="flex-1 overflow-y-auto px-2 py-2 min-h-[120px]">
+          search
+        </span>
         @if (isSearching()) {
-          <div class="flex flex-col items-center justify-center gap-2 py-10 text-text-soft">
-            <span class="material-icons animate-spin text-[28px] text-accent-ui">sync</span>
-            <p class="text-xs">Buscando...</p>
-          </div>
-        } @else if (showEmpty()) {
-          <div class="flex flex-col items-center justify-center gap-2 py-10 text-text-soft">
-            <span class="material-icons text-[36px] text-text-soft/40">search_off</span>
-            <p class="text-xs">Sin resultados para "{{ query() }}"</p>
-          </div>
-        } @else if (query().length < 2) {
-          <p class="text-center text-xs text-text-soft py-10">
-            Escribí al menos 2 caracteres para buscar.
-          </p>
-        } @else {
-          <ul class="flex flex-col divide-y divide-border">
-            @for (v of results(); track v.sku; let i = $index) {
-              <li>
-                <button
-                  type="button"
-                  (click)="select(v.sku)"
-                  [disabled]="v.availableStockInBranch <= 0"
-                  [attr.aria-label]="
-                    v.availableStockInBranch <= 0
-                      ? v.brandName + ' ' + v.productName + ' ' + v.size + ' sin stock'
-                      : 'Agregar ' + v.brandName + ' ' + v.productName + ' ' + v.size
-                  "
-                  class="w-full text-left px-3 py-2 rounded-xl transition-colors
-                         flex items-center gap-3
-                         enabled:hover:bg-accent-ui/10
-                         disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <span class="flex-1 min-w-0 flex flex-col gap-0.5">
-                    <span class="flex items-baseline gap-1 text-[13px] leading-tight min-w-0">
-                      @if (v.brandName) {
-                        <span class="shrink-0 font-bold text-text-main">{{ v.brandName }}</span>
-                        <span class="shrink-0 text-text-soft">·</span>
-                      }
-                      <span class="truncate font-semibold text-text-main">{{ v.productName }}</span>
-                    </span>
-                    <span class="text-[11px] text-text-muted truncate">
-                      <span class="font-mono">{{ v.sku }}</span>
-                      @if (v.colorName || v.size) {
-                        · {{ v.colorName }}{{ v.size ? ' / ' + v.size : '' }}
-                      }
-                    </span>
-                  </span>
-                  <span class="shrink-0 text-right font-mono">
-                    <span class="block text-[13px] font-bold text-accent-ui">
-                      {{ v.price | money: 'symbol' }}
-                    </span>
-                    <span class="block text-xs font-bold" [class]="stockClass(v.availableStockInBranch)">
-                      {{ v.availableStockInBranch }}u
-                    </span>
-                  </span>
-                </button>
-              </li>
-            }
-          </ul>
+          <span
+            class="material-icons absolute right-2.5 top-1/2 -translate-y-1/2 text-accent-ui text-[18px] animate-spin"
+            >sync</span
+          >
         }
       </div>
+    </div>
 
-      <!-- Footer: solo desktop (en mobile la X ya cierra y se gana lista) -->
-      <div class="hidden sm:block px-4 pb-5 pt-1 border-t border-border">
-        <button type="button" class="btn btn-secondary w-full" (click)="close()">
-          Cancelar
-        </button>
-      </div>
+    <!-- Body -->
+    <div class="flex-1 overflow-y-auto px-2 py-2 min-h-[120px]">
+      @if (isSearching()) {
+        <div class="flex flex-col items-center justify-center gap-2 py-10 text-text-soft">
+          <span class="material-icons animate-spin text-[28px] text-accent-ui">sync</span>
+          <p class="text-xs">Buscando...</p>
+        </div>
+      } @else if (showEmpty()) {
+        <div class="flex flex-col items-center justify-center gap-2 py-10 text-text-soft">
+          <span class="material-icons text-[36px] text-text-soft/40">search_off</span>
+          <p class="text-xs">Sin resultados para "{{ query() }}"</p>
+        </div>
+      } @else if (query().length < 2) {
+        <p class="text-center text-xs text-text-soft py-10">
+          Escribí al menos 2 caracteres para buscar.
+        </p>
+      } @else {
+        <ul class="flex flex-col divide-y divide-border">
+          @for (v of results(); track v.sku; let i = $index) {
+            <li>
+              <button
+                type="button"
+                (click)="select(v.sku)"
+                [disabled]="v.availableStockInBranch <= 0"
+                [attr.aria-label]="ariaLabel(v)"
+                class="w-full text-left px-3 py-2 rounded-xl transition-colors flex items-center gap-3 enabled:hover:bg-accent-ui/10 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <span class="flex-1 min-w-0 flex flex-col gap-1">
+                  <span class="flex items-baseline gap-1 text-[13px] leading-tight min-w-0">
+                    @if (v.brandName) {
+                      <span class="shrink-0 font-bold text-text-main">{{ v.brandName }}</span>
+                      <span class="shrink-0 text-text-soft">·</span>
+                    }
+                    <span class="truncate font-semibold text-text-main">{{ v.productName }}</span>
+                  </span>
+
+                  <!-- Color/talla/género como chips: es lo que se confunde al
+                         elegir. Nunca se truncan (la línea hace wrap). -->
+                  <span class="flex flex-wrap items-center gap-1 text-[11px]">
+                    @if (v.colorName) {
+                      <span
+                        class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-accent-ui/10 border border-accent-ui/20 font-bold text-accent-ui"
+                      >
+                        {{ v.colorName }}
+                      </span>
+                    }
+                    @if (v.size) {
+                      <span
+                        class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-bg-muted border border-border font-bold font-mono text-text-main"
+                      >
+                        #{{ v.size }}
+                      </span>
+                    }
+                    @if (genderLabel(v.gender); as gender) {
+                      <span
+                        class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-bg-muted/60 font-medium text-text-muted"
+                      >
+                        {{ gender }}
+                      </span>
+                    }
+                    <span class="min-w-0 truncate font-mono text-[10px] text-text-soft">{{
+                      v.sku
+                    }}</span>
+                  </span>
+                </span>
+                <span class="shrink-0 text-right font-mono">
+                  <span class="block text-[13px] font-bold text-accent-ui">
+                    {{ v.price | money: 'symbol' }}
+                  </span>
+                  <span
+                    class="block text-xs font-bold"
+                    [class]="stockClass(v.availableStockInBranch)"
+                  >
+                    {{ v.availableStockInBranch }}u
+                  </span>
+                </span>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    <!-- Footer: solo desktop (en mobile la X ya cierra y se gana lista) -->
+    <div class="hidden sm:block px-4 pb-5 pt-1 border-t border-border">
+      <button type="button" class="btn btn-secondary w-full" (click)="close()">Cancelar</button>
     </div>
   </div>
+</div>
