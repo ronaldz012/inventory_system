@@ -15,6 +15,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { ProductService } from '@features/inventory/services/product-service';
 import { ProductVariantSearchDto } from '@features/inventory/dtos/products/product-variant-search-dto';
+import { GENDER_LABELS, Gender } from '@features/inventory/interfaces/gender';
 
 @Component({
   selector: 'app-pos-search-modal',
@@ -90,6 +91,30 @@ export class PosSearchModal {
   /** Enter = "listo": baja el teclado (la búsqueda ya es en vivo). */
   onSearchEnter(event: Event): void {
     (event.target as HTMLInputElement).blur();
+  }
+
+  /**
+   * Género legible para el chip. Tolera el enum serializado como string y
+   * devuelve null para Unisex (no discrimina y agrega ruido).
+   */
+  genderLabel(gender: Gender | string): string | null {
+    if (gender === Gender.Hombre || gender === 'Hombre') return GENDER_LABELS[Gender.Hombre];
+    if (gender === Gender.Mujer || gender === 'Mujer') return GENDER_LABELS[Gender.Mujer];
+    return null;
+  }
+
+  /** Etiqueta accesible completa: incluye color, talla y género. */
+  ariaLabel(v: ProductVariantSearchDto): string {
+    const parts = [
+      v.brandName,
+      v.productName,
+      v.colorName,
+      v.size ? `talla ${v.size}` : '',
+      this.genderLabel(v.gender),
+    ].filter(Boolean);
+
+    const base = parts.join(' ');
+    return v.availableStockInBranch <= 0 ? `${base} sin stock` : `Agregar ${base}`;
   }
 
   /** Color del stock por cantidad: 0 · bajo (1-4) · normal (5+). */
