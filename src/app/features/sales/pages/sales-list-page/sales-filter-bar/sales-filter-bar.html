@@ -76,55 +76,94 @@
         </button>
       }
 
-      <!-- Estado de devolución: solo tiene sentido en ventas -->
-      @if (!isReturnsView()) {
+      <!-- Filtros: vendedor (ambas pestañas) + estado de devolución (solo ventas) -->
+      @if (sellers().length > 0 || !isReturnsView()) {
         <div class="relative shrink-0" data-sales-filters>
           <button
             #filtersTrigger
             type="button"
             (click)="toggleFilters()"
             class="btn btn-sm gap-1"
-            [class.btn-secondary]="!hasReturnStatusFilter()"
-            [class.border-accent-ui]="hasReturnStatusFilter()"
-            [class.bg-accent-ui/10]="hasReturnStatusFilter()"
-            [class.text-accent-ui]="hasReturnStatusFilter()"
+            [class.btn-secondary]="activeFiltersCount() === 0"
+            [class.border-accent-ui]="activeFiltersCount() > 0"
+            [class.bg-accent-ui/10]="activeFiltersCount() > 0"
+            [class.text-accent-ui]="activeFiltersCount() > 0"
             aria-haspopup="dialog"
             [attr.aria-expanded]="filtersOpen()"
             title="Filtros"
           >
             <span class="material-icons text-base leading-none">filter_list</span>
             <span class="hidden sm:inline">Filtros</span>
-            @if (hasReturnStatusFilter()) {
+            @if (activeFiltersCount() > 0) {
               <span
                 class="inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-accent-ui text-[10px] font-bold text-white"
               >
-                1
+                {{ activeFiltersCount() }}
               </span>
             }
           </button>
 
           @if (filtersOpen()) {
             <div
+              #filtersPanel
+              tabindex="-1"
               role="dialog"
               aria-label="Filtros de ventas"
-              class="absolute top-[calc(100%+6px)] right-0 z-50 w-[min(16rem,calc(100vw-2rem))] rounded-xl border border-border bg-bg-surface p-3 shadow-lg flex flex-col gap-2"
+              class="absolute top-[calc(100%+6px)] right-0 z-50 w-[min(17rem,calc(100vw-2rem))] rounded-xl border border-border bg-bg-surface p-3 shadow-lg flex flex-col gap-2 focus:outline-none"
             >
-              <label class="field-label" for="filtro-estado-devolucion">
-                Estado de devolución
-              </label>
-              <select
-                #filtersSelect
-                id="filtro-estado-devolucion"
-                (change)="onReturnStatusChange(valueOf($event))"
-                class="w-full py-2 px-3 text-sm bg-bg-muted border border-border rounded-xl text-text-main focus:outline-none focus:ring-2 focus:ring-ring-focus-ring transition-colors"
-              >
-                <option value="" [selected]="params().returnStatus === undefined">Todas</option>
-                @for (opt of returnStatusOptions; track opt.value) {
-                  <option [value]="opt.value" [selected]="params().returnStatus === opt.value">
-                    {{ opt.label }}
-                  </option>
+              @if (sellers().length > 0) {
+                <label class="field-label" for="filtro-vendedor">Vendedor</label>
+                <select
+                  id="filtro-vendedor"
+                  [value]="popover().soldById ?? ''"
+                  (change)="onSellerChange(valueOf($event))"
+                  class="w-full py-2 px-3 text-sm bg-bg-muted border border-border rounded-xl text-text-main focus:outline-none focus:ring-2 focus:ring-ring-focus-ring transition-colors"
+                >
+                  <option value="">Todos</option>
+                  @for (seller of sellers(); track seller.id) {
+                    <option [value]="seller.id">{{ seller.name }}</option>
+                  }
+                </select>
+              }
+
+              @if (!isReturnsView()) {
+                @if (sellers().length > 0) {
+                  <div class="h-px bg-border"></div>
                 }
-              </select>
+                <label class="field-label" for="filtro-estado-devolucion">
+                  Estado de devolución
+                </label>
+                <select
+                  id="filtro-estado-devolucion"
+                  [value]="popover().returnStatus ?? ''"
+                  (change)="onReturnStatusChange(valueOf($event))"
+                  class="w-full py-2 px-3 text-sm bg-bg-muted border border-border rounded-xl text-text-main focus:outline-none focus:ring-2 focus:ring-ring-focus-ring transition-colors"
+                >
+                  <option value="">Todas</option>
+                  @for (opt of returnStatusOptions; track opt.value) {
+                    <option [value]="opt.value">{{ opt.label }}</option>
+                  }
+                </select>
+              }
+
+              <!-- El commit es este click: una navegación, no una por select. -->
+              <div class="mt-1 flex items-center gap-2 border-t border-border pt-2">
+                <button
+                  type="button"
+                  (click)="applyFilters()"
+                  [disabled]="!hasPending()"
+                  class="btn btn-primary btn-sm flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Aplicar
+                </button>
+                <button
+                  type="button"
+                  (click)="closeFilters()"
+                  class="btn btn-secondary btn-sm flex-1"
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
           }
         </div>
@@ -139,6 +178,18 @@
       [to]="params().dateTo"
       (rangeChange)="onDateRange($event)"
     />
+
+    @if (hasSellerFilter()) {
+      <button
+        type="button"
+        (click)="clearSeller()"
+        class="inline-flex items-center gap-1 py-1 pl-2 pr-1.5 rounded-lg bg-accent-ui/10 text-accent-ui text-xs font-medium border border-accent-ui/30 hover:bg-accent-ui/20 transition-colors"
+        [attr.aria-label]="'Quitar filtro vendedor ' + sellerName()"
+      >
+        {{ sellerName() }}
+        <span class="material-icons text-sm leading-none">close</span>
+      </button>
+    }
 
     @if (hasReturnStatusFilter()) {
       <button

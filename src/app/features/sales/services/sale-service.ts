@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from 'environments/environment';
 import { PagedResult } from '@features/inventory/dtos/paged-result';
 import { SaleListDto } from '@features/sales/dtos/sale-list-dto';
+import { SellerDto } from '@features/sales/dtos/seller-dto';
 import { SalesQueryDto } from '@features/sales/dtos/sales-query-dto';
 import { SaleDetailDto } from '@features/sales/dtos/sale-detail-dto';
 import { CreateSaleDto } from '@features/sales/dtos/create-sale-dto';
@@ -24,6 +25,7 @@ export class SaleService {
     let params = new HttpParams();
     params = params.set('type', query.type.toString());
     if (query.filter) params = params.set('filter', query.filter);
+    if (query.soldById) params = params.set('soldById', query.soldById);
     if (query.dateFrom) params = params.set('dateFrom', query.dateFrom);
     if (query.dateTo) params = params.set('dateTo', query.dateTo);
     if (query.returnStatus !== undefined && query.returnStatus !== null)
@@ -31,6 +33,11 @@ export class SaleService {
     if (query.page) params = params.set('page', query.page);
     if (query.pageSize) params = params.set('pageSize', query.pageSize);
     return this.http.get<PagedResult<SaleListDto>>(this.baseUrl, { params });
+  }
+
+  /** Vendedores con ventas en la sucursal, para el filtro del listado. */
+  getSellers(): Observable<SellerDto[]> {
+    return this.http.get<SellerDto[]>(`${this.baseUrl}/sellers`);
   }
 
   createSale(dto: CreateSaleDto): Observable<void> {

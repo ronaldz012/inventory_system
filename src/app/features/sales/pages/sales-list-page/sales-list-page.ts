@@ -331,7 +331,13 @@ export default class SalesListPage {
 
   readonly hasActiveFilters = computed(() => {
     const q = this.query();
-    return !!(q.filter || q.dateFrom || q.dateTo || q.returnStatus !== undefined);
+    return !!(
+      q.filter ||
+      q.dateFrom ||
+      q.dateTo ||
+      q.returnStatus !== undefined ||
+      q.soldById !== undefined
+    );
   });
 
   constructor() {
@@ -374,6 +380,7 @@ export default class SalesListPage {
   clearFilters(): void {
     this.patchQuery({
       filter: undefined,
+      soldById: undefined,
       dateFrom: undefined,
       dateTo: undefined,
       returnStatus: undefined,

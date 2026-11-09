@@ -1,5 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
+import { SaleService } from '@features/sales/services/sale-service';
 import { SalesQueryDto } from '@features/sales/dtos/sales-query-dto';
 import { SaleReturnStatus, SaleType } from '@features/sales/dtos/sale-detail-dto';
 import { SalesFilterBar } from './sales-filter-bar';
@@ -20,7 +22,11 @@ class Host {
 }
 
 async function setup(params: Partial<SalesQueryDto> = {}) {
-  await TestBed.configureTestingModule({ imports: [Host] }).compileComponents();
+  await TestBed.configureTestingModule({
+    imports: [Host],
+    // Sin vendedores: el control de vendedor no se renderiza en estos tests.
+    providers: [{ provide: SaleService, useValue: { getSellers: () => of([]) } }],
+  }).compileComponents();
   const fixture = TestBed.createComponent(Host);
   fixture.componentInstance.params.set({
     type: SaleType.Sale,
@@ -40,7 +46,25 @@ async function setup(params: Partial<SalesQueryDto> = {}) {
     search.value = value;
     search.dispatchEvent(new Event('input'));
   };
-  return { fixture, host: fixture.componentInstance, root, tabByText, search, type };
+  const openFilters = () => {
+    (root.querySelector('[data-sales-filters] button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+  };
+  const popoverButton = (text: string) =>
+    Array.from(root.querySelectorAll('[data-sales-filters] button')).find(
+      (b) => b.textContent?.trim() === text,
+    ) as HTMLButtonElement;
+
+  return {
+    fixture,
+    host: fixture.componentInstance,
+    root,
+    tabByText,
+    search,
+    type,
+    openFilters,
+    popoverButton,
+  };
 }
 
 describe('SalesFilterBar', () => {
@@ -123,29 +147,67 @@ describe('SalesFilterBar', () => {
   });
 
   it('el filtro de estado aparece en ventas', async () => {
-    const { root } = await setup();
-    expect(root.querySelector('[data-sales-filters]')).not.toBeNull();
+    const { root, openFilters } = await setup();
+
+    openFilters();
+
+    expect(root.querySelector('#filtro-estado-devolucion')).not.toBeNull();
   });
 
-  it('el filtro de estado no aparece en devoluciones', async () => {
+  it('en devoluciones no hay filtros si no hay vendedores cargados', async () => {
     const { root } = await setup({ type: SaleType.Return });
+
     expect(root.querySelector('[data-sales-filters]')).toBeNull();
   });
 
-  it('emite el estado de devolución elegido en el popover', async () => {
-    const { fixture, host, root } = await setup();
-    const filters = root.querySelector('[data-sales-filters] button') as HTMLButtonElement;
+  it('el select solo edita el borrador: recién "Aplicar" emite y cierra', async () => {
+    const { fixture, host, root, openFilters, popoverButton } = await setup();
 
-    filters.click();
-    fixture.detectChanges();
-
+    openFilters();
     const select = root.querySelector('select') as HTMLSelectElement;
     select.value = String(SaleReturnStatus.Full);
     select.dispatchEvent(new Event('change'));
     fixture.detectChanges();
 
-    expect(host.changes).toEqual([{ returnStatus: SaleReturnStatus.Full, page: 1 }]);
+    // Cambiar el select no navega: el popover sigue abierto y no hubo emisión.
+    expect(host.changes).toEqual([]);
+    expect(root.querySelector('select')).not.toBeNull();
+
+    popoverButton('Aplicar').click();
+    fixture.detectChanges();
+
+    expect(host.changes).toEqual([
+      { soldById: undefined, returnStatus: SaleReturnStatus.Full, page: 1 },
+    ]);
     expect(root.querySelector('select')).toBeNull();
+  });
+
+  it('"Cancelar" descarta el borrador', async () => {
+    const { fixture, host, root, openFilters, popoverButton } = await setup();
+
+    openFilters();
+    const select = root.querySelector('select') as HTMLSelectElement;
+    select.value = String(SaleReturnStatus.Full);
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    popoverButton('Cancelar').click();
+    fixture.detectChanges();
+
+    expect(host.changes).toEqual([]);
+    expect(root.querySelector('[data-sales-filters]')).not.toBeNull();
+
+    // Al reabrir muestra el estado aplicado, no el borrador descartado.
+    openFilters();
+    expect((root.querySelector('select') as HTMLSelectElement).value).toBe('');
+  });
+
+  it('"Aplicar" está deshabilitado sin cambios pendientes', async () => {
+    const { openFilters, popoverButton } = await setup();
+
+    openFilters();
+
+    expect(popoverButton('Aplicar').disabled).toBe(true);
   });
 
   it('muestra el chip del estado activo y permite quitarlo', async () => {

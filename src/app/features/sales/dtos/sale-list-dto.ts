@@ -5,6 +5,7 @@ export interface SaleListDto {
   number: number;
   createdAt: string;
   totalAmount: number;
+  soldById: GUID | null;
   soldByName: string;
   firstItemDisplayName: string;
   totalQuantity: number;
