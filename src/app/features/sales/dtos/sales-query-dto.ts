@@ -10,6 +10,8 @@ export interface SalesQueryDto {
   type: SaleType;
   /** Solo aplica a ventas. `undefined` = sin filtro. */
   returnStatus?: SaleReturnStatus;
+  /** Vendedor (identidad estable). `undefined` = todos. */
+  soldById?: GUID;
   page: number;
   pageSize: number;
 }
@@ -52,6 +54,7 @@ export function parseSalesQuery(raw: Record<string, string>): SalesQueryDto {
     type,
     // El estado de devolución solo existe en la vista de ventas.
     returnStatus: type === SaleType.Return ? undefined : parseReturnStatus(raw['returnStatus']),
+    soldById: asOptionalString(raw['soldById']),
     page: asNumber(raw['page'], SALES_QUERY_DEFAULTS.page),
     pageSize: asNumber(raw['pageSize'], SALES_QUERY_DEFAULTS.pageSize),
   };
@@ -59,6 +62,7 @@ export function parseSalesQuery(raw: Record<string, string>): SalesQueryDto {
 
 export type SalesQueryStrings = {
   filter?: string;
+  soldById?: string;
   dateFrom?: string;
   dateTo?: string;
   type?: number;
@@ -72,6 +76,7 @@ export function serializeSalesQuery(q: SalesQueryDto): SalesQueryStrings {
   const isReturns = q.type === SaleType.Return;
   return {
     filter: cleanSalesFilter(q.filter),
+    soldById: q.soldById,
     dateFrom: q.dateFrom,
     dateTo: q.dateTo,
     type: isReturns ? SaleType.Return : undefined,
@@ -85,6 +90,7 @@ export function serializeSalesQuery(q: SalesQueryDto): SalesQueryStrings {
 export function sameSalesQuery(a: SalesQueryDto, b: SalesQueryDto): boolean {
   return (
     a.filter === b.filter &&
+    a.soldById === b.soldById &&
     a.dateFrom === b.dateFrom &&
     a.dateTo === b.dateTo &&
     a.type === b.type &&

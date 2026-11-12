@@ -63,6 +63,16 @@ function expectedRange(dateStr: string): DateRange {
   return { from: start.toISOString(), to: end.toISOString() };
 }
 
+/** Rango UTC para dos días locales inclusivos. */
+function expectedSpan(from: string, to: string): DateRange {
+  const [fromYear, fromMonth, fromDay] = from.split('-').map(Number);
+  const [toYear, toMonth, toDay] = to.split('-').map(Number);
+  const start = new Date(fromYear, fromMonth - 1, fromDay);
+  const end = new Date(toYear, toMonth - 1, toDay);
+  end.setHours(23, 59, 59, 999);
+  return { from: start.toISOString(), to: end.toISOString() };
+}
+
 const flushFocus = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 async function setup(from?: string, to?: string) {
@@ -99,6 +109,36 @@ async function setup(from?: string, to?: string) {
     fixture.detectChanges();
   };
 
+  // Los íconos suman su ligadura al textContent ("date_range Elegir…").
+  const buttonByText = (text: string) =>
+    Array.from(panel()?.querySelectorAll('button') ?? []).find((b) =>
+      (b.textContent ?? '').replace(/\s+/g, ' ').includes(text),
+    ) as HTMLButtonElement | undefined;
+
+  const openRange = () => {
+    buttonByText('Elegir un rango…')!.click();
+    fixture.detectChanges();
+  };
+
+  const setRange = (from: string, to: string) => {
+    const fromInput = panel()!.querySelector('#range-from') as HTMLInputElement;
+    const toInput = panel()!.querySelector('#range-to') as HTMLInputElement;
+    if (from) {
+      fromInput.value = from;
+      fromInput.dispatchEvent(new Event('change'));
+    }
+    if (to) {
+      toInput.value = to;
+      toInput.dispatchEvent(new Event('change'));
+    }
+    fixture.detectChanges();
+  };
+
+  const applyRange = () => {
+    buttonByText('Aplicar')!.click();
+    fixture.detectChanges();
+  };
+
   return {
     fixture,
     host: fixture.componentInstance,
@@ -109,6 +149,10 @@ async function setup(from?: string, to?: string) {
     option,
     open,
     pickDate,
+    buttonByText,
+    openRange,
+    setRange,
+    applyRange,
   };
 }
 
@@ -122,17 +166,19 @@ describe('DateRangeFilter', () => {
   });
 
   it('el popover tiene presets y el campo de fecha visible', async () => {
-    const { open, panel, trigger, input } = await setup();
+    const { open, panel, trigger, input, option, buttonByText } = await setup();
 
     open();
 
     expect(trigger().getAttribute('aria-expanded')).toBe('true');
-    const labels = Array.from(panel()!.querySelectorAll('button')).map((b) =>
-      b.querySelector('span')?.textContent?.trim(),
-    );
-    expect(labels).toEqual(['Todas las fechas', 'Hoy', 'Ayer']);
+    expect(panel()!.querySelectorAll('button[aria-pressed]')).toHaveLength(3);
+    expect(option('Todas las fechas')).toBeDefined();
+    expect(option('Hoy')).toBeDefined();
+    expect(option('Ayer')).toBeDefined();
     // Sin sub-ventana: el input está a la vista apenas se abre.
     expect(input()).not.toBeNull();
+    // El rango es opt-in, no reemplaza el día suelto.
+    expect(buttonByText('Elegir un rango…')).toBeDefined();
   });
 
   it('marca la opción activa (sin fecha = "Todas las fechas")', async () => {
@@ -220,6 +266,92 @@ describe('DateRangeFilter', () => {
     open();
     expect(option('Hoy').getAttribute('aria-pressed')).toBe('true');
     expect(input()!.value).toBe(todayKey());
+  });
+
+  it('"Elegir un rango…" abre Desde y Hasta', async () => {
+    const { open, openRange, panel } = await setup();
+
+    open();
+    openRange();
+
+    expect(panel()!.querySelector('#range-from')).not.toBeNull();
+    expect(panel()!.querySelector('#range-to')).not.toBeNull();
+  });
+
+  it('aplica un rango y lo muestra en el disparador', async () => {
+    const { fixture, host, open, openRange, setRange, applyRange, trigger, panel } = await setup();
+
+    open();
+    openRange();
+    setRange('2026-10-01', '2026-10-31');
+    applyRange();
+
+    expect(host.ranges).toEqual([expectedSpan('2026-10-01', '2026-10-31')]);
+    expect(panel()).toBeNull();
+    expect(trigger().textContent).toContain('01/10 – 31/10');
+    fixture.detectChanges();
+  });
+
+  it('con un solo extremo aplica ese día', async () => {
+    const { host, open, openRange, setRange, applyRange } = await setup();
+
+    open();
+    openRange();
+    setRange('2026-10-05', '');
+    applyRange();
+
+    expect(host.ranges).toEqual([expectedRange('2026-10-05')]);
+  });
+
+  it('no aplica un rango invertido', async () => {
+    const { host, open, openRange, setRange, applyRange, panel, buttonByText } = await setup();
+
+    open();
+    openRange();
+    setRange('2026-10-30', '2026-10-01');
+
+    expect(panel()!.textContent).toContain('no puede ser posterior');
+    expect(buttonByText('Aplicar')!.disabled).toBe(true);
+
+    applyRange();
+    expect(host.ranges).toEqual([]);
+  });
+
+  it('no aplica un rango con fecha futura', async () => {
+    const { host, open, openRange, setRange, applyRange, panel, buttonByText } = await setup();
+
+    open();
+    openRange();
+    setRange(tomorrowKey(), '');
+
+    expect(panel()!.textContent).toContain('Elegí hoy o una fecha anterior');
+    expect(buttonByText('Aplicar')!.disabled).toBe(true);
+    applyRange();
+    expect(host.ranges).toEqual([]);
+  });
+
+  it('muestra un rango que llega desde la URL', async () => {
+    const range = expectedSpan('2026-10-01', '2026-10-31');
+    const { trigger, open, option } = await setup(range.from, range.to);
+
+    expect(trigger().textContent).toContain('01/10 – 31/10');
+
+    open();
+    expect(option('Hoy').getAttribute('aria-pressed')).toBe('false');
+    expect(option('Todas las fechas').getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('Escape en el rango vuelve al menú sin cerrar', async () => {
+    const { fixture, open, openRange, panel, buttonByText } = await setup();
+
+    open();
+    openRange();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+
+    expect(panel()!.querySelector('#range-from')).toBeNull();
+    expect(buttonByText('Hoy')).toBeDefined();
   });
 
   it('Escape cierra y devuelve el foco al disparador', async () => {

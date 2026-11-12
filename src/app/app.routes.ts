@@ -187,6 +187,13 @@ export const routes: Routes = [
             loadComponent: () => import('@features/sales/pages/sales-list-page/sales-list-page'),
           },
           {
+            path: 'performance',
+            title: 'Rendimiento',
+            canActivate: [featureGuard],
+            data: { module: 'sales', feature: 'sales' },
+            loadComponent: () => import('@features/sales/pages/performance-page/performance-page'),
+          },
+          {
             path: 'sale/:id',
             title: 'Detalle de Venta',
             canActivate: [featureGuard],

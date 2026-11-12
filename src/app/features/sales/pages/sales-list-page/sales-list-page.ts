@@ -47,6 +47,18 @@ import { readQuery, writeQuery } from '@shared/utils/list-query';
         <h1 class="text-lg font-black text-text-main">
           {{ isReturnsView() ? 'Devoluciones' : 'Ventas' }}
         </h1>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <!-- Rendimiento es parte de ventas: se entra con este botón, no con el menú. -->
+          <a
+            routerLink="/sales/performance"
+            [queryParams]="performanceParams()"
+            class="btn btn-secondary btn-sm flex items-center gap-1"
+          >
+            <span class="material-icons text-base leading-none">insights</span>
+            Rendimiento
+          </a>
+        </div>
       </div>
 
       <app-sales-filter-bar
@@ -329,9 +341,27 @@ export default class SalesListPage {
 
   readonly isReturnsView = computed(() => this.query().type === SaleType.Return);
 
+  /** Lleva el rango y el vendedor activos al tablero, si están definidos. */
+  readonly performanceParams = computed<Record<string, string>>(() => {
+    const q = this.query();
+    const params: Record<string, string> = {};
+    if (q.dateFrom && q.dateTo) {
+      params['dateFrom'] = q.dateFrom;
+      params['dateTo'] = q.dateTo;
+    }
+    if (q.soldById) params['soldById'] = q.soldById;
+    return params;
+  });
+
   readonly hasActiveFilters = computed(() => {
     const q = this.query();
-    return !!(q.filter || q.dateFrom || q.dateTo || q.returnStatus !== undefined);
+    return !!(
+      q.filter ||
+      q.dateFrom ||
+      q.dateTo ||
+      q.returnStatus !== undefined ||
+      q.soldById !== undefined
+    );
   });
 
   constructor() {
@@ -374,6 +404,7 @@ export default class SalesListPage {
   clearFilters(): void {
     this.patchQuery({
       filter: undefined,
+      soldById: undefined,
       dateFrom: undefined,
       dateTo: undefined,
       returnStatus: undefined,
