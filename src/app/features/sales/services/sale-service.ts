@@ -6,6 +6,8 @@ import { PagedResult } from '@features/inventory/dtos/paged-result';
 import { SaleListDto } from '@features/sales/dtos/sale-list-dto';
 import { SellerDto } from '@features/sales/dtos/seller-dto';
 import { SalesQueryDto } from '@features/sales/dtos/sales-query-dto';
+import { SalesStatsDto } from '@features/sales/dtos/sales-stats-dto';
+import { SalesStatsQuery, tzOffsetMinutes } from '@features/sales/dtos/sales-stats-query-dto';
 import { SaleDetailDto } from '@features/sales/dtos/sale-detail-dto';
 import { CreateSaleDto } from '@features/sales/dtos/create-sale-dto';
 import {
@@ -33,6 +35,16 @@ export class SaleService {
     if (query.page) params = params.set('page', query.page);
     if (query.pageSize) params = params.set('pageSize', query.pageSize);
     return this.http.get<PagedResult<SaleListDto>>(this.baseUrl, { params });
+  }
+
+  /** Tablero de rendimiento: todas las cifras del rango en una sola llamada. */
+  getSalesStats(query: SalesStatsQuery): Observable<SalesStatsDto> {
+    let params = new HttpParams();
+    params = params.set('dateFrom', query.dateFrom);
+    params = params.set('dateTo', query.dateTo);
+    params = params.set('tzOffsetMinutes', tzOffsetMinutes().toString());
+    if (query.soldById) params = params.set('soldById', query.soldById);
+    return this.http.get<SalesStatsDto>(`${this.baseUrl}/stats`, { params });
   }
 
   /** Vendedores con ventas en la sucursal, para el filtro del listado. */
