@@ -2,7 +2,11 @@ import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SkuInput } from '@shared/components/sku-input/sku-input';
-import { QrScannerModal, isBarcodeApiAvailable } from '@features/sales/components/qr-scanner-modal/qr-scanner-modal';
+import {
+  QrScannerModal,
+  isBarcodeApiAvailable,
+} from '@features/sales/components/qr-scanner-modal/qr-scanner-modal';
+import { PosSearchModal } from '@features/sales/pages/pos-page/pos-search-modal/pos-search-modal';
 import { CreateTransferItemList } from './create-transfer-item-list/create-transfer-item-list';
 import { TransferConfirmModal } from './transfer-confirm-modal';
 import { TransferService } from '../../../services/transfer-service';
@@ -19,7 +23,15 @@ import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 
 @Component({
   selector: 'app-create-transfer',
-  imports: [SkuInput, QrScannerModal, CreateTransferItemList, FormsModule, BranchSelectorDestination, TransferConfirmModal],
+  imports: [
+    SkuInput,
+    QrScannerModal,
+    PosSearchModal,
+    CreateTransferItemList,
+    FormsModule,
+    BranchSelectorDestination,
+    TransferConfirmModal,
+  ],
   templateUrl: './create-transfer.html',
 })
 export default class CreateTransfer implements OnInit, OnDestroy {
@@ -33,6 +45,10 @@ export default class CreateTransfer implements OnInit, OnDestroy {
   searchingSku = signal(false);
   skuError = signal('');
   scannerAvailable = signal(false);
+
+  /** Buscador de productos por nombre (mismo modal del POS). Atrás lo cierra. */
+  searchOpen = signal(false);
+  searchModal = useStackedModal(this.stack, this.searchOpen);
 
   branches = signal<BranchDto[]>([]);
   loadingBranches = signal(false);
@@ -73,10 +89,24 @@ export default class CreateTransfer implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.confirmModal.destroy();
+    this.searchModal.destroy();
   }
 
   openScanner(scanner: QrScannerModal): void {
     scanner.open();
+  }
+
+  openSearch(): void {
+    this.searchModal.open();
+  }
+
+  closeSearch(): void {
+    this.searchModal.close();
+  }
+
+  /** El modal devuelve el SKU: entra por el mismo pipeline que el SKU tipeado. */
+  onSearchPick(sku: string): void {
+    this.onSkuSubmit(sku);
   }
 
   private loadBranches(): void {
@@ -110,7 +140,12 @@ export default class CreateTransfer implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.searchingSku.set(false);
-        const msg = err.status === 404 ? `No se encontró "${sku}"` : err.status === 409 ? `El producto "${sku}" está inactivo` : 'Error al buscar el producto';
+        const msg =
+          err.status === 404
+            ? `No se encontró "${sku}"`
+            : err.status === 409
+              ? `El producto "${sku}" está inactivo`
+              : 'Error al buscar el producto';
         this.skuError.set(msg);
       },
     });
@@ -124,9 +159,12 @@ export default class CreateTransfer implements OnInit, OnDestroy {
       this.items.update((items) =>
         items.map((i) => (i.variantId === variant.id ? { ...i, quantity: qty } : i)),
       );
-      const parts = [variant.brandName, variant.productName, variant.colorName, variant.size].filter(
-        Boolean,
-      );
+      const parts = [
+        variant.brandName,
+        variant.productName,
+        variant.colorName,
+        variant.size,
+      ].filter(Boolean);
       this.toastService.success(`${parts.join(' · ')} ×${qty}`);
       this.flashAdded(variant.id);
     } else {
@@ -150,9 +188,12 @@ export default class CreateTransfer implements OnInit, OnDestroy {
         },
         ...items,
       ]);
-      const parts = [variant.brandName, variant.productName, variant.colorName, variant.size].filter(
-        Boolean,
-      );
+      const parts = [
+        variant.brandName,
+        variant.productName,
+        variant.colorName,
+        variant.size,
+      ].filter(Boolean);
       this.toastService.success(`${parts.join(' · ')} agregada`);
       this.flashAdded(variant.id);
     }
@@ -204,7 +245,9 @@ export default class CreateTransfer implements OnInit, OnDestroy {
       error: (err: unknown) => {
         this.isSubmitting.set(false);
         const e = err as { error?: { detail?: string; title?: string }; message?: string };
-        this.toastService.error(e?.error?.detail || e?.error?.title || e?.message || 'Error al crear la transferencia.');
+        this.toastService.error(
+          e?.error?.detail || e?.error?.title || e?.message || 'Error al crear la transferencia.',
+        );
       },
     });
   }

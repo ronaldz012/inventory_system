@@ -1,7 +1,6 @@
 import { Component, OnDestroy, OnInit, ViewChild, signal, inject, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { closeModal, openModal } from '@shared/utils/modal-query';
 import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 import { blockNonNumericKeys } from '@shared/utils/list-query';
 import { SkuInput } from '@shared/components/sku-input/sku-input';
@@ -73,9 +72,9 @@ export default class PosPage implements OnInit, OnDestroy {
   submitting = signal(false);
   payModal = useStackedModal(this.stack, this.isMobilePayOpen);
 
-  /** El modal de búsqueda vive en la URL (?modal=search): "atrás" lo cierra. */
-  private readonly queryParams = toSignal(this.route.queryParamMap, { initialValue: null });
-  isSearchOpen = computed(() => this.queryParams()?.get('modal') === 'search');
+  /** Buscador de productos: señal + pila de modales (igual que el resto del POS). */
+  searchOpen = signal(false);
+  searchModal = useStackedModal(this.stack, this.searchOpen);
 
   // 1. Estado reactivo principal del POS
   posModel = signal<PosSaleState>({
@@ -225,10 +224,10 @@ export default class PosPage implements OnInit, OnDestroy {
   }
 
   openSearch(): void {
-    openModal(this.router, this.route, 'search');
+    this.searchModal.open();
   }
   closeSearch(): void {
-    closeModal(this.router, this.route);
+    this.searchModal.close();
   }
 
   /** "Gastos" ahora registra el gasto sobre el POS, sin saltear de pantalla. */
@@ -243,6 +242,7 @@ export default class PosPage implements OnInit, OnDestroy {
     this.payModal.destroy();
     this.expenseModal.destroy();
     this.freeItemModal.destroy();
+    this.searchModal.destroy();
   }
 
   /** Agrega al carrito la variante elegida en el modal de búsqueda */

@@ -9,7 +9,7 @@ import { PermissionService } from '@features/auth/services/permmision-service';
 import { ProductService } from '@features/inventory/services/product-service';
 import { CreateSaleDto } from '@features/sales/dtos/create-sale-dto';
 
-describe('PosPage — modal de búsqueda en la URL', () => {
+describe('PosPage — modal de búsqueda (señal + pila de modales)', () => {
   let params$: BehaviorSubject<ParamMap>;
   let calls: { commands: unknown[]; extras: Record<string, unknown> }[];
   let capturedSale: CreateSaleDto | null;
@@ -66,40 +66,31 @@ describe('PosPage — modal de búsqueda en la URL', () => {
     return { fixture, page };
   }
 
-  it('arranca con el modal cerrado', () => {
-    const { page } = setup();
-    expect(page.isSearchOpen()).toBe(false);
+  it('arranca con el buscador cerrado', () => {
+    const { fixture, page } = setup();
+    expect(page.searchOpen()).toBe(false);
+    expect(fixture.nativeElement.querySelector('app-pos-search-modal')).toBeNull();
   });
 
-  it('openSearch empuja ?modal=search (el "atrás" lo cierra)', () => {
-    const { page } = setup();
-    calls = [];
+  it('openSearch abre el buscador y lo registra en la pila de modales', () => {
+    const { fixture, page } = setup();
+
     page.openSearch();
+    fixture.detectChanges();
 
-    expect(calls).toHaveLength(1);
-    expect(calls[0].extras['queryParams']).toEqual({ modal: 'search' });
-    expect(calls[0].extras['queryParamsHandling']).toBe('merge');
-    expect(calls[0].extras['replaceUrl']).toBeUndefined();
+    expect(page.searchOpen()).toBe(true);
+    expect(fixture.nativeElement.querySelector('app-pos-search-modal')).not.toBeNull();
   });
 
-  it('?modal=search abre el modal', () => {
-    setup();
-    setParams({ modal: 'search' });
-    const second = TestBed.createComponent(PosPage);
-    second.detectChanges();
-    const reopened = second.componentInstance;
-    expect(reopened.isSearchOpen()).toBe(true);
-    expect(second.nativeElement.querySelector('app-pos-search-modal')).not.toBeNull();
-  });
+  it('closeSearch cierra el buscador', () => {
+    const { fixture, page } = setup();
 
-  it('closeSearch limpia el param conservando el resto', () => {
-    const { page } = setup();
-    calls = [];
+    page.openSearch();
     page.closeSearch();
+    fixture.detectChanges();
 
-    expect(calls).toHaveLength(1);
-    expect(calls[0].extras['queryParams']).toEqual({ modal: null });
-    expect(calls[0].extras['replaceUrl']).toBe(true);
+    expect(page.searchOpen()).toBe(false);
+    expect(fixture.nativeElement.querySelector('app-pos-search-modal')).toBeNull();
   });
 
   it('onFreeItemSaved agrega una línea libre al carrito', () => {
