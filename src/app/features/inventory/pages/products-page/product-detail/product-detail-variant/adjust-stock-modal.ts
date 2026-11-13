@@ -63,19 +63,24 @@ import { UpdateProductVariantStockDto } from '../../../dtos/producclass UpdatePr
             <p class="text-xs text-text-soft mt-1">
               @if (delta() === 0) {
                 Sin cambios
+              } @else if (delta() > 0) {
+                <span class="text-feedback-success-text">+{{ delta() }} unidades</span>
               } @else {
                 <span class="text-feedback-error-text">{{ delta() }} unidades</span>
               }
             </p>
           </div>
 
-          <div
+          <button
+            type="button"
+            (click)="increment()"
             class="w-10 h-10 rounded-full border-2 border-border flex items-center justify-center
-                   text-text-soft/30 border-dashed cursor-not-allowed text-lg font-light"
-            title="Solo se permiten bajas"
+                   text-text-muted hover:border-border-strong hover:bg-bg-muted transition-colors
+                   text-lg font-light"
+            aria-label="Sumar una unidad"
           >
             +
-          </div>
+          </button>
         </div>
 
         <!-- Current stock reference -->
@@ -87,7 +92,9 @@ import { UpdateProductVariantStockDto } from '../../../dtos/producclass UpdatePr
           :
           <span class="font-medium text-text-muted">{{ currentStock() }} u</span>
         </p>
-        <p class="text-center text-[11px] text-text-soft/70 mb-5">Solo se permiten bajas por pérdida o similar</p>
+        <p class="text-center text-xs text-text-soft/70 mb-5">
+          Los ajustes (altas y bajas) requieren motivo
+        </p>
 
         <!-- Notes -->
         <div>
@@ -105,7 +112,7 @@ import { UpdateProductVariantStockDto } from '../../../dtos/producclass UpdatePr
                 ? 'border-feedback-error-text focus:ring-feedback-error'
                 : 'border-border focus:border-border-strong focus:ring-ring-focus-ring'
             "
-            placeholder="Ej: Conteo físico, corrección de error, devolución..."
+            placeholder="Ej: Conteo físico, sobrante, corrección de error, devolución..."
           ></textarea>
           @if (notesInvalid()) {
             <p class="text-xs text-feedback-error-text mt-1">
@@ -168,19 +175,19 @@ export class AdjustStockModal implements OnInit {
   deltaClass = computed(() => {
     const d = this.delta();
     if (d < 0) return 'text-feedback-error-text';
+    if (d > 0) return 'text-feedback-success-text';
     return 'text-text-main';
   });
 
   notesInvalid = computed(() => this.touched() && this.notes().trim().length < 3);
-  canSave = computed(() => this.delta() < 0 && this.notes().trim().length >= 3);
-  hasAttemptedIncrease = computed(() => false);
+  canSave = computed(() => this.delta() !== 0 && this.notes().trim().length >= 3);
 
   ngOnInit(): void {
     this.newStock.set(this.currentStock());
   }
 
   increment(): void {
-    // Deshabilitado: ya no se permiten excedentes
+    this.newStock.update((v) => v + 1);
   }
 
   decrement(): void {
