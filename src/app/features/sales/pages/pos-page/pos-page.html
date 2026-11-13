@@ -251,7 +251,7 @@
 
 <app-qr-scanner-modal (scanned)="onScanned($event)" />
 
-@if (isSearchOpen()) {
+@if (searchOpen()) {
   <app-pos-search-modal (variantSelected)="onVariantPicked($event)" (closed)="closeSearch()" />
 }
 
