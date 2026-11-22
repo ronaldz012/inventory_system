@@ -151,21 +151,6 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                   {{ s.totalItems }} <span class="text-xs font-bold">u</span>
                 </p>
               </div>
-              <div class="min-w-0">
-                <p class="table-header">Método de pago</p>
-                <div class="flex flex-col gap-0.5">
-                  @for (p of s.payments; track $index) {
-                    <p class="text-sm font-bold flex items-center gap-1.5 min-w-0">
-                      <span class="shrink-0" [class]="paymentMethodChipClass(p.method)">{{
-                        paymentMethodLabel(p.method)
-                      }}</span>
-                      <span class="font-mono truncate">{{ p.amount | money: 'symbol' }}</span>
-                    </p>
-                  } @empty {
-                    <span class="text-sm font-bold text-text-soft">—</span>
-                  }
-                </div>
-              </div>
               <div>
                 <p class="table-header">Tipo de documento</p>
                 <p class="text-sm font-bold">
@@ -202,6 +187,28 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                   {{ s.transactionCode || '—' }}
                 </p>
               </div>
+            </div>
+
+            <!-- Cobro: una línea por método; sección propia para que un split
+                 crezca horizontal sin romper el grid del resumen. -->
+            <div
+              class="mt-3 pt-3 border-t border-border flex flex-wrap items-center gap-x-4 gap-y-2"
+            >
+              <p class="text-[11px] font-bold uppercase tracking-wider text-text-soft">
+                {{ isReturn() ? 'Devolución' : 'Cobro' }}
+              </p>
+              @for (p of s.payments; track $index) {
+                <span class="flex items-center gap-1.5">
+                  <span class="shrink-0" [class]="paymentMethodChipClass(p.method)">{{
+                    paymentMethodLabel(p.method)
+                  }}</span>
+                  <span class="text-sm font-black font-mono text-text-main">{{
+                    p.amount | money: 'symbol'
+                  }}</span>
+                </span>
+              } @empty {
+                <span class="text-sm font-bold text-text-soft">—</span>
+              }
             </div>
             @if (s.notes) {
               <p class="text-[13px] text-text-muted leading-snug mt-1 break-words">{{ s.notes }}</p>
