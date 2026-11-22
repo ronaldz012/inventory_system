@@ -14,8 +14,6 @@ import {
   CreateReturnDto,
   CreateReturnResponse,
   SaleForReturnDto,
-  SkuSearchResponseDto,
-  SkuSearchQuery,
 } from '@features/sales/dtos/returns-dto';
 
 @Injectable({ providedIn: 'root' })
@@ -58,17 +56,6 @@ export class SaleService {
 
   getSaleDetail(id: GUID): Observable<SaleDetailDto> {
     return this.http.get<SaleDetailDto>(`${this.baseUrl}/${id}/details`);
-  }
-
-  searchBySku(query: SkuSearchQuery): Observable<SkuSearchResponseDto> {
-    let params = new HttpParams();
-    if (query.sku) params = params.set('sku', query.sku);
-    if (query.days) params = params.set('days', query.days.toString());
-    if (query.page) params = params.set('page', query.page.toString());
-    if (query.pageSize) params = params.set('pageSize', query.pageSize.toString());
-    return this.http.get<SkuSearchResponseDto>(`${this.baseUrl}/search-by-sku`, {
-      params,
-    });
   }
 
   createReturn(saleId: GUID, dto: CreateReturnDto): Observable<CreateReturnResponse> {

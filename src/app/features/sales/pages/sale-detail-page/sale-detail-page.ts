@@ -476,7 +476,7 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
       }
     </div>
 
-    <!-- Devolución: bottom-sheet en mobile, side-panel en desktop (mismo shell de returns-search) -->
+    <!-- Devolución: bottom-sheet en mobile, side-panel en desktop -->
     @if (isRefundOpen() && sale(); as d) {
       <div
         class="fixed inset-0 z-50 flex items-end md:items-stretch md:justify-end"

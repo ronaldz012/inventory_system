@@ -1,41 +1,6 @@
 type GUID = string;
 import { PaymentMethod } from '@features/sales/models/payment-method';
 
-export interface SkuSearchQuery {
-  sku?: string;
-  days?: number;
-  page?: number;
-  pageSize?: number;
-}
-
-export interface MatchedItemDto {
-  saleItemId: GUID;
-  quantity: number;
-  unitPrice: number;
-}
-
-export interface SaleSkuSearchDto {
-  id: GUID;
-  createdAt: string;
-  totalAmount: number;
-  soldByName: string;
-  totalItems: number;
-  totalUnitsSold: number;
-  matchedItem: MatchedItemDto;
-}
-
-export interface SkuSearchResponseDto {
-  searchedSku: string;
-  searchedDisplayName: string;
-  sales: {
-    items: SaleSkuSearchDto[];
-    totalCount: number;
-    page: number;
-    pageSize: number;
-    totalPages: number;
-  };
-}
-
 export interface CreateReturnItemDto {
   originalSaleItemId: GUID;
   quantity: number;
