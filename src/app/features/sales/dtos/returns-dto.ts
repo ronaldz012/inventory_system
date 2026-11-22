@@ -1,5 +1,5 @@
 type GUID = string;
-import { PaymentMethod } from '@features/sales/models/payment-method';
+import { SalePaymentLineDto } from './sale-detail-dto';
 
 export interface CreateReturnItemDto {
   originalSaleItemId: GUID;
@@ -8,30 +8,15 @@ export interface CreateReturnItemDto {
 
 export interface CreateReturnDto {
   items: CreateReturnItemDto[];
+  /**
+   * Una línea por método (tender), montos positivos. La suma debe cerrar
+   * exacta contra el monto a devolver: `Σ (unitPrice − discountAmount) × qty`.
+   */
+  payments: SalePaymentLineDto[];
 }
 
 export interface CreateReturnResponse {
   returnSaleId: GUID;
   returnNumber: string;
   totalRefundAmount: number;
-}
-
-export interface ReturnableItemDto {
-  saleItemId: GUID;
-  productDisplayName: string;
-  productSku: string;
-  quantity: number;
-  returnableQuantity: number;
-  unitPrice: number;
-}
-
-export interface SaleForReturnDto {
-  id: GUID;
-  createdAt: string;
-  totalAmount: number;
-  soldByName: string;
-  type: number | string;
-  /** Heredado de la venta original: el reembolso se reintegra por el mismo método. */
-  paymentMethod: PaymentMethod;
-  items: ReturnableItemDto[];
 }

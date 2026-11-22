@@ -10,11 +10,7 @@ import { SalesStatsDto } from '@features/sales/dtos/sales-stats-dto';
 import { SalesStatsQuery, tzOffsetMinutes } from '@features/sales/dtos/sales-stats-query-dto';
 import { SaleDetailDto } from '@features/sales/dtos/sale-detail-dto';
 import { CreateSaleDto } from '@features/sales/dtos/create-sale-dto';
-import {
-  CreateReturnDto,
-  CreateReturnResponse,
-  SaleForReturnDto,
-} from '@features/sales/dtos/returns-dto';
+import { CreateReturnDto, CreateReturnResponse } from '@features/sales/dtos/returns-dto';
 
 @Injectable({ providedIn: 'root' })
 export class SaleService {
@@ -60,9 +56,5 @@ export class SaleService {
 
   createReturn(saleId: GUID, dto: CreateReturnDto): Observable<CreateReturnResponse> {
     return this.http.post<CreateReturnResponse>(`${this.baseUrl}/${saleId}/returns`, dto);
-  }
-
-  getSaleForReturn(saleId: GUID): Observable<SaleForReturnDto> {
-    return this.http.get<SaleForReturnDto>(`${this.baseUrl}/${saleId}/returnable`, {});
   }
 }
