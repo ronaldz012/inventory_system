@@ -1,14 +1,14 @@
-import { Component, computed, inject, input, output, signal, OnInit, effect } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { form, validate, applyEach } from '@angular/forms/signals';
 import { SaleService } from '@features/sales/services/sale-service';
 import {
+  CreateReturnDto,
   CreateReturnItemDto,
   CreateReturnResponse,
-  SaleForReturnDto,
-  ReturnableItemDto,
 } from '@features/sales/dtos/returns-dto';
-import { paymentMethodLabel } from '@features/sales/dtos/sale-detail-dto';
+import { SaleDetailDto, SalePaymentLineDto } from '@features/sales/dtos/sale-detail-dto';
+import { paymentMethodChipClass, paymentMethodLabel } from '@features/sales/models/payment-method';
+import { RefundMethodPicker } from './refund-method-picker';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
 import { MoneyPipe } from '@shared/pipes/money-pipe';
@@ -21,18 +21,25 @@ interface ReturnLine {
   soldQuantity: number;
   returnableQuantity: number;
   unitPrice: number;
+  /** Descuento por unidad: el subtotal a devolver lo descuenta. */
+  discountAmount: number;
   selected: boolean;
   returnQuantity: number;
 }
 
-interface RefundFormModel {
-  isFullReturn: boolean;
-  lines: ReturnLine[];
-}
-
+/**
+ * Página de devolución (ruta `sales/pos/returns/:saleId`).
+ *
+ * Carga el detalle de la venta (el endpoint `returnable` quedó deprecado):
+ * `canReturn` decide la elegibilidad y lo devolvible por línea se deriva como
+ * `quantity − returnedQuantity`. Acá se marcan los ítems que vuelven (con
+ * "Devolver todo" de atajo) y cómo se devuelve la plata mediante
+ * `RefundMethodPicker` — el POST manda `payments[]` con montos positivos que
+ * cierran contra `Σ (unitPrice − discount) × qty`.
+ */
 @Component({
   selector: 'app-return-refund',
-  imports: [MoneyPipe, SkeletonList, SmartDatePipe],
+  imports: [MoneyPipe, SkeletonList, SmartDatePipe, RefundMethodPicker],
   styles: `
     @keyframes fade-up {
       from {
@@ -49,120 +56,104 @@ interface RefundFormModel {
     }
   `,
   template: `
-    <div class="flex flex-col h-full">
+    <div class="flex flex-col gap-4 fade-up">
+      <!-- Header estándar: flecha atrás como el resto de las vistas -->
+      <div class="flex items-center gap-3">
+        <button type="button" (click)="goBack()" class="btn-icon">
+          <span class="material-icons text-base">arrow_back</span>
+        </button>
+        <h1 class="text-lg font-black text-text-main">Procesar devolución</h1>
+      </div>
+
       @if (loading()) {
-        <div class="flex-1 flex items-center justify-center p-8">
-          <app-skeleton-list [rows]="3" [columns]="2" />
-        </div>
+        <app-skeleton-list [rows]="4" [columns]="2" />
       } @else if (error()) {
-        <div class="flex-1 flex flex-col items-center justify-center gap-3 p-8">
-          <span class="material-icons text-4xl text-feedback-error-text">error_outline</span>
+        <div
+          class="flex flex-col items-center gap-3 p-8 rounded-xl border border-border bg-bg-surface shadow-sm"
+        >
+          <span class="material-icons text-3xl text-feedback-error-text">error_outline</span>
           <p class="text-sm font-medium text-text-muted max-w-sm text-center">{{ error() }}</p>
-          <button
-            type="button"
-            (click)="goBack()"
-            class="text-xs font-bold text-accent-ui hover:underline"
-          >
-            Volver
-          </button>
+          <button type="button" (click)="goBack()" class="btn btn-primary btn-sm">Volver</button>
         </div>
       } @else if (detail(); as d) {
-        <!-- Header -->
-        <header
-          class="flex items-center justify-between px-4 py-3 border-b border-border bg-bg-surface shrink-0"
-        >
-          <h2 class="text-sm font-bold text-text-main">Procesar devolución</h2>
-          <button
-            type="button"
-            (click)="goBack()"
-            class="btn-icon hover:bg-bg-muted"
-            aria-label="Cerrar"
-          >
-            <span class="material-icons text-base">close</span>
-          </button>
-        </header>
-
-        <!-- Body scrollable -->
-        <div class="flex-1 overflow-y-auto p-4 space-y-4">
-          <!-- Resumen venta -->
-          <div class="bg-bg-muted/30 rounded-xl border border-border px-4 py-3">
-            <p class="text-[11px] font-bold uppercase tracking-wider text-text-soft mb-2">
-              Venta seleccionada
-            </p>
-            <div class="grid grid-cols-3 gap-3">
-              <div>
-                <p class="field-label">Fecha</p>
-                <p class="field-value text-xs font-medium">{{ d.createdAt | smartDate }}</p>
+        <!-- Desktop: la venta a la izquierda, el pago a la derecha (sticky).
+             Mobile: una sola columna con el pago pegado abajo. -->
+        <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 items-start">
+          <div class="flex flex-col gap-4 min-w-0">
+            <!-- Resumen: el Nº de la venta siempre visible, como en el detalle -->
+            <div class="bg-bg-surface rounded-xl border border-border-strong px-4 py-3">
+              <p class="text-sm font-semibold text-text-main mb-3">Venta #{{ d.number }}</p>
+              <div class="grid grid-cols-3 gap-3">
+                <div>
+                  <p class="field-label">Fecha</p>
+                  <p class="text-xs font-medium">{{ d.createdAt | smartDate }}</p>
+                </div>
+                <div class="min-w-0">
+                  <p class="field-label">Vendedor</p>
+                  <p class="text-xs font-medium truncate" [title]="d.soldByName">
+                    {{ d.soldByName }}
+                  </p>
+                </div>
+                <div>
+                  <p class="field-label">Total</p>
+                  <p class="text-xs font-bold font-mono">{{ d.totalAmount | money: 'symbol' }}</p>
+                </div>
               </div>
-              <div>
-                <p class="field-label">Vendedor</p>
-                <p class="field-value text-xs font-medium truncate">{{ d.soldByName }}</p>
-              </div>
-              <div>
-                <p class="field-label">Total</p>
-                <p class="field-value text-xs font-bold font-mono">
-                  {{ d.totalAmount | money: 'symbol' }}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Toggle devolución completa -->
-          <label
-            class="flex items-center gap-3 bg-bg-surface rounded-xl border border-border px-4 py-3 cursor-pointer hover:bg-bg-muted/40 transition-colors select-none"
-          >
-            <input
-              type="checkbox"
-              [checked]="refundModel().isFullReturn"
-              (change)="onToggleFullReturn($event)"
-              class="h-5 w-5 rounded border-border text-accent-ui focus:ring-accent-ui"
-            />
-            <div class="flex flex-col">
-              <span class="text-sm font-bold text-text-main">Devolución completa</span>
-              <span class="text-xs text-text-soft"
-                >Todas las unidades ({{ maxRefundUnits() }} unid. ·
-                {{ maxRefundAmount() | money: 'symbol' }})</span
+              <!-- Cómo pagó el cliente: contexto para decidir la devolución. -->
+              <div
+                class="mt-3 pt-3 border-t border-border flex flex-wrap items-center gap-x-4 gap-y-2"
               >
+                <p class="text-[11px] font-bold uppercase tracking-wider text-text-soft">
+                  Pagó con
+                </p>
+                @for (p of d.payments; track $index) {
+                  <span class="flex items-center gap-1.5">
+                    <span class="shrink-0" [class]="paymentMethodChipClass(p.method)">{{
+                      paymentMethodLabel(p.method)
+                    }}</span>
+                    <span class="text-sm font-bold font-mono text-text-main">{{
+                      p.amount | money: 'symbol'
+                    }}</span>
+                  </span>
+                }
+              </div>
             </div>
-          </label>
 
-          <!-- Ítems -->
-          <div class="bg-bg-surface rounded-xl border border-border shadow-xs overflow-hidden">
-            <div
-              class="hidden lg:grid grid-cols-[7rem_6rem_1fr_7rem] pl-7 pr-3 py-2 bg-bg-muted border-b border-border text-[10px] font-bold uppercase tracking-wider text-text-soft gap-2"
-            >
-              <span class="text-center">Vendido / Disp.</span>
-              <span class="text-right">Precio</span>
-              <span class="text-center">A devolver</span>
-              <span class="text-right">Subtotal</span>
-            </div>
-            <div
-              class="lg:hidden px-4 py-3 bg-bg-muted border-b border-border flex items-center justify-between"
-            >
-              <p class="text-[11px] font-bold uppercase tracking-wider text-text-soft">Artículos</p>
-              <span class="text-xs text-text-soft">{{ d.items.length }} art.</span>
-            </div>
-            <ul class="flex flex-col divide-y divide-border">
-              @for (line of refundModel().lines; track line.saleItemId; let i = $index) {
-                <!-- Mobile -->
-                <li
-                  class="lg:hidden px-4 py-3.5 flex flex-col gap-3"
-                  [class.bg-bg-muted/30]="refundModel().isFullReturn"
-                >
-                  <label class="flex items-start gap-3 cursor-pointer">
+            <!-- Ítems que vuelven -->
+            <div class="bg-bg-surface rounded-xl border border-border overflow-hidden">
+              <div
+                class="px-4 py-3 bg-bg-muted border-b border-border flex items-center justify-between"
+              >
+                <div class="flex items-center gap-2">
+                  <p class="text-[11px] font-bold uppercase tracking-wider text-text-soft">
+                    Artículos que vuelven
+                  </p>
+                  <span class="text-xs text-text-soft">{{ d.items.length }}</span>
+                </div>
+                <button type="button" (click)="toggleAll()" class="btn btn-secondary btn-sm">
+                  {{ allSelected() ? 'Limpiar' : 'Devolver todo' }}
+                </button>
+              </div>
+
+              <ul class="flex flex-col divide-y divide-border">
+                @for (line of lines(); track line.saleItemId; let i = $index) {
+                  <li
+                    class="flex items-start gap-3 px-4 py-3"
+                    [class.opacity-50]="line.returnableQuantity === 0"
+                  >
                     <input
                       type="checkbox"
                       [checked]="line.selected"
-                      [disabled]="refundModel().isFullReturn"
-                      (change)="onToggleLine(i, $event)"
-                      class="mt-1 h-5 w-5 rounded border-border text-accent-ui focus:ring-accent-ui shrink-0 disabled:opacity-50"
+                      [disabled]="line.returnableQuantity === 0"
+                      (change)="toggleLine(i, $event)"
+                      class="mt-1 h-5 w-5 rounded border-border text-accent-ui focus:ring-accent-ui shrink-0 disabled:opacity-40"
                     />
                     <div class="flex-1 min-w-0">
-                      <p class="text-[15px] font-bold text-text-main break-words leading-snug">
+                      <p class="text-sm font-bold text-text-main break-words leading-snug">
                         {{ line.productDisplayName }}
                       </p>
                       @if (line.productSku) {
-                        <p class="font-mono text-xs font-bold tracking-wide text-accent-ui">
+                        <p class="font-mono text-xs font-bold text-accent-ui break-all">
                           {{ line.productSku }}
                         </p>
                       } @else {
@@ -171,196 +162,105 @@ interface RefundFormModel {
                           >Venta libre</span
                         >
                       }
-                    </div>
-                  </label>
-                  <div class="flex flex-wrap items-center gap-2 pl-8">
-                    <span
-                      class="px-2.5 py-1 rounded-md bg-bg-muted border border-border text-xs font-bold font-mono text-text-main"
-                      >{{ line.soldQuantity }}/{{ line.returnableQuantity }} unid.</span
-                    >
-                    <span class="text-xs text-text-soft">vendido / disp.</span>
-                    <span
-                      class="px-2 py-1 rounded-md bg-bg-surface border border-border text-xs font-medium text-text-muted"
-                      >{{ line.unitPrice | money: 'symbol' }} c/u</span
-                    >
-                  </div>
-                  <div class="flex items-center justify-between pl-8">
-                    <div class="flex items-center gap-2">
-                      <button
-                        type="button"
-                        (click)="dec(i)"
-                        [disabled]="
-                          !line.selected || refundModel().isFullReturn || line.returnQuantity <= 1
-                        "
-                        class="h-9 w-9 rounded-lg border border-border bg-bg-surface flex items-center justify-center text-text-main disabled:opacity-30 hover:bg-bg-muted transition-colors"
-                      >
-                        <span class="material-icons text-base">remove</span>
-                      </button>
-                      <input
-                        type="number"
-                        [value]="line.returnQuantity"
-                        [disabled]="!line.selected || refundModel().isFullReturn"
-                        (input)="onQtyInput(i, $event)"
-                        class="w-16 px-2 py-2 text-center text-sm font-mono font-bold border rounded-lg bg-bg-surface text-text-main outline-none focus:border-accent-ui focus:ring-1 focus:ring-accent-ui disabled:bg-bg-muted disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                      />
-                      <button
-                        type="button"
-                        (click)="inc(i)"
-                        [disabled]="
-                          !line.selected ||
-                          refundModel().isFullReturn ||
-                          line.returnQuantity >= line.returnableQuantity
-                        "
-                        class="h-9 w-9 rounded-lg border border-border bg-bg-surface flex items-center justify-center text-text-main disabled:opacity-30 hover:bg-bg-muted transition-colors"
-                      >
-                        <span class="material-icons text-base">add</span>
-                      </button>
-                    </div>
-                    <span
-                      class="text-sm font-mono font-black min-w-[5.5rem] text-right"
-                      [class.text-accent-ui]="line.returnQuantity > 0"
-                      [class.text-text-soft]="!line.selected"
-                      >{{ line.returnQuantity * line.unitPrice | money: 'symbol' }}</span
-                    >
-                  </div>
-                </li>
-
-                <!-- Desktop: 2 filas -->
-                <li
-                  class="hidden lg:flex lg:flex-col gap-2 px-3 py-3"
-                  [class.bg-bg-muted/30]="refundModel().isFullReturn"
-                >
-                  <div class="flex items-start gap-2 min-w-0">
-                    <input
-                      type="checkbox"
-                      [checked]="line.selected"
-                      [disabled]="refundModel().isFullReturn"
-                      (change)="onToggleLine(i, $event)"
-                      class="mt-1 h-5 w-5 rounded border-border text-accent-ui focus:ring-accent-ui shrink-0 disabled:opacity-50"
-                    />
-                    <div class="flex-1 min-w-0 flex flex-col">
-                      @if (line.productSku) {
+                      <div class="mt-1 flex flex-wrap items-center gap-1.5">
                         <span
-                          class="font-mono text-xs font-bold tracking-wide text-accent-ui break-all"
-                          >{{ line.productSku }}</span
+                          class="px-2 py-0.5 rounded-md bg-bg-muted border border-border text-xs font-mono text-text-muted"
+                          >{{ line.soldQuantity }}/{{ line.returnableQuantity }} unid.</span
                         >
-                      } @else {
                         <span
-                          class="inline-flex w-fit items-center px-2 py-0.5 rounded-md bg-feedback-warning/15 border border-feedback-warning/30 text-[10px] font-bold text-feedback-warning-text"
-                          >Venta libre</span
+                          class="px-2 py-0.5 rounded-md bg-bg-surface border border-border text-xs font-medium text-text-muted"
+                          >{{ line.unitPrice | money: 'symbol' }} c/u</span
                         >
-                      }
-                      <p
-                        class="text-sm font-bold text-text-main break-words leading-snug"
-                        [title]="line.productDisplayName"
-                      >
-                        {{ line.productDisplayName }}
-                      </p>
+                        @if (line.discountAmount > 0) {
+                          <span
+                            class="px-2 py-0.5 rounded-md bg-feedback-error-bg/10 border border-feedback-error/30 text-xs font-bold text-feedback-error-text"
+                            >Desc. {{ line.discountAmount | money: 'symbol' }}</span
+                          >
+                        }
+                      </div>
                     </div>
-                  </div>
-                  <div class="grid grid-cols-[7rem_6rem_1fr_7rem] items-center gap-2 pl-7">
-                    <span
-                      class="text-center px-2 py-1 rounded-md bg-bg-muted border border-border text-xs font-bold font-mono text-text-main whitespace-nowrap"
-                      >{{ line.soldQuantity }}/{{ line.returnableQuantity }} unid.</span
-                    >
-                    <span
-                      class="text-right text-xs font-mono font-medium text-text-muted whitespace-nowrap"
-                      >{{ line.unitPrice | money: 'symbol' }}</span
-                    >
-                    <div class="flex items-center justify-center gap-1">
-                      <button
-                        type="button"
-                        (click)="dec(i)"
-                        [disabled]="
-                          !line.selected || refundModel().isFullReturn || line.returnQuantity <= 1
-                        "
-                        class="h-7 w-7 rounded-lg border border-border bg-bg-surface flex items-center justify-center text-text-main disabled:opacity-30 hover:bg-bg-muted transition-colors shrink-0"
+
+                    <div class="flex flex-col items-end gap-2 shrink-0">
+                      <div class="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          (click)="dec(i)"
+                          [disabled]="!line.selected || line.returnQuantity <= 1"
+                          class="h-9 w-9 rounded-lg border border-border bg-bg-surface flex items-center justify-center text-text-main disabled:opacity-30 hover:bg-bg-muted transition-colors"
+                        >
+                          <span class="material-icons text-base">remove</span>
+                        </button>
+                        <input
+                          type="number"
+                          [value]="line.returnQuantity"
+                          [disabled]="!line.selected"
+                          (input)="onQtyInput(i, $event)"
+                          class="w-14 px-1 py-2 text-center text-sm font-mono font-bold border rounded-lg bg-bg-surface text-text-main outline-none focus:border-accent-ui focus:ring-1 focus:ring-accent-ui disabled:bg-bg-muted disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        />
+                        <button
+                          type="button"
+                          (click)="inc(i)"
+                          [disabled]="
+                            !line.selected || line.returnQuantity >= line.returnableQuantity
+                          "
+                          class="h-9 w-9 rounded-lg border border-border bg-bg-surface flex items-center justify-center text-text-main disabled:opacity-30 hover:bg-bg-muted transition-colors"
+                        >
+                          <span class="material-icons text-base">add</span>
+                        </button>
+                      </div>
+                      <span
+                        class="text-sm font-mono font-bold min-w-[5.5rem] text-right"
+                        [class.text-accent-ui]="line.selected && line.returnQuantity > 0"
+                        [class.text-text-soft]="!line.selected"
+                        >{{ lineTotal(line) | money: 'symbol' }}</span
                       >
-                        <span class="material-icons text-sm">remove</span>
-                      </button>
-                      <input
-                        type="number"
-                        [value]="line.returnQuantity"
-                        [disabled]="!line.selected || refundModel().isFullReturn"
-                        (input)="onQtyInput(i, $event)"
-                        class="w-12 px-1 py-1 text-center text-sm font-mono font-bold border rounded-lg bg-bg-surface text-text-main outline-none focus:border-accent-ui focus:ring-1 focus:ring-accent-ui disabled:bg-bg-muted disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                      />
-                      <button
-                        type="button"
-                        (click)="inc(i)"
-                        [disabled]="
-                          !line.selected ||
-                          refundModel().isFullReturn ||
-                          line.returnQuantity >= line.returnableQuantity
-                        "
-                        class="h-7 w-7 rounded-lg border border-border bg-bg-surface flex items-center justify-center text-text-main disabled:opacity-30 hover:bg-bg-muted transition-colors shrink-0"
-                      >
-                        <span class="material-icons text-sm">add</span>
-                      </button>
                     </div>
-                    <span
-                      class="text-right text-sm font-mono font-bold whitespace-nowrap"
-                      [class.text-accent-ui]="line.returnQuantity > 0"
-                      >{{ line.returnQuantity * line.unitPrice | money: 'symbol' }}</span
-                    >
-                  </div>
-                </li>
-              }
-            </ul>
-          </div>
-
-          <div
-            class="rounded-xl border border-feedback-warning/40 bg-feedback-warning/10 px-4 py-3 text-xs text-feedback-warning-text"
-          >
-            El dinero se devuelve mediante <span class="font-bold">{{ refundMethodLabel() }}</span
-            >. Verificá el monto antes de confirmar.
-          </div>
-        </div>
-
-        <!-- Footer fijo -->
-        <footer class="shrink-0 border-t border-border bg-bg-surface p-4 space-y-3">
-          <div class="flex items-start justify-between gap-3">
-            <div class="flex flex-col gap-1">
-              <span class="text-[11px] font-bold uppercase tracking-wider text-text-soft"
-                >A devolver ({{ refundMethodLabel() }})</span
-              >
-              <span
-                class="text-2xl font-black font-mono"
-                [class.text-accent-ui]="canProcess()"
-                [class.text-text-soft]="!canProcess()"
-                >{{ totalRefund() | money: 'symbol' }}</span
-              >
-              <span class="text-xs text-text-soft"
-                >{{ activeLinesCount() }} art. · {{ totalUnits() }} unid.</span
-              >
+                  </li>
+                }
+              </ul>
             </div>
-            <span
-              class="px-2.5 py-1 rounded-full text-xs font-bold shrink-0"
-              [class]="
-                refundModel().isFullReturn
-                  ? 'bg-accent-ui text-white'
-                  : 'bg-bg-surface border border-border text-text-muted'
-              "
-            >
-              {{ refundModel().isFullReturn ? 'Completo' : 'Parcial' }}
-            </span>
           </div>
-          @if (!canProcess()) {
-            <p class="text-xs text-feedback-warning-text">Seleccioná al menos 1 unidad</p>
-          }
-          <div class="flex gap-3">
-            <button
-              type="button"
-              (click)="goBack()"
-              class="flex-1 py-3 rounded-xl text-sm font-semibold border border-border bg-bg-surface text-text-muted hover:bg-bg-muted transition-colors"
-            >
-              Cancelar
-            </button>
+
+          <!-- Pago: última sección del flujo en mobile (ítems → pago, sin
+              sticky: la lista típica es corta); columna derecha sticky en
+              desktop, donde la lista sí puede ser larga. -->
+          <div
+            class="lg:sticky lg:top-6 rounded-xl border border-border-strong bg-bg-surface shadow-xs px-4 py-3 flex flex-col gap-3"
+          >
+            <p class="text-[11px] font-bold uppercase tracking-wider text-text-soft">
+              Venta #{{ d.number }}
+            </p>
+            <app-refund-method-picker
+              [total]="totalRefund()"
+              [suggested]="d.payments"
+              [disabled]="totalUnits() === 0"
+              (payments)="payments.set($event)"
+              (valid)="paymentsValid.set($event)"
+            />
+            <div class="flex items-end justify-between gap-3">
+              <div class="flex flex-col gap-0.5">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-text-soft"
+                  >A devolver</span
+                >
+                <span
+                  class="text-2xl font-black font-mono"
+                  [class.text-accent-ui]="canProcess()"
+                  [class.text-text-soft]="!canProcess()"
+                  >{{ totalRefund() | money: 'symbol' }}</span
+                >
+                <span class="text-xs text-text-soft"
+                  >{{ activeLinesCount() }} art. · {{ totalUnits() }} unid.</span
+                >
+              </div>
+            </div>
+            @if (!canProcess()) {
+              <p class="text-xs font-bold text-feedback-warning-text">{{ processHint() }}</p>
+            }
             <button
               type="button"
               (click)="processReturn()"
-              [disabled]="!canProcess() || processing()"
-              class="flex-1 py-3 rounded-xl text-sm font-bold bg-btn-primary-bg text-btn-primary-text hover:bg-btn-primary-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              [disabled]="!canProcess()"
+              class="btn-primary w-full justify-center flex items-center gap-2"
             >
               @if (processing()) {
                 <span
@@ -372,7 +272,7 @@ interface RefundFormModel {
               }
             </button>
           </div>
-        </footer>
+        </div>
       }
     </div>
   `,
@@ -383,103 +283,26 @@ export default class ReturnRefund implements OnInit {
   private router = inject(Router);
   private toastService = inject(ToastService);
 
-  saleId = input<GUID | null>(null);
-  closed = output<void>();
-  refunded = output<void>();
-
-  detail = signal<SaleForReturnDto | null>(null);
+  detail = signal<SaleDetailDto | null>(null);
   loading = signal(true);
   error = signal<string | null>(null);
   processing = signal(false);
 
-  /** El backend envía el enum `PaymentMethod` heredado de la venta original;
-   *  el label sale del diccionario. Texto genérico: aguantará métodos nuevos. */
-  refundMethodLabel = computed(() => {
-    const d = this.detail();
-    return d ? paymentMethodLabel(d.paymentMethod) : '—';
-  });
+  /** Líneas elegidas y validez que emite el picker. */
+  payments = signal<SalePaymentLineDto[]>([]);
+  paymentsValid = signal(true);
 
-  // Signal Forms: el modelo es la única fuente de verdad
-  refundModel = signal<RefundFormModel>({ isFullReturn: false, lines: [] });
+  lines = signal<ReturnLine[]>([]);
 
-  refundForm = form(this.refundModel, (s) => {
-    applyEach(s.lines, (line) => {
-      validate(line.returnQuantity, ({ value, valueOf }) => {
-        if (valueOf(s.isFullReturn) === true) return null;
-        if (!valueOf(line.selected)) return null;
-        const v = value() ?? 0;
-        const max = valueOf(line.returnableQuantity) ?? 0;
-        if (v <= 0) return { kind: 'min', message: 'Debe ser al menos 1' };
-        if (v > max) return { kind: 'max', message: `Máx. ${max} unid.` };
-        return null;
-      });
-    });
-    validate(s.lines, ({ value, valueOf }) => {
-      if (valueOf(s.isFullReturn) === true) return null;
-      const has = value().some((l) => l.selected && (l.returnQuantity ?? 0) > 0);
-      if (!has) return { kind: 'empty', message: 'Seleccioná al menos 1 artículo' };
-      return null;
-    });
-  });
-
-  // Banner totales
-  totalUnits = computed(() =>
-    this.refundModel().isFullReturn
-      ? this.refundModel().lines.reduce((sum, l) => sum + l.returnableQuantity, 0)
-      : this.refundModel()
-          .lines.filter((l) => l.selected)
-          .reduce((sum, l) => sum + l.returnQuantity, 0),
-  );
-
-  totalRefund = computed(() =>
-    this.refundModel().isFullReturn
-      ? this.refundModel().lines.reduce((sum, l) => sum + l.returnableQuantity * l.unitPrice, 0)
-      : this.refundModel()
-          .lines.filter((l) => l.selected)
-          .reduce((sum, l) => sum + l.returnQuantity * l.unitPrice, 0),
-  );
-
-  activeLinesCount = computed(() =>
-    this.refundModel().isFullReturn
-      ? this.refundModel().lines.filter((l) => l.returnableQuantity > 0).length
-      : this.refundModel().lines.filter((l) => l.selected && l.returnQuantity > 0).length,
-  );
-
-  maxRefundUnits = computed(
-    () => this.detail()?.items.reduce((sum, i) => sum + i.returnableQuantity, 0) ?? 0,
-  );
-  maxRefundAmount = computed(
-    () => this.detail()?.items.reduce((sum, i) => sum + i.returnableQuantity * i.unitPrice, 0) ?? 0,
-  );
-
-  canProcess = computed(() => {
-    if (!this.detail()) return false;
-    if (this.refundModel().isFullReturn) return this.maxRefundUnits() > 0;
-    return (
-      this.totalUnits() > 0 &&
-      this.refundModel().lines.every(
-        (l) => !l.selected || (l.returnQuantity > 0 && l.returnQuantity <= l.returnableQuantity),
-      )
-    );
-  });
-
-  constructor() {
-    effect(() => {
-      const id = this.saleId();
-      if (id) this.loadRefund(id);
-    });
-  }
+  /** El template no puede llamar imports: se exponen tal cual. */
+  readonly paymentMethodLabel = paymentMethodLabel;
+  readonly paymentMethodChipClass = paymentMethodChipClass;
 
   ngOnInit(): void {
-    const inputId = this.saleId();
-    const routeId = this.route.snapshot.paramMap.get('saleId') ?? '';
-    const saleId = inputId || routeId;
+    const saleId = this.route.snapshot.paramMap.get('saleId');
     if (!saleId) {
-      // si es modal sin route param, espera al input
-      if (!inputId) {
-        this.error.set('Falta el ID de la venta.');
-        this.loading.set(false);
-      }
+      this.error.set('Falta el ID de la venta.');
+      this.loading.set(false);
       return;
     }
     this.loadRefund(saleId);
@@ -488,22 +311,31 @@ export default class ReturnRefund implements OnInit {
   private loadRefund(saleId: GUID): void {
     this.loading.set(true);
     this.error.set(null);
-    this.saleService.getSaleForReturn(saleId).subscribe({
+    this.saleService.getSaleDetail(saleId).subscribe({
       next: (d) => {
+        // Elegibilidad: el detalle ya la expone (`canReturn`); sin ella no hay flujo.
+        if (!d.canReturn) {
+          this.detail.set(null);
+          this.error.set('Esta venta ya fue devuelta o no es elegible para devolución.');
+          this.loading.set(false);
+          return;
+        }
         this.detail.set(d);
-        this.refundModel.set({
-          isFullReturn: false,
-          lines: d.items.map((i: ReturnableItemDto) => ({
-            saleItemId: i.saleItemId,
+        this.lines.set(
+          d.items.map((i) => ({
+            saleItemId: i.id,
             productSku: i.productSku,
             productDisplayName: i.productDisplayName,
             soldQuantity: i.quantity,
-            returnableQuantity: i.returnableQuantity,
+            // Derivado (mismo cálculo que el chip "N/M unid." del detalle):
+            // lo devolvible por línea es lo que aún no se devolvió.
+            returnableQuantity: i.quantity - (i.returnedQuantity ?? 0),
             unitPrice: i.unitPrice,
+            discountAmount: i.discountAmount,
             selected: false,
             returnQuantity: 0,
           })),
-        });
+        );
         this.loading.set(false);
       },
       error: (err) => {
@@ -520,28 +352,82 @@ export default class ReturnRefund implements OnInit {
     const backendMsg =
       err?.error?.detail ||
       err?.error?.title ||
-      (err?.status === 404 ? 'No se encontró una venta elegible.' : null);
-    return backendMsg ?? 'Esta venta ya fue devuelta o no es elegible para devolución.';
+      (err?.status === 404 ? 'No se encontró la venta.' : null);
+    return backendMsg ?? 'No se pudo cargar la venta. Intentá de nuevo.';
   }
 
-  // ── Acciones del formulario (el modelo se actualiza acá, sin [formField]) ──
+  // ── Selección de ítems ──────────────────────────────────────────────────
 
-  onToggleFullReturn(event: Event): void {
-    const checked = (event.target as HTMLInputElement).checked;
-    this.refundModel.update((m) => ({
-      isFullReturn: checked,
-      lines: m.lines.map((l) =>
-        checked
-          ? { ...l, selected: true, returnQuantity: l.returnableQuantity }
-          : { ...l, selected: false, returnQuantity: 0 },
+  /** Subtotal a devolver por línea: el descuento por unidad se descuenta. */
+  lineTotal(line: ReturnLine): number {
+    if (!line.selected) return 0;
+    return (line.unitPrice - line.discountAmount) * line.returnQuantity;
+  }
+
+  totalUnits = computed(() =>
+    this.lines()
+      .filter((l) => l.selected)
+      .reduce((sum, l) => sum + l.returnQuantity, 0),
+  );
+
+  totalRefund = computed(() =>
+    this.lines()
+      .filter((l) => l.selected)
+      .reduce((sum, l) => sum + this.lineTotal(l), 0),
+  );
+
+  activeLinesCount = computed(() => this.lines().filter((l) => l.selected).length);
+
+  /** Todas las líneas devolvibles al máximo (para el atajo "Vuelve todo"). */
+  allSelected = computed(
+    () =>
+      this.lines().length > 0 &&
+      this.lines().every(
+        (l) =>
+          l.returnableQuantity === 0 || (l.selected && l.returnQuantity === l.returnableQuantity),
       ),
-    }));
+  );
+
+  linesValid = computed(() =>
+    this.lines().every(
+      (l) => !l.selected || (l.returnQuantity > 0 && l.returnQuantity <= l.returnableQuantity),
+    ),
+  );
+
+  canProcess = computed(
+    () =>
+      !!this.detail() &&
+      !this.processing() &&
+      this.totalUnits() > 0 &&
+      this.linesValid() &&
+      this.paymentsValid(),
+  );
+
+  processHint = computed(() => {
+    if (this.totalUnits() === 0) return 'Seleccioná al menos 1 unidad';
+    if (!this.paymentsValid()) return 'Los pagos separados deben sumar el total';
+    return '';
+  });
+
+  toggleAll(): void {
+    const clearing = this.allSelected();
+    this.lines.update((ls) =>
+      ls.map((l) =>
+        clearing
+          ? { ...l, selected: false, returnQuantity: 0 }
+          : {
+              ...l,
+              selected: l.returnableQuantity > 0,
+              returnQuantity: l.returnableQuantity > 0 ? l.returnableQuantity : 0,
+            },
+      ),
+    );
   }
 
-  onToggleLine(index: number, event: Event): void {
+  toggleLine(index: number, event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
-    this.refundModel.update((m) => {
-      const lines = m.lines.map((l, i) =>
+    this.lines.update((ls) =>
+      ls.map((l, i) =>
         i === index
           ? {
               ...l,
@@ -549,79 +435,63 @@ export default class ReturnRefund implements OnInit {
               returnQuantity: checked ? Math.min(1, l.returnableQuantity) || 0 : 0,
             }
           : l,
-      );
-      return { ...m, lines };
-    });
+      ),
+    );
   }
 
   onQtyInput(index: number, event: Event): void {
     const raw = parseInt((event.target as HTMLInputElement).value, 10);
-    const value = isNaN(raw)
-      ? 0
-      : Math.max(0, Math.min(raw, this.refundModel().lines[index].returnableQuantity));
-    this.refundModel.update((m) => {
-      const lines = m.lines.map((l, i) =>
-        i === index ? { ...l, returnQuantity: value, selected: value > 0 } : l,
-      );
-      return { ...m, lines };
-    });
+    const max = this.lines()[index]?.returnableQuantity ?? 0;
+    const value = isNaN(raw) ? 0 : Math.max(0, Math.min(raw, max));
+    this.lines.update((ls) =>
+      ls.map((l, i) => (i === index ? { ...l, returnQuantity: value, selected: value > 0 } : l)),
+    );
   }
 
   inc(index: number): void {
-    const m = this.refundModel();
-    if (m.isFullReturn || !m.lines[index]?.selected) return;
-    this.refundModel.update((curr) => {
-      const lines = curr.lines.map((l, i) =>
+    this.lines.update((ls) =>
+      ls.map((l, i) =>
         i === index
           ? { ...l, returnQuantity: Math.min(l.returnableQuantity, l.returnQuantity + 1) }
           : l,
-      );
-      return { ...curr, lines };
-    });
+      ),
+    );
   }
 
   dec(index: number): void {
-    const m = this.refundModel();
-    if (m.isFullReturn || !m.lines[index]?.selected) return;
-    this.refundModel.update((curr) => {
-      const lines = curr.lines.map((l, i) =>
+    this.lines.update((ls) =>
+      ls.map((l, i) =>
         i === index ? { ...l, returnQuantity: Math.max(1, l.returnQuantity - 1) } : l,
-      );
-      return { ...curr, lines };
-    });
+      ),
+    );
   }
 
+  // ── Confirmación ────────────────────────────────────────────────────────
+
   processReturn(): void {
-    if (!this.canProcess()) return;
     const d = this.detail();
-    if (!d || this.processing()) return;
+    if (!d || !this.canProcess()) return;
 
-    const m = this.refundModel();
-    const items: CreateReturnItemDto[] = m.isFullReturn
-      ? m.lines
-          .filter((l) => l.returnableQuantity > 0)
-          .map((l) => ({ originalSaleItemId: l.saleItemId, quantity: l.returnableQuantity }))
-      : m.lines
-          .filter((l) => l.selected && l.returnQuantity > 0)
-          .map((l) => ({ originalSaleItemId: l.saleItemId, quantity: l.returnQuantity }));
-
+    const items: CreateReturnItemDto[] = this.lines()
+      .filter((l) => l.selected && l.returnQuantity > 0)
+      .map((l) => ({ originalSaleItemId: l.saleItemId, quantity: l.returnQuantity }));
     if (!items.length) return;
 
+    const dto: CreateReturnDto = { items, payments: this.payments() };
+
     this.processing.set(true);
-    this.saleService.createReturn(d.id, { items }).subscribe({
+    this.saleService.createReturn(d.id, dto).subscribe({
       next: (res: CreateReturnResponse) => {
         this.processing.set(false);
         this.toastService.success(
           `Devolución ${res.returnNumber} procesada por Bs ${res.totalRefundAmount.toFixed(2)}`,
         );
-        if (this.saleId()) {
-          this.refunded.emit();
-          this.closed.emit();
-        } else {
-          this.router.navigate(['/sales/pos/returns'], {
-            queryParams: { sku: this.route.snapshot.queryParamMap.get('sku') ?? undefined },
-          });
-        }
+        // Vuelve al detalle que ya quedó atrás en el historial: pop de esta
+        // página sin duplicar la entrada del detalle (se recrea, recarga solo
+        // y muestra el banner de la devolución nueva). Deep link sin historia
+        // → al detalle con replaceUrl.
+        if (window.history.length > 1) window.history.back();
+        else this.router.navigate(['/sales/sale', d.id], { replaceUrl: true });
       },
       error: (err) => {
         this.processing.set(false);
@@ -635,11 +505,15 @@ export default class ReturnRefund implements OnInit {
   }
 
   goBack(): void {
-    if (this.saleId()) {
-      this.closed.emit();
+    // Patrón estándar del app (como el goBack del detalle): atrás real si hay
+    // historia — la página anterior es el detalle de esta venta.
+    if (window.history.length > 1) {
+      window.history.back();
       return;
     }
-    if (window.history.length > 1) window.history.back();
-    else this.router.navigate(['/sales/pos/returns']);
+    // Deep link / recarga sin historia: al detalle si lo tenemos, si no al listado.
+    const id = this.detail()?.id;
+    if (id) this.router.navigate(['/sales/sale', id], { replaceUrl: true });
+    else this.router.navigate(['/sales/sales']);
   }
 }

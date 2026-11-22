@@ -1,4 +1,4 @@
-import { PaymentMethod } from './sale-detail-dto';
+import { PaymentMethod } from '@features/sales/models/payment-method';
 
 /** Respuesta de `GET /api/Sale/stats`. Espejo de `SalesStatsDto` (backend). */
 export interface SalesStatsDto {

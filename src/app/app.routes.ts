@@ -179,6 +179,13 @@ export const routes: Routes = [
             pathMatch: 'full',
           },
           {
+            path: 'pos/returns/:saleId',
+            title: 'Procesar Devolución',
+            canActivate: [featureGuard],
+            data: { module: 'sales', feature: 'pos', permission: 'create' },
+            loadComponent: () => import('@features/sales/pages/returns-page/return-refund'),
+          },
+          {
             path: 'sales',
             title: 'Ventas',
             canActivate: [featureGuard],

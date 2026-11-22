@@ -1,19 +1,17 @@
+import { PaymentMethod } from '@features/sales/models/payment-method';
+
 export enum SaleType {
   Sale = 0,
   Return = 1,
 }
 
-export enum PaymentMethod {
-  Cash = 0,
-  QrCode = 1,
-}
-
-export function paymentMethodLabel(v: PaymentMethod | string | number): string {
-  const n = typeof v === 'string' ? (v === 'Cash' ? 0 : v === 'QrCode' ? 1 : NaN) : (v as number);
-  return n === PaymentMethod.QrCode ? 'QR' : 'Efectivo';
-}
-export function isCashPayment(v: PaymentMethod | string | number): boolean {
-  return paymentMethodLabel(v) === 'Efectivo';
+/**
+ * Línea de pago (tender): un método por línea. En responses los montos de las
+ * devoluciones vienen negativos — el signo lo decide el backend, la UI no lo toca.
+ */
+export interface SalePaymentLineDto {
+  method: PaymentMethod;
+  amount: number;
 }
 
 export enum SaleReturnStatus {
@@ -99,7 +97,8 @@ export interface SaleDetailDto {
   type: SaleType;
   totalItems: number;
   documentType: DocumentType;
-  paymentMethod: PaymentMethod;
+  /** Una línea por método (split payments). En devoluciones los montos son negativos. */
+  payments: SalePaymentLineDto[];
   transactionCode: string | null;
   totalAmount: number;
   invoiceNumber: number | null;

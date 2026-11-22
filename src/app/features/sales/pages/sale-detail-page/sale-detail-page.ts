@@ -1,15 +1,9 @@
-import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SaleService } from '@features/sales/services/sale-service';
 import { PermissionService } from '@features/auth/services/permmision-service';
-import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
-import ReturnRefund from '@features/sales/pages/returns-page/return-refund';
-import {
-  DocumentType,
-  PaymentMethod,
-  SaleDetailDto,
-  SaleType,
-} from '@features/sales/dtos/sale-detail-dto';
+import { DocumentType, SaleDetailDto, SaleType } from '@features/sales/dtos/sale-detail-dto';
+import { paymentMethodChipClass, paymentMethodLabel } from '@features/sales/models/payment-method';
 import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
 import { MoneyPipe } from '@shared/pipes/money-pipe';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
@@ -17,7 +11,7 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 @Component({
   selector: 'app-sale-detail-page',
   standalone: true,
-  imports: [MoneyPipe, RouterLink, SkeletonList, SmartDatePipe, ReturnRefund],
+  imports: [MoneyPipe, RouterLink, SkeletonList, SmartDatePipe],
   styles: `
     @keyframes fade-up {
       from {
@@ -156,22 +150,6 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                 </p>
               </div>
               <div>
-                <p class="table-header">Método de pago</p>
-                <p class="text-sm font-bold">
-                  @if (s.paymentMethod === PaymentMethod.Cash) {
-                    <span
-                      class="text-xs font-medium text-text-muted bg-bg-muted px-2 py-0.5 rounded-md"
-                      >Efectivo</span
-                    >
-                  } @else {
-                    <span
-                      class="text-xs font-medium text-feedback-info-text bg-feedback-info-bg/10 px-2 py-0.5 rounded-md"
-                      >QR</span
-                    >
-                  }
-                </p>
-              </div>
-              <div>
                 <p class="table-header">Tipo de documento</p>
                 <p class="text-sm font-bold">
                   @if (s.documentType === DocumentType.Invoice) {
@@ -208,6 +186,28 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                 </p>
               </div>
             </div>
+
+            <!-- Cobro: una línea por método; sección propia para que un split
+                 crezca horizontal sin romper el grid del resumen. -->
+            <div
+              class="mt-3 pt-3 border-t border-border flex flex-wrap items-center gap-x-4 gap-y-2"
+            >
+              <p class="text-[11px] font-bold uppercase tracking-wider text-text-soft">
+                {{ isReturn() ? 'Devolución' : 'Cobro' }}
+              </p>
+              @for (p of s.payments; track $index) {
+                <span class="flex items-center gap-1.5">
+                  <span class="shrink-0" [class]="paymentMethodChipClass(p.method)">{{
+                    paymentMethodLabel(p.method)
+                  }}</span>
+                  <span class="text-sm font-black font-mono text-text-main">{{
+                    p.amount | money: 'symbol'
+                  }}</span>
+                </span>
+              } @empty {
+                <span class="text-sm font-bold text-text-soft">—</span>
+              }
+            </div>
             @if (s.notes) {
               <p class="text-[13px] text-text-muted leading-snug mt-1 break-words">{{ s.notes }}</p>
             }
@@ -216,91 +216,78 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
           <div
             class="bg-bg-surface rounded-xl border border-border-strong shadow-xs overflow-hidden"
           >
-            <div class="px-6 py-4 flex items-center justify-between">
+            <div class="px-4 lg:px-6 py-3 flex items-center justify-between">
               <p class="text-[11px] font-bold uppercase tracking-wider text-text-soft">Artículos</p>
               <span class="text-xs text-text-soft">{{ s.items.length }} art.</span>
             </div>
 
-            <!-- MOBILE -->
-            <ul class="flex flex-col divide-y divide-border md:hidden">
+            <!-- MOBILE: fila compacta, mismo patrón que el cierre de caja -->
+            <ul class="flex flex-col divide-y divide-border lg:hidden">
               @for (item of s.items; track item.id) {
                 <li
-                  class="flex flex-col gap-2 px-6 py-4"
+                  class="flex items-start gap-2 px-4 py-3"
                   [class.bg-feedback-warning/5]="item.returnedQuantity > 0"
                 >
-                  <div class="flex items-start gap-3">
-                    <div class="flex-1 min-w-0">
-                      <p class="text-[15px] font-bold text-text-main break-words leading-snug">
-                        {{ item.productDisplayName }}
+                  <span
+                    class="shrink-0 w-7 text-right font-mono font-bold text-xs text-text-muted mt-0.5"
+                    >×{{ item.quantity }}</span
+                  >
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold text-text-main break-words leading-snug">
+                      {{ item.productDisplayName }}
+                    </p>
+                    @if (item.productVariantId != null) {
+                      <p class="font-mono text-xs font-bold text-accent-ui break-all">
+                        {{ item.productSku }}
                       </p>
-                      @if (item.productVariantId != null) {
-                        <p class="font-mono text-xs font-bold tracking-wide text-accent-ui">
-                          {{ item.productSku }}
-                        </p>
-                      } @else {
-                        <span
-                          class="inline-flex items-center px-2 py-0.5 rounded-md bg-feedback-warning/15 border border-feedback-warning/30 text-[10px] font-bold text-feedback-warning-text"
-                          >Venta libre</span
-                        >
-                      }
-                    </div>
-                    <div class="shrink-0 text-right">
-                      <p class="text-sm font-semibold tabular-nums text-text-main">
-                        {{ item.quantity
-                        }}<span class="text-xs font-normal text-text-soft"> uds</span>
-                      </p>
-                      <p class="text-xs font-mono text-text-soft">
-                        {{ item.unitPrice | money: 'symbol' }} c/u
-                      </p>
-                    </div>
-                  </div>
-                  <div class="flex flex-wrap items-center gap-2">
-                    <span
-                      class="px-2 py-0.5 rounded-md bg-bg-muted border border-border text-xs font-mono font-medium text-text-muted"
-                    >
-                      {{ netQuantity(item) }}/{{ item.quantity }} unid.
-                    </span>
-                    @if (item.returnedQuantity > 0) {
+                    } @else {
                       <span
-                        class="px-2 py-0.5 rounded-md bg-feedback-warning/15 border border-feedback-warning/30 text-xs font-bold text-feedback-warning-text"
-                      >
-                        {{ item.returnedQuantity }} devuelto
-                      </span>
-                    }
-                    @if (canMargin()) {
-                      <span class="text-xs font-mono text-text-soft"
-                        >Costo {{ item.unitCost | money: 'symbol' }}</span
+                        class="inline-flex items-center px-2 py-0.5 rounded-md bg-feedback-warning/15 border border-feedback-warning/30 text-[10px] font-bold text-feedback-warning-text"
+                        >Venta libre</span
                       >
                     }
-                  </div>
-                  <div class="flex items-center justify-between text-xs font-mono">
-                    @if (canMargin()) {
-                      @if (item.unitCost != null) {
-                        <span class="text-xs font-mono text-feedback-success-text"
-                          >Margen
-                          {{
-                            (item.unitPrice - item.unitCost) * item.quantity | money: 'symbol'
-                          }}</span
+                    <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span
+                        class="px-2 py-0.5 rounded-md bg-bg-muted border border-border text-xs font-mono text-text-muted"
+                        >{{ netQuantity(item) }}/{{ item.quantity }} unid.</span
+                      >
+                      @if (item.returnedQuantity > 0) {
+                        <span
+                          class="px-2 py-0.5 rounded-md bg-feedback-warning/15 border border-feedback-warning/30 text-xs font-bold text-feedback-warning-text"
+                          >{{ item.returnedQuantity }} devuelto</span
                         >
-                      } @else {
-                        <span class="text-xs font-mono text-text-soft">Margen —</span>
                       }
-                    }
-                    @if (item.discountAmount) {
-                      <span class="text-feedback-error-text"
-                        >Desc. {{ item.discountAmount | money: 'symbol' }}</span
-                      >
-                    }
-                    <span class="font-bold text-text-main">{{
-                      item.finalPrice | money: 'symbol'
-                    }}</span>
+                      @if (canMargin()) {
+                        @if (item.unitCost != null) {
+                          <span class="text-xs font-mono text-text-soft"
+                            >Costo {{ item.unitCost | money: 'symbol' }}</span
+                          >
+                          <span class="text-xs font-mono text-feedback-success-text"
+                            >Margen
+                            {{
+                              (item.unitPrice - item.unitCost) * item.quantity | money: 'symbol'
+                            }}</span
+                          >
+                        } @else {
+                          <span class="text-xs font-mono text-text-soft">Margen —</span>
+                        }
+                      }
+                      @if (item.discountAmount) {
+                        <span class="text-xs font-mono text-feedback-error-text"
+                          >Desc. {{ item.discountAmount | money: 'symbol' }}</span
+                        >
+                      }
+                    </div>
                   </div>
+                  <span class="shrink-0 text-sm font-mono font-bold text-text-main mt-0.5">{{
+                    item.finalPrice | money: 'symbol'
+                  }}</span>
                 </li>
               }
             </ul>
 
             <!-- DESKTOP -->
-            <div class="hidden md:block overflow-x-auto">
+            <div class="hidden lg:block overflow-x-auto">
               <table class="w-full text-sm">
                 <thead>
                   <tr
@@ -389,7 +376,7 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
             </div>
 
             <div
-              class="px-6 py-3 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-bg-muted/30"
+              class="px-4 lg:px-6 py-3 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-bg-muted/30"
             >
               <span class="text-xs text-text-soft"
                 >{{ s.totalItems }} unid. en total
@@ -410,14 +397,15 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 
           @if (canReimburse()) {
             <div class="flex justify-end">
-              <button
-                type="button"
-                (click)="refundModal.open()"
+              <!-- La devolución es una página propia: el flujo con choice de
+                   método/pago separado no entra en un panel de 600px. -->
+              <a
+                [routerLink]="['/sales/pos/returns', s.id]"
                 class="btn-primary w-full sm:w-auto justify-center flex items-center gap-2"
               >
                 <span class="material-icons !text-[16px]">assignment_return</span>
                 Devolver productos
-              </button>
+              </a>
             </div>
           }
 
@@ -473,37 +461,12 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
         </div>
       }
     </div>
-
-    <!-- Devolución: bottom-sheet en mobile, side-panel en desktop (mismo shell de returns-search) -->
-    @if (isRefundOpen() && sale(); as d) {
-      <div
-        class="fixed inset-0 z-50 flex items-end md:items-stretch md:justify-end"
-        role="dialog"
-        aria-modal="true"
-      >
-        <div
-          class="absolute inset-0 bg-overlay backdrop-blur-[1px]"
-          (click)="refundModal.close()"
-        ></div>
-        <div
-          class="relative z-10 w-full md:w-[600px] md:max-w-[90%] h-[92vh] md:h-screen bg-bg-surface rounded-t-2xl md:rounded-none md:border-l md:border-border md:shadow-[-20px_0_40px_-15px_rgba(0,0,0,0.15)] flex flex-col overflow-hidden"
-        >
-          <app-return-refund
-            class="flex-1 min-h-0 flex flex-col"
-            [saleId]="d.id"
-            (closed)="refundModal.close()"
-            (refunded)="onRefunded()"
-          />
-        </div>
-      </div>
-    }
   `,
 })
-export default class SaleDetailPage implements OnDestroy {
+export default class SaleDetailPage {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private saleService = inject(SaleService);
-  private stack = inject(ModalStackService);
 
   /** Ver columnas de Costo/Margen requiere el permiso extra `sales:margin`. */
   readonly perm = inject(PermissionService);
@@ -512,21 +475,17 @@ export default class SaleDetailPage implements OnDestroy {
   sale = signal<SaleDetailDto | null>(null);
   loading = signal(true);
 
-  /** Devolución: overlay ReturnRefund (bottom-sheet mobile / side-panel desktop). Atrás lo cierra. */
-  isRefundOpen = signal(false);
-  refundModal = useStackedModal(this.stack, this.isRefundOpen);
   canReturn = computed(() => this.sale()?.canReturn ?? false);
 
   /** Devolver exige elegibilidad (`canReturn` del backend) + permiso de crear sobre POS. */
   canReimburse = computed(() => this.canReturn() && this.perm.canCreate('sales', 'pos'));
 
-  ngOnDestroy(): void {
-    this.refundModal.destroy();
-  }
-
   SaleType = SaleType;
   DocumentType = DocumentType;
-  PaymentMethod = PaymentMethod;
+
+  /** El template no puede llamar imports: se exponen tal cual. */
+  readonly paymentMethodLabel = paymentMethodLabel;
+  readonly paymentMethodChipClass = paymentMethodChipClass;
 
   isReturn = computed(
     () => this.sale()?.type === SaleType.Return || (this.sale()?.type as unknown) === 'Return',
@@ -549,12 +508,6 @@ export default class SaleDetailPage implements OnDestroy {
     document
       .getElementById('returns-section')
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-
-  onRefunded(): void {
-    this.refundModal.close();
-    const id = this.sale()?.id;
-    if (id) this.loadDetail(id);
   }
 
   goBack(): void {

@@ -1,7 +1,12 @@
-import { PaymentMethod } from '@features/sales/models/payment-method';
+import { SalePaymentLineDto } from './sale-detail-dto';
 
 export interface CreateSaleDto {
-  paymentMethod: PaymentMethod;
+  /**
+   * Una línea por método (tender). Por ahora el POS envía una sola; el split
+   * de dos métodos se habilita cuando todo el flujo esté verificado.
+   * Montos positivos; la suma debe cerrar contra el total que calcula el backend.
+   */
+  payments: SalePaymentLineDto[];
   invoiceNumber: number | null;
   documentType: number; // 0=Ticket, 1=Invoice, 2=PendingInvoice
   transactionCode: string | null;

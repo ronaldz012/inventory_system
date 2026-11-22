@@ -2,12 +2,8 @@ import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { ClosureSaleItemDto } from '@features/sales/dtos/closure-detail-dto';
-import {
-  DocumentType,
-  PaymentMethod,
-  SaleReturnStatus,
-  SaleType,
-} from '@features/sales/dtos/sale-detail-dto';
+import { PaymentMethod } from '@features/sales/models/payment-method';
+import { DocumentType, SaleReturnStatus, SaleType } from '@features/sales/dtos/sale-detail-dto';
 import { PermissionService } from '@features/auth/services/permmision-service';
 import { CloseSaleItem } from './close-sale-item';
 
@@ -40,7 +36,7 @@ const baseSale = (overrides: Partial<ClosureSaleItemDto> = {}): ClosureSaleItemD
   createdAt: '2026-10-05T04:50:53.831699Z',
   soldByName: 'Admin Admin',
   totalAmount: 350,
-  paymentMethod: PaymentMethod.QrCode,
+  payments: [{ method: PaymentMethod.QrCode, amount: 350 }],
   documentType: DocumentType.Ticket,
   type: SaleType.Sale,
   originalSaleId: null,
@@ -150,7 +146,9 @@ describe('CloseSaleItem', () => {
 
   it('muestra "Efectivo" para pagos en efectivo', async () => {
     const { fixture, host, root } = await setup();
-    host.sale.set(baseSale({ number: 30, paymentMethod: PaymentMethod.Cash }));
+    host.sale.set(
+      baseSale({ number: 30, payments: [{ method: PaymentMethod.Cash, amount: 350 }] }),
+    );
     fixture.detectChanges();
 
     expect(text(root)).toContain('Efectivo');
