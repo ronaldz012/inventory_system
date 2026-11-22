@@ -1,5 +1,5 @@
 type GUID = string;
-import { PaymentMethod } from '@features/sales/dtos/sale-detail-dto';
+import { PaymentMethod } from '@features/sales/models/payment-method';
 
 export interface SkuSearchQuery {
   sku?: string;

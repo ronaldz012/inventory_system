@@ -8,7 +8,7 @@ import {
   SaleForReturnDto,
   ReturnableItemDto,
 } from '@features/sales/dtos/returns-dto';
-import { paymentMethodLabel } from '@features/sales/dtos/sale-detail-dto';
+import { paymentMethodLabel } from '@features/sales/models/payment-method';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
 import { MoneyPipe } from '@shared/pipes/money-pipe';
@@ -312,8 +312,8 @@ interface RefundFormModel {
           <div
             class="rounded-xl border border-feedback-warning/40 bg-feedback-warning/10 px-4 py-3 text-xs text-feedback-warning-text"
           >
-            El dinero se devuelve mediante <span class="font-bold">{{ refundMethodLabel() }}</span
-            >. Verificá el monto antes de confirmar.
+            El dinero se devuelve mediante <span class="font-bold">{{ refundMethodLabel() }}</span>.
+            Verificá el monto antes de confirmar.
           </div>
         </div>
 

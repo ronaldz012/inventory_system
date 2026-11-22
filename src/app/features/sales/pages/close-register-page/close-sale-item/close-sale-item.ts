@@ -1,9 +1,9 @@
 import { Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ClosureSaleItemDto } from '@features/sales/dtos/closure-detail-dto';
+import { isCashPayment } from '@features/sales/models/payment-method';
 import {
   SaleReturnStatus,
-  isCashPayment,
   isReturnType,
   returnStatusValue,
 } from '@features/sales/dtos/sale-detail-dto';

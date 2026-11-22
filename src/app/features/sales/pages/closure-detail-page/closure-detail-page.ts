@@ -2,9 +2,9 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CashRegisterService } from '@features/sales/services/cash-register-service';
 import { ClosureDetailDto, ClosureSaleItemDto } from '@features/sales/dtos/closure-detail-dto';
+import { isCashPayment } from '@features/sales/models/payment-method';
 import {
   SaleReturnStatus,
-  isCashPayment,
   isReturnType,
   returnStatusValue,
 } from '@features/sales/dtos/sale-detail-dto';

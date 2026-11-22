@@ -48,3 +48,4 @@ src/environments/environment.development.ts
 .agents/*
 post.md
 docs/qa-permissions-checklist.md
+plan.md

@@ -1,4 +1,5 @@
-import { DocumentType, PaymentMethod, SaleReturnStatus, SaleType } from './sale-detail-dto';
+import { PaymentMethod } from '@features/sales/models/payment-method';
+import { DocumentType, SaleReturnStatus, SaleType } from './sale-detail-dto';
 
 export interface ClosureSaleItemDetailDto {
   /** null = ítem libre (venta sin producto registrado). */

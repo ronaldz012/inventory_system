@@ -4,12 +4,8 @@ import { SaleService } from '@features/sales/services/sale-service';
 import { PermissionService } from '@features/auth/services/permmision-service';
 import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 import ReturnRefund from '@features/sales/pages/returns-page/return-refund';
-import {
-  DocumentType,
-  PaymentMethod,
-  SaleDetailDto,
-  SaleType,
-} from '@features/sales/dtos/sale-detail-dto';
+import { DocumentType, SaleDetailDto, SaleType } from '@features/sales/dtos/sale-detail-dto';
+import { paymentMethodChipClass, paymentMethodLabel } from '@features/sales/models/payment-method';
 import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
 import { MoneyPipe } from '@shared/pipes/money-pipe';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
@@ -155,21 +151,20 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                   {{ s.totalItems }} <span class="text-xs font-bold">u</span>
                 </p>
               </div>
-              <div>
+              <div class="min-w-0">
                 <p class="table-header">Método de pago</p>
-                <p class="text-sm font-bold">
-                  @if (s.paymentMethod === PaymentMethod.Cash) {
-                    <span
-                      class="text-xs font-medium text-text-muted bg-bg-muted px-2 py-0.5 rounded-md"
-                      >Efectivo</span
-                    >
-                  } @else {
-                    <span
-                      class="text-xs font-medium text-feedback-info-text bg-feedback-info-bg/10 px-2 py-0.5 rounded-md"
-                      >QR</span
-                    >
+                <div class="flex flex-col gap-0.5">
+                  @for (p of s.payments; track $index) {
+                    <p class="text-sm font-bold flex items-center gap-1.5 min-w-0">
+                      <span class="shrink-0" [class]="paymentMethodChipClass(p.method)">{{
+                        paymentMethodLabel(p.method)
+                      }}</span>
+                      <span class="font-mono truncate">{{ p.amount | money: 'symbol' }}</span>
+                    </p>
+                  } @empty {
+                    <span class="text-sm font-bold text-text-soft">—</span>
                   }
-                </p>
+                </div>
               </div>
               <div>
                 <p class="table-header">Tipo de documento</p>
@@ -526,7 +521,10 @@ export default class SaleDetailPage implements OnDestroy {
 
   SaleType = SaleType;
   DocumentType = DocumentType;
-  PaymentMethod = PaymentMethod;
+
+  /** El template no puede llamar imports: se exponen tal cual. */
+  readonly paymentMethodLabel = paymentMethodLabel;
+  readonly paymentMethodChipClass = paymentMethodChipClass;
 
   isReturn = computed(
     () => this.sale()?.type === SaleType.Return || (this.sale()?.type as unknown) === 'Return',

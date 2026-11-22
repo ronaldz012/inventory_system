@@ -15,7 +15,7 @@ import {
   serializeStatsQuery,
   todayKey,
 } from '@features/sales/dtos/sales-stats-query-dto';
-import { paymentMethodLabel } from '@features/sales/dtos/sale-detail-dto';
+import { paymentMethodLabel } from '@features/sales/models/payment-method';
 import { MoneyPipe } from '@shared/pipes/money-pipe';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 import { readQuery, writeQuery } from '@shared/utils/list-query';

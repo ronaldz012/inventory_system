@@ -1,4 +1,4 @@
-import { SaleType, PaymentMethod, DocumentType, SaleReturnStatus } from './sale-detail-dto';
+import { SaleType, SalePaymentLineDto, DocumentType, SaleReturnStatus } from './sale-detail-dto';
 
 export interface SaleListDto {
   id: GUID;
@@ -14,7 +14,8 @@ export interface SaleListDto {
   originalSaleId: GUID | null;
   /** Nº de la venta original en una devolución. */
   originalSaleNumber: number | null;
-  paymentMethod: PaymentMethod;
+  /** Una línea por método (split payments). En devoluciones los montos son negativos. */
+  payments: SalePaymentLineDto[];
   documentType: DocumentType;
   invoiceNumber: number | null;
   transactionCode: string | null;

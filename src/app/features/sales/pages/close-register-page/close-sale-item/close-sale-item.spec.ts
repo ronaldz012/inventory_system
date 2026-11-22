@@ -2,12 +2,8 @@ import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { ClosureSaleItemDto } from '@features/sales/dtos/closure-detail-dto';
-import {
-  DocumentType,
-  PaymentMethod,
-  SaleReturnStatus,
-  SaleType,
-} from '@features/sales/dtos/sale-detail-dto';
+import { PaymentMethod } from '@features/sales/models/payment-method';
+import { DocumentType, SaleReturnStatus, SaleType } from '@features/sales/dtos/sale-detail-dto';
 import { PermissionService } from '@features/auth/services/permmision-service';
 import { CloseSaleItem } from './close-sale-item';
 
