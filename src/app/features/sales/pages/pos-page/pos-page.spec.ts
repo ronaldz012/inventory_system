@@ -157,6 +157,7 @@ describe('PosPage — modal de búsqueda (señal + pila de modales)', () => {
       { productVariantId: 'v1', quantity: 1, discountAmount: 10 },
       { description: 'Pantalon libre', unitPrice: 45, quantity: 2, discountAmount: 0 },
     ]);
+    expect(capturedSale!.payments).toEqual([{ method: 0, amount: 180 }]);
   });
 
   it('venta libre con precio menor a Bs 0.50 invalida el formulario', () => {

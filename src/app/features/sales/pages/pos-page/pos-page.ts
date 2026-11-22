@@ -267,7 +267,9 @@ export default class PosPage implements OnInit, OnDestroy {
     if (paymentMethod === null) return;
 
     const dto: CreateSaleDto = {
-      paymentMethod,
+      // Un solo tender por ahora: el método elegido y el total del carrito.
+      // El backend valida que la suma cierre contra su propio cálculo.
+      payments: [{ method: paymentMethod, amount: this.totalCart() }],
       invoiceNumber: null,
       documentType: 0, // Ticket
       transactionCode: state.transactionCode,
