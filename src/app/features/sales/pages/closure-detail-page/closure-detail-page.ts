@@ -2,7 +2,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CashRegisterService } from '@features/sales/services/cash-register-service';
 import { ClosureDetailDto, ClosureSaleItemDto } from '@features/sales/dtos/closure-detail-dto';
-import { isCashPayment } from '@features/sales/models/payment-method';
+import { paymentMethodChipClass, paymentMethodLabel } from '@features/sales/models/payment-method';
 import {
   SaleReturnStatus,
   isReturnType,
@@ -207,16 +207,10 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                             >Venta</span
                           >
                         }
-                        @if (isCashPayment(sale.paymentMethod)) {
-                          <span
-                            class="text-[11px] font-medium text-text-muted bg-bg-muted px-2 py-0.5 rounded-md"
-                            >Efectivo</span
-                          >
-                        } @else {
-                          <span
-                            class="text-[11px] font-medium text-feedback-info-text bg-feedback-info-bg/15 px-2 py-0.5 rounded-md"
-                            >QR</span
-                          >
+                        @for (p of sale.payments; track $index) {
+                          <span [class]="paymentMethodChipClass(p.method)">{{
+                            paymentMethodLabel(p.method)
+                          }}</span>
                         }
                         @if (isReturnType(sale.type) && sale.originalSaleNumber != null) {
                           <span class="text-[11px] font-medium text-text-soft"
@@ -329,17 +323,11 @@ import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
                             }
                           }
                         </span>
-                        <span class="text-center">
-                          @if (isCashPayment(sale.paymentMethod)) {
-                            <span
-                              class="text-[11px] font-medium text-text-muted bg-bg-muted px-2 py-0.5 rounded-md"
-                              >Efectivo</span
-                            >
-                          } @else {
-                            <span
-                              class="text-[11px] font-medium text-feedback-info-text bg-feedback-info-bg/10 px-2 py-0.5 rounded-md"
-                              >QR</span
-                            >
+                        <span class="flex flex-col items-center gap-0.5">
+                          @for (p of sale.payments; track $index) {
+                            <span [class]="paymentMethodChipClass(p.method)">{{
+                              paymentMethodLabel(p.method)
+                            }}</span>
                           }
                         </span>
                         <span
@@ -549,7 +537,10 @@ export default class ClosureDetailPage implements OnInit {
   private router = inject(Router);
   private cashRegisterService = inject(CashRegisterService);
   protected isReturnType = isReturnType;
-  protected isCashPayment = isCashPayment;
+
+  /** El template no puede llamar imports: se exponen tal cual. */
+  protected readonly paymentMethodLabel = paymentMethodLabel;
+  protected readonly paymentMethodChipClass = paymentMethodChipClass;
 
   closure = signal<ClosureDetailDto | null>(null);
   loading = signal(true);

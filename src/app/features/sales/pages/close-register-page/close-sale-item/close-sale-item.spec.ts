@@ -36,7 +36,7 @@ const baseSale = (overrides: Partial<ClosureSaleItemDto> = {}): ClosureSaleItemD
   createdAt: '2026-10-05T04:50:53.831699Z',
   soldByName: 'Admin Admin',
   totalAmount: 350,
-  paymentMethod: PaymentMethod.QrCode,
+  payments: [{ method: PaymentMethod.QrCode, amount: 350 }],
   documentType: DocumentType.Ticket,
   type: SaleType.Sale,
   originalSaleId: null,
@@ -146,7 +146,9 @@ describe('CloseSaleItem', () => {
 
   it('muestra "Efectivo" para pagos en efectivo', async () => {
     const { fixture, host, root } = await setup();
-    host.sale.set(baseSale({ number: 30, paymentMethod: PaymentMethod.Cash }));
+    host.sale.set(
+      baseSale({ number: 30, payments: [{ method: PaymentMethod.Cash, amount: 350 }] }),
+    );
     fixture.detectChanges();
 
     expect(text(root)).toContain('Efectivo');

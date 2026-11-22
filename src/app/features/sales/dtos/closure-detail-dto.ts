@@ -1,5 +1,4 @@
-import { PaymentMethod } from '@features/sales/models/payment-method';
-import { DocumentType, SaleReturnStatus, SaleType } from './sale-detail-dto';
+import { DocumentType, SalePaymentLineDto, SaleReturnStatus, SaleType } from './sale-detail-dto';
 
 export interface ClosureSaleItemDetailDto {
   /** null = ítem libre (venta sin producto registrado). */
@@ -19,7 +18,8 @@ export interface ClosureSaleItemDto {
   createdAt: string;
   soldByName: string;
   totalAmount: number;
-  paymentMethod: PaymentMethod;
+  /** Una línea por método (split payments). En devoluciones los montos son negativos. */
+  payments: SalePaymentLineDto[];
   documentType: DocumentType;
   type: SaleType;
   /** Vínculo de una devolución con la venta que la originó (null en ventas). */

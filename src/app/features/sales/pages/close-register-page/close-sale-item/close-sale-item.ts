@@ -1,7 +1,7 @@
 import { Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ClosureSaleItemDto } from '@features/sales/dtos/closure-detail-dto';
-import { isCashPayment } from '@features/sales/models/payment-method';
+import { paymentMethodChipClass, paymentMethodLabel } from '@features/sales/models/payment-method';
 import {
   SaleReturnStatus,
   isReturnType,
@@ -71,7 +71,7 @@ import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
           <span class="text-feedback-warning-text">· {{ badge }}</span>
         }
         <span class="text-text-soft">·</span>
-        <span class="text-text-muted">{{ isCash() ? 'Efectivo' : 'QR' }}</span>
+        <span class="text-text-muted">{{ methodsLabel() }}</span>
         <span class="text-text-soft">·</span>
         <span class="text-text-muted">{{ articles() }} art.</span>
       </div>
@@ -127,10 +127,12 @@ import { SmartDatePipe } from '@shared/pipes/smart-date.pipe';
           }}</span>
         }
       </span>
-      <span class="text-center">
-        <span [class]="isCash() ? 'chip-neutral' : 'chip-info'">
-          {{ isCash() ? 'Efectivo' : 'QR' }}
-        </span>
+      <span class="flex flex-col items-center gap-0.5">
+        @for (p of sale().payments; track $index) {
+          <span [class]="paymentMethodChipClass(p.method)">
+            {{ paymentMethodLabel(p.method) }}
+          </span>
+        }
       </span>
       <span class="chip-accent font-mono w-fit ml-auto">
         {{ articles() }}
@@ -181,7 +183,17 @@ export class CloseSaleItem {
   canOpenDetail = computed(() => this.perm.canRead('sales', 'sales'));
 
   isReturn = computed(() => isReturnType(this.sale().type));
-  isCash = computed(() => isCashPayment(this.sale().paymentMethod));
+
+  /** El template no puede llamar imports: se exponen tal cual. */
+  readonly paymentMethodLabel = paymentMethodLabel;
+  readonly paymentMethodChipClass = paymentMethodChipClass;
+
+  /** Métodos de la fila en texto compacto: "QR", "Efectivo" o "QR + Efectivo". */
+  methodsLabel = computed(() =>
+    this.sale()
+      .payments.map((p) => paymentMethodLabel(p.method))
+      .join(' + '),
+  );
 
   /** Artículos para mostrar: en devoluciones el backend guarda la cantidad negativa. */
   articles = computed(() => Math.abs(this.sale().itemsCount));
