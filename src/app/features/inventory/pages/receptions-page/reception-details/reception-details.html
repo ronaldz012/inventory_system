@@ -142,6 +142,13 @@
       <!-- Acciones -->
       @if (r.status === Status.Borrador) {
         @if (perm.canUpdate('inventory', 'receptions')) {
+          <a
+            [routerLink]="['/inventory', 'receptions', r.id, 'edit']"
+            class="btn-secondary w-full py-3 rounded-xl text-center inline-flex items-center justify-center gap-1.5"
+          >
+            <span class="material-icons text-base">edit</span>
+            Editar borrador
+          </a>
           <button (click)="openConfirmModal()" class="btn-primary w-full py-3 rounded-xl">
             Confirmar recepción
           </button>
@@ -190,14 +197,14 @@
   />
 }
 
-<!-- ── Modal: Confirmar borrador ── -->
+<!-- ── Modal: Confirmar borrador — el mismo del alta, con sucursal y resumen ── -->
 @if (confirmModalOpen()) {
-  <app-confirm-action-modal
-    title="¿Confirmar recepción?"
-    description="El stock de esta recepción ingresará a la sucursal y dejará de ser borrador."
-    confirmLabel="Sí, confirmar"
-    submittingLabel="Confirmando..."
-    confirmButtonClass="bg-btn-primary-bg text-btn-primary-text hover:bg-btn-primary-hover"
+  <app-reception-confirm-modal
+    [branchName]="branchContext.active()?.branchName ?? '—'"
+    [providerName]="providerName()"
+    [productCount]="productCount()"
+    [totalUnits]="totalUnits()"
+    [totalCost]="totalCost()"
     [submitting]="confirming()"
     (confirm)="executeConfirm()"
     (close)="closeConfirmModal()"

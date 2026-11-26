@@ -115,6 +115,16 @@ export const routes: Routes = [
                 loadComponent: () =>
                   import('@features/inventory/pages/receptions-page/reception-details/reception-details'),
               },
+              {
+                // Misma vista que crear, en modo edición del borrador.
+                path: ':id/edit',
+                title: 'Editar Recepción',
+                canActivate: [featureGuard],
+                canDeactivate: [modalGuard],
+                data: { module: 'inventory', feature: 'receptions', permission: 'update' },
+                loadComponent: () =>
+                  import('@features/inventory/pages/receptions-page/reception-form/reception-form'),
+              },
             ],
           },
           {

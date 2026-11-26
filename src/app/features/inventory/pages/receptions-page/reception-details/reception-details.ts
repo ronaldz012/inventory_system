@@ -1,5 +1,5 @@
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { Observable, map, throwError } from 'rxjs';
@@ -17,12 +17,22 @@ import { StockReceptionDetailDto } from '../../../dtos/receptions/stock-receptio
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 import { ConfirmActionModal } from '../../transfer-page/confirm-action-modal/confirm-action-modal';
+import { ReceptionConfirmModal } from '../reception-form/reception-confirm-modal';
 import { ToastService } from '@core/services/toast-service';
 import { PermissionService } from '@features/auth/services/permmision-service';
+import { BranchContextService } from '@core/services/branch-context-service';
 
 @Component({
   selector: 'app-reception-details',
-  imports: [DatePipe, MoneyPipe, SkeletonList, VerifyActionModal, ConfirmActionModal],
+  imports: [
+    RouterLink,
+    DatePipe,
+    MoneyPipe,
+    SkeletonList,
+    VerifyActionModal,
+    ConfirmActionModal,
+    ReceptionConfirmModal,
+  ],
   templateUrl: './reception-details.html',
   styles: `
     @keyframes fade-up {
@@ -47,12 +57,21 @@ export default class ReceptionDetails implements OnInit, OnDestroy {
   readonly router = inject(Router);
   private toast = inject(ToastService);
   readonly perm = inject(PermissionService);
+  readonly branchContext = inject(BranchContextService);
 
   readonly Status = ReceptionStatus;
 
   reception = signal<StockReceptionDetailDto | null>(null);
   loading = signal(true);
   error = signal<string | null>(null);
+
+  /** Para el modal de confirmación (el mismo del alta). */
+  totalUnits = computed(
+    () => this.reception()?.items.reduce((sum, i) => sum + i.quantityReceived, 0) ?? 0,
+  );
+  productCount = computed(() => this.reception()?.items.length ?? 0);
+  totalCost = computed(() => this.reception()?.totalCost ?? 0);
+  providerName = computed(() => this.reception()?.providerName ?? '—');
 
   rollbackModalOpen = signal(false);
   private rollbackModal = useStackedModal(this.stack, this.rollbackModalOpen);

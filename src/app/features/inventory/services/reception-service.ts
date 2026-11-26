@@ -12,6 +12,7 @@ import { StockReceptionDetailDto } from '../dtos/receptions/stock-reception-deta
 import { ReceptionLabelsDto } from '../dtos/receptions/reception-labels-dto';
 import { StockReceptionRevertCheckDto } from '../dtos/receptions/stock-reception-revert-check-dto';
 import { StockReceptionResultDto } from '../dtos/receptions/stock-reception-result-dto';
+import UpdateDraftDto from '../dtos/receptions/update-draft-dto';
 
 @Injectable({
   providedIn: 'root',
@@ -21,6 +22,11 @@ export class ReceptionService {
   private http = inject(HttpClient);
   create(payload: createReceptionDto): Observable<StockReceptionResultDto> {
     return this.http.post<StockReceptionResultDto>(this.url, payload);
+  }
+
+  /** PUT /api/Reception/{id} — full-replace del borrador (solo status Draft). */
+  updateDraft(id: GUID, dto: UpdateDraftDto): Observable<StockReceptionResultDto> {
+    return this.http.put<StockReceptionResultDto>(`${this.url}/${id}`, dto);
   }
 
   getAll(query: ReceptionQueryParams): Observable<PagedResult<StockReceptionListDto>> {
