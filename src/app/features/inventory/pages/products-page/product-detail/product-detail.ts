@@ -17,7 +17,10 @@ import { GENDER_LABELS, Gender } from '../../../interfaces/gender';
 import { BranchContextService } from '@core/services/branch-context-service';
 
 import { UpdateProductVariantStockDto } from '../../../dtos/products/update-product-variant-stock-dto';
-import { ProductDetailVariant } from './product-detail-variant/product-detail-variant';
+import {
+  ProductDetailVariant,
+  VariantAction,
+} from './product-detail-variant/product-detail-variant';
 import { UpdateVariantModal } from './product-detail-variant/update-variant-modal';
 import { AdjustStockModal } from './product-detail-variant/adjust-stock-modal';
 import AddVariantModal from './product-detail-variant/add-variant-modal';
@@ -32,6 +35,7 @@ import { CreateProductVariantDto } from '../../../dtos/products/create-product-v
 import { ToastService } from '@core/services/toast-service';
 import { PermissionService } from '@features/auth/services/permmision-service';
 import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
+import { ViewportService } from '@core/services/viewport-service';
 import {
   matchesVariant,
   sortBranchIds,
@@ -68,7 +72,9 @@ import {
           <!-- ── Información del Producto ─────────────────────────────────────── -->
           <div class="bg-bg-surface rounded-xl border border-border-strong px-4 py-3">
             <div class="flex items-center gap-2">
-              <p class="text-sm font-semibold text-text-main break-words leading-snug">{{ p.name }}</p>
+              <p class="text-sm font-semibold text-text-main break-words leading-snug">
+                {{ p.name }}
+              </p>
               <span
                 class="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold shrink-0"
                 [class]="
@@ -80,20 +86,28 @@ import {
                 {{ p.isActive ? 'Activo' : 'Inactivo' }}
               </span>
             </div>
-            <p class="text-[13px] font-mono font-semibold text-accent-ui mt-0.5">{{ p.internalCode }}</p>
+            <p class="text-[13px] font-mono font-semibold text-accent-ui mt-0.5">
+              {{ p.internalCode }}
+            </p>
 
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
               <div>
                 <p class="table-header">Stock total</p>
-                <p class="text-xl font-black font-mono text-accent-ui">{{ p.totalAvailable }} <span class="text-xs font-bold">u</span></p>
+                <p class="text-xl font-black font-mono text-accent-ui">
+                  {{ p.totalAvailable }} <span class="text-xs font-bold">u</span>
+                </p>
               </div>
               <div class="min-w-0">
                 <p class="table-header">Marca</p>
-                <p class="text-sm font-bold text-text-main truncate" [title]="p.brandName">{{ p.brandName || '—' }}</p>
+                <p class="text-sm font-bold text-text-main truncate" [title]="p.brandName">
+                  {{ p.brandName || '—' }}
+                </p>
               </div>
               <div class="min-w-0">
                 <p class="table-header">Categoría</p>
-                <p class="text-sm font-bold text-text-main truncate" [title]="p.categoryName">{{ p.categoryName || '—' }}</p>
+                <p class="text-sm font-bold text-text-main truncate" [title]="p.categoryName">
+                  {{ p.categoryName || '—' }}
+                </p>
               </div>
               <div class="min-w-0">
                 <p class="table-header">Género</p>
@@ -130,9 +144,7 @@ import {
           <!-- ── Variantes ────────────────────────────────────────────────────── -->
           <div class="bg-bg-surface rounded-xl border border-border-strong shadow-sm p-5">
             <div class="flex items-center justify-between mb-3">
-              <p class="section-title mb-0">
-                Tallas/Colores · {{ p.variants.length }}
-              </p>
+              <p class="section-title mb-0">Tallas/Colores · {{ p.variants.length }}</p>
               @if (perm.canUpdate('inventory', 'products')) {
                 <button (click)="openAddVariant()" class="btn-secondary btn-sm">
                   <span class="material-icons text-base leading-none">add</span>
@@ -174,7 +186,9 @@ import {
                 }
               </div>
               @if (variantQuery().trim()) {
-                <span class="text-xs text-text-soft whitespace-nowrap">{{ filteredVariants().length }} de {{ p.variants.length }}</span>
+                <span class="text-xs text-text-soft whitespace-nowrap"
+                  >{{ filteredVariants().length }} de {{ p.variants.length }}</span
+                >
               }
               <div class="relative shrink-0" data-sort-menu>
                 <button
@@ -236,17 +250,90 @@ import {
                   </div>
                 }
               </div>
+
+              <!-- Acciones en bloque: mismo patrón que Ordenar (dropdown con
+                   click-afuera + teclado). Aparece solo con selección; el
+                   número basta, sin remarcar el botón. -->
+              @if (selectable() && selectedCount() > 0) {
+                <div class="relative shrink-0" data-bulk-menu>
+                  <button
+                    #bulkTrigger
+                    type="button"
+                    (click)="toggleBulkMenu()"
+                    class="btn btn-secondary btn-sm gap-1 relative"
+                    aria-haspopup="menu"
+                    [attr.aria-expanded]="bulkMenuOpen()"
+                    [title]="bulkTitle()"
+                    [attr.aria-label]="bulkTitle()"
+                  >
+                    <span class="material-icons text-base leading-none">checklist</span>
+                    <span class="hidden sm:inline whitespace-nowrap">Acciones en bloque</span>
+                    <span
+                      class="absolute -top-1.5 -right-1.5 min-w-[1.25rem] h-5 px-1 rounded-full bg-accent-ui text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-bg-surface"
+                      >{{ selectedCount() }}</span
+                    >
+                  </button>
+
+                  @if (bulkMenuOpen()) {
+                    <div
+                      role="menu"
+                      aria-label="Acciones en bloque"
+                      (keydown)="onBulkMenuKeydown($event)"
+                      class="absolute top-[calc(100%+6px)] right-0 z-50 w-max min-w-[13rem] max-w-[calc(100vw-2rem)] rounded-[10px] border border-border bg-bg-surface p-1 shadow-lg"
+                    >
+                      <button
+                        #bulkOption
+                        type="button"
+                        role="menuitem"
+                        (click)="bulkAction('prices')"
+                        class="w-full flex items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-sm text-text-main transition-colors hover:bg-bg-muted"
+                      >
+                        <span class="material-icons text-sm w-4 shrink-0 text-center leading-none">
+                          payments
+                        </span>
+                        <span class="whitespace-nowrap">Precios…</span>
+                      </button>
+                      <button
+                        #bulkOption
+                        type="button"
+                        role="menuitem"
+                        (click)="bulkAction('clear')"
+                        class="w-full flex items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-sm text-text-main transition-colors hover:bg-bg-muted"
+                      >
+                        <span class="material-icons text-sm w-4 shrink-0 text-center leading-none">
+                          deselect
+                        </span>
+                        <span class="whitespace-nowrap">Limpiar selección</span>
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
             </div>
             @if (activeBranchId(); as activeId) {
-              <p class="text-[11px] text-text-soft -mt-2 mb-1">Stock en: <span class="font-semibold text-accent-ui">{{ branchMap()[activeId] }}</span></p>
+              <p class="text-[11px] text-text-soft -mt-2 mb-1">
+                Stock en:
+                <span class="font-semibold text-accent-ui">{{ branchMap()[activeId] }}</span>
+              </p>
             }
 
-            <!-- ── Desktop ─────────────────────────────────────────────────────── -->
-            <div class="hidden sm:block">
+            <!-- Cabezales: desktop grilla (con seleccionar-todas), mobile compacto. -->
+            @if (filteredVariants().length > 0) {
               <div
-                class="grid gap-2 px-3 py-2 bg-bg-muted rounded-lg mb-1"
+                class="hidden lg:grid gap-2 px-3 py-2 bg-bg-muted rounded-lg mb-1"
                 [style.grid-template-columns]="gridColumnsStyle()"
               >
+                @if (selectable()) {
+                  <span class="flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                      [checked]="allSelected()"
+                      (change)="toggleAll()"
+                      class="w-4 h-4 accent-accent-ui cursor-pointer"
+                      aria-label="Seleccionar todas las tallas/colores"
+                    />
+                  </span>
+                }
                 <span class="table-header">SKU</span>
                 <span class="table-header">COLOR</span>
                 <span class="table-header">TALLA</span>
@@ -271,29 +358,43 @@ import {
                 }
                 <span></span>
               </div>
-
-              <ul class="flex flex-col">
-                @for (v of sortedVariants(); track v.id; let i = $index) {
-                  <app-product-detail-variant
-                    [variant]="v"
-                    [firstOfColor]="isFirstOfColor(i)"
-                    [submitting]="submitting()"
-                    [branchMap]="branchMap()"
-                    [branchKeys]="branchKeys()"
-                    [activeBranchId]="activeBranchId()"
-                    [gridColumnsStyle]="gridColumnsStyle()"
-                    [highlightTokens]="searchTokens()"
-                    (editVariant)="onEditVariant($event)"
-                    (deleteVariant)="onDeleteVariant($event)"
-                    (adjustStock)="onAdjustStock($event)"
-                    (viewHistory)="onViewHistory($event)"
-                  />
+              <div class="lg:hidden flex items-center gap-2 pb-1.5">
+                @if (selectable()) {
+                  <span class="w-9 shrink-0 flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                      [checked]="allSelected()"
+                      (change)="toggleAll()"
+                      class="w-4 h-4 accent-accent-ui cursor-pointer"
+                      aria-label="Seleccionar todas las tallas/colores"
+                    />
+                  </span>
                 }
-              </ul>
-            </div>
+                <span class="flex-1 table-header">Talla · Color</span>
+                <span class="table-header">Stock</span>
+                <span class="table-header">Precio</span>
+              </div>
+            }
 
-            <!-- Sin resultados: debajo del cabezal en desktop (arriba en mobile,
-                 porque las dos listas anteriores quedan vacías) -->
+            <!-- Una sola lista: la fila decide qué variante montar por viewport. -->
+            <ul class="flex flex-col">
+              @for (v of sortedVariants(); track v.id; let i = $index) {
+                <app-product-detail-variant
+                  [variant]="v"
+                  [firstOfColor]="isFirstOfColor(i)"
+                  [branchMap]="branchMap()"
+                  [branchKeys]="branchKeys()"
+                  [activeBranchId]="activeBranchId()"
+                  [gridColumnsStyle]="gridColumnsStyle()"
+                  [highlightTokens]="searchTokens()"
+                  [selectable]="selectable()"
+                  [selected]="selectedIds().has(v.id)"
+                  [expanded]="expandedVariantId() === v.id"
+                  (action)="onVariantAction($event)"
+                />
+              }
+            </ul>
+
             @if (variantQuery().trim() && filteredVariants().length === 0) {
               <div class="flex flex-col items-center gap-2 py-10 text-text-soft">
                 <span class="material-icons text-3xl">search_off</span>
@@ -307,35 +408,6 @@ import {
                 </button>
               </div>
             }
-
-            <!-- ── Mobile ──────────────────────────────────────────────────────── -->
-            @if (filteredVariants().length > 0) {
-              <div class="sm:hidden flex items-center gap-2 px-3 pr-8 pb-1.5" aria-hidden="true">
-                <span class="flex-1 table-header">Talla · Color</span>
-                <span class="table-header">Stock</span>
-                <span class="table-header">Precio</span>
-              </div>
-            }
-            <ul class="flex flex-col sm:hidden">
-              @for (v of sortedVariants(); track v.id; let i = $index) {
-                <app-product-detail-variant
-                  [variant]="v"
-                  [firstOfColor]="isFirstOfColor(i)"
-                  [submitting]="submitting()"
-                  [branchMap]="branchMap()"
-                  [branchKeys]="branchKeys()"
-                  [activeBranchId]="activeBranchId()"
-                  [gridColumnsStyle]="gridColumnsStyle()"
-                  [highlightTokens]="searchTokens()"
-                  [expanded]="expandedVariantId() === v.id"
-                  (toggleExpand)="toggleExpand(v.id)"
-                  (editVariant)="onEditVariant($event)"
-                  (deleteVariant)="onDeleteVariant($event)"
-                  (adjustStock)="onAdjustStock($event)"
-                  (viewHistory)="onViewHistory($event)"
-                />
-              }
-            </ul>
           </div>
         </div>
       }
@@ -384,10 +456,10 @@ import {
       />
     }
 
-    <!-- Edición masiva de precios -->
+    <!-- Edición masiva de precios: recibe SOLO las seleccionadas en la lista. -->
     @if (showBulkPrices() && product()) {
       <app-bulk-price-modal
-        [variants]="product()!.variants"
+        [variants]="selectedVariants()"
         [submitting]="submitting()"
         (save)="onBulkPricesSave($event)"
         (close)="closeBulkPrices()"
@@ -466,6 +538,118 @@ export default class ProductDetail implements OnInit, OnDestroy {
   private branchContext = inject(BranchContextService);
   private toastService = inject(ToastService);
   readonly perm = inject(PermissionService);
+  readonly viewport = inject(ViewportService);
+
+  // ── Selección bulk (checkbox en las filas, acciones en masa) ────────────
+  /** Solo quien puede actualizar ve los checkboxes y las acciones bulk. */
+  readonly selectable = computed(() => this.perm.canUpdate('inventory', 'products'));
+  selectedIds = signal<Set<GUID>>(new Set());
+  selectedCount = computed(() => this.selectedIds().size);
+  selectedVariants = computed(() =>
+    this.sortedVariants().filter((v) => this.selectedIds().has(v.id)),
+  );
+  allSelected = computed(
+    () =>
+      this.sortedVariants().length > 0 &&
+      this.sortedVariants().every((v) => this.selectedIds().has(v.id)),
+  );
+
+  toggleSelect(v: ProductVariantDto): void {
+    this.selectedIds.update((current) => {
+      const next = new Set(current);
+      if (next.has(v.id)) next.delete(v.id);
+      else next.add(v.id);
+      return next;
+    });
+  }
+
+  /** Todas las visibles (respeta buscador y orden) o ninguna. */
+  toggleAll(): void {
+    if (this.allSelected()) {
+      this.selectedIds.set(new Set());
+      return;
+    }
+    this.selectedIds.set(new Set(this.sortedVariants().map((v) => v.id)));
+  }
+
+  clearSelection(): void {
+    this.selectedIds.set(new Set());
+  }
+
+  /** Menú de acciones en bloque: misma mecánica que el de ordenar. */
+  bulkMenuOpen = signal(false);
+  private bulkTrigger = viewChild<ElementRef<HTMLButtonElement>>('bulkTrigger');
+  private bulkOptionEls = viewChildren<ElementRef<HTMLButtonElement>>('bulkOption');
+
+  bulkTitle = computed(() =>
+    this.selectedCount() > 0
+      ? `Acciones en bloque (${this.selectedCount()} seleccionadas)`
+      : 'Acciones en bloque',
+  );
+
+  toggleBulkMenu(): void {
+    const next = !this.bulkMenuOpen();
+    this.bulkMenuOpen.set(next);
+    if (next) setTimeout(() => this.bulkOptionEls()[0]?.nativeElement.focus());
+  }
+
+  closeBulkMenu(): void {
+    if (!this.bulkMenuOpen()) return;
+    this.bulkMenuOpen.set(false);
+    this.bulkTrigger()?.nativeElement.focus();
+  }
+
+  /** Navegación del menú con teclado (patrón menu / menuitem). */
+  onBulkMenuKeydown(event: KeyboardEvent): void {
+    const els = this.bulkOptionEls();
+    const last = els.length - 1;
+    const current = els.findIndex((el) => el.nativeElement === document.activeElement);
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        els[(current + 1 + last + 1) % (last + 1)]?.nativeElement.focus();
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        els[(current - 1 + last + 1) % (last + 1)]?.nativeElement.focus();
+        break;
+      case 'Escape':
+        event.preventDefault();
+        this.closeBulkMenu();
+        break;
+    }
+  }
+
+  bulkAction(action: 'prices' | 'clear'): void {
+    this.bulkMenuOpen.set(false);
+    if (this.selectedCount() === 0) return;
+    if (action === 'prices') this.openBulkPrices();
+    else this.clearSelection();
+  }
+
+  /** Un solo handler tipado para todas las acciones de fila (ambas vistas). */
+  onVariantAction(a: VariantAction): void {
+    switch (a.type) {
+      case 'viewHistory':
+        this.onViewHistory(a.variant);
+        break;
+      case 'edit':
+        this.onEditVariant(a.variant);
+        break;
+      case 'delete':
+        this.onDeleteVariant(a.variant);
+        break;
+      case 'adjustStock':
+        this.onAdjustStock(a.variant);
+        break;
+      case 'toggleSelect':
+        this.toggleSelect(a.variant);
+        break;
+      case 'toggleExpand':
+        this.toggleExpand(a.variant.id);
+        break;
+    }
+  }
 
   // ── Sucursales (derivadas del producto, siempre en alfabético) ──────────
   branchKeys = computed<string[]>(() => {
@@ -497,14 +681,17 @@ export default class ProductDetail implements OnInit, OnDestroy {
     return map;
   });
 
-  // Orden: Sku, Color, Talla, Sucursales, Total, Precio, [Costo, Margen], Acciones
+  // Orden: ☐? | Sku, Color, Talla, Sucursales, Total, Precio, [Costo, Margen], ⋯
   gridColumnsStyle = computed(() => {
     const showCost = this.perm.canUpdate('inventory', 'products');
-    const cols = ['7.5rem', '84px', '56px'];
+    const cols: string[] = [];
+    if (this.selectable()) cols.push('2rem');
+    cols.push('7.5rem', '84px', '56px');
     cols.push(...this.branchKeys().map(() => '104px'));
     cols.push('72px', '72px');
     if (showCost) cols.push('64px', '64px');
-    cols.push('128px');
+    // El kebab ocupa mucho menos que los 4 botones que había.
+    cols.push('3rem');
     return cols.join(' ');
   });
 
@@ -633,9 +820,9 @@ export default class ProductDetail implements OnInit, OnDestroy {
 
   @HostListener('document:click', ['$event.target'])
   onDocumentClick(target: EventTarget | null): void {
-    if (!this.sortMenuOpen()) return;
-    if (target instanceof HTMLElement && target.closest('[data-sort-menu]')) return;
-    this.sortMenuOpen.set(false);
+    const el = target instanceof HTMLElement ? target : null;
+    if (this.sortMenuOpen() && !el?.closest('[data-sort-menu]')) this.sortMenuOpen.set(false);
+    if (this.bulkMenuOpen() && !el?.closest('[data-bulk-menu]')) this.bulkMenuOpen.set(false);
   }
 
   sortIcon = computed(() => {
@@ -908,6 +1095,8 @@ export default class ProductDetail implements OnInit, OnDestroy {
       next: () => {
         this.submitting.set(false);
         this.closeBulkPrices();
+        // Los precios aplicaron sobre la selección: se limpia para no repetir.
+        this.clearSelection();
         this.toastService.success(
           items.length === 1 ? 'Precio actualizado' : `Precios actualizados (${items.length})`,
         );
