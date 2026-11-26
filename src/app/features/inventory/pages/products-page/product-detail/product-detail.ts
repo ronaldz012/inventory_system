@@ -30,6 +30,8 @@ import { UpdateProductDto } from '../../../dtos/products/update-product-dto';
 import { UpdateProductVariantDto } from '../../../dtos/products/update-product-variant-dto';
 import { BulkUpdateVariantPriceItem } from '../../../dtos/products/bulk-update-variant-price-dto';
 import { BulkPriceModal } from './product-detail-variant/bulk-price-modal';
+import { BulkRestockModal, BulkRestockPayload } from './product-detail-variant/bulk-restock-modal';
+import { ReceptionService } from '../../../services/reception-service';
 import { ProductEditPanel } from './product-edit-panel/product-edit-panel';
 import { CreateProductVariantDto } from '../../../dtos/products/create-product-variant-dto';
 import { ToastService } from '@core/services/toast-service';
@@ -52,6 +54,7 @@ import {
     AdjustStockModal,
     AddVariantModal,
     BulkPriceModal,
+    BulkRestockModal,
     ProductEditPanel,
     ConfirmActionModal,
     SkeletonList,
@@ -281,18 +284,38 @@ import {
                       (keydown)="onBulkMenuKeydown($event)"
                       class="absolute top-[calc(100%+6px)] right-0 z-50 w-max min-w-[13rem] max-w-[calc(100vw-2rem)] rounded-[10px] border border-border bg-bg-surface p-1 shadow-lg"
                     >
-                      <button
-                        #bulkOption
-                        type="button"
-                        role="menuitem"
-                        (click)="bulkAction('prices')"
-                        class="w-full flex items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-sm text-text-main transition-colors hover:bg-bg-muted"
-                      >
-                        <span class="material-icons text-sm w-4 shrink-0 text-center leading-none">
-                          payments
-                        </span>
-                        <span class="whitespace-nowrap">Precios…</span>
-                      </button>
+                      @if (canBulkPrices()) {
+                        <button
+                          #bulkOption
+                          type="button"
+                          role="menuitem"
+                          (click)="bulkAction('prices')"
+                          class="w-full flex items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-sm text-text-main transition-colors hover:bg-bg-muted"
+                        >
+                          <span
+                            class="material-icons text-sm w-4 shrink-0 text-center leading-none"
+                          >
+                            payments
+                          </span>
+                          <span class="whitespace-nowrap">Precios…</span>
+                        </button>
+                      }
+                      @if (canBulkRestock()) {
+                        <button
+                          #bulkOption
+                          type="button"
+                          role="menuitem"
+                          (click)="bulkAction('restock')"
+                          class="w-full flex items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-sm text-text-main transition-colors hover:bg-bg-muted"
+                        >
+                          <span
+                            class="material-icons text-sm w-4 shrink-0 text-center leading-none"
+                          >
+                            inventory
+                          </span>
+                          <span class="whitespace-nowrap">Reponer…</span>
+                        </button>
+                      }
                       <button
                         #bulkOption
                         type="button"
@@ -466,6 +489,19 @@ import {
       />
     }
 
+    <!-- Reponer: agrega las seleccionadas a un borrador de recepción. -->
+    @if (showBulkRestock() && product()) {
+      <app-bulk-restock-modal
+        [variants]="selectedVariants()"
+        [activeBranchId]="activeBranchId()"
+        [branchName]="bulkBranchName()"
+        [productActive]="product()!.isActive"
+        [submitting]="submitting()"
+        (save)="onBulkRestockSave($event)"
+        (close)="closeBulkRestock()"
+      />
+    }
+
     <!-- Edición completa (datos + precios) -->
     @if (showFullEdit() && product()) {
       <app-product-edit-panel
@@ -535,14 +571,20 @@ export default class ProductDetail implements OnInit, OnDestroy {
   private router = inject(Router);
   private stack = inject(ModalStackService);
   private productService = inject(ProductService);
+  private receptionService = inject(ReceptionService);
   private branchContext = inject(BranchContextService);
   private toastService = inject(ToastService);
   readonly perm = inject(PermissionService);
   readonly viewport = inject(ViewportService);
 
   // ── Selección bulk (checkbox en las filas, acciones en masa) ────────────
-  /** Solo quien puede actualizar ve los checkboxes y las acciones bulk. */
-  readonly selectable = computed(() => this.perm.canUpdate('inventory', 'products'));
+  /**
+   * Las dos acciones masivas tienen permiso propio: precios (products:update)
+   * y reponer (receptions:update). Los checkboxes aparecen si hay al menos una.
+   */
+  readonly canBulkPrices = computed(() => this.perm.canUpdate('inventory', 'products'));
+  readonly canBulkRestock = computed(() => this.perm.canUpdate('inventory', 'receptions'));
+  readonly selectable = computed(() => this.canBulkPrices() || this.canBulkRestock());
   selectedIds = signal<Set<GUID>>(new Set());
   selectedCount = computed(() => this.selectedIds().size);
   selectedVariants = computed(() =>
@@ -620,11 +662,20 @@ export default class ProductDetail implements OnInit, OnDestroy {
     }
   }
 
-  bulkAction(action: 'prices' | 'clear'): void {
+  bulkAction(action: 'prices' | 'restock' | 'clear'): void {
     this.bulkMenuOpen.set(false);
     if (this.selectedCount() === 0) return;
-    if (action === 'prices') this.openBulkPrices();
-    else this.clearSelection();
+    switch (action) {
+      case 'prices':
+        this.openBulkPrices();
+        break;
+      case 'restock':
+        this.openBulkRestock();
+        break;
+      case 'clear':
+        this.clearSelection();
+        break;
+    }
   }
 
   /** Un solo handler tipado para todas las acciones de fila (ambas vistas). */
@@ -697,6 +748,9 @@ export default class ProductDetail implements OnInit, OnDestroy {
 
   /** Sucursal activa para resaltar su inventario */
   activeBranchId = computed(() => this.branchContext.getActiveBranchId());
+
+  /** Nombre de la sucursal activa para el panel de reponer. */
+  bulkBranchName = computed(() => this.branchContext.active()?.branchName ?? 'Sucursal activa');
 
   // ── Data ────────────────────────────────────────────────────────────────
   product = signal<ProductDetailDto | null>(null);
@@ -864,6 +918,7 @@ export default class ProductDetail implements OnInit, OnDestroy {
   showToggleStatus = signal(false);
   showAddVariant = signal(false);
   showBulkPrices = signal(false);
+  showBulkRestock = signal(false);
   showFullEdit = signal(false);
   /** Variante en edición / por borrar / en ajuste — null = modal cerrado */
   editingVariant = signal<ProductVariantDto | null>(null);
@@ -874,6 +929,9 @@ export default class ProductDetail implements OnInit, OnDestroy {
   private toggleStatusModal = useStackedModal(this.stack, this.showToggleStatus);
   private addVariantModal = useStackedModal(this.stack, this.showAddVariant);
   private bulkPricesModal = useStackedModal(this.stack, this.showBulkPrices);
+  /** Reponer: closer propio para que el atrás vuelva al paso 1 antes de cerrar. */
+  private restockModalRef = viewChild(BulkRestockModal);
+  private unregisterRestock = () => {};
   private fullEditModal = useStackedModal(this.stack, this.showFullEdit);
   private unregisterEditVariant = () => {};
   private unregisterDeleteVariant = () => {};
@@ -884,6 +942,7 @@ export default class ProductDetail implements OnInit, OnDestroy {
     this.toggleStatusModal.destroy();
     this.addVariantModal.destroy();
     this.bulkPricesModal.destroy();
+    this.unregisterRestock();
     this.fullEditModal.destroy();
     this.unregisterEditVariant();
     this.unregisterDeleteVariant();
@@ -923,6 +982,22 @@ export default class ProductDetail implements OnInit, OnDestroy {
   }
   closeBulkPrices(): void {
     this.bulkPricesModal.close();
+  }
+
+  openBulkRestock(): void {
+    if (this.showBulkRestock()) return;
+    this.showBulkRestock.set(true);
+    this.unregisterRestock = this.stack.push(() => {
+      if (this.submitting()) return;
+      // Paso 2 → el atrás vuelve a la lista de borradores, no cierra el panel.
+      if (this.restockModalRef()?.backToDraftList()) return;
+      this.closeBulkRestock();
+    });
+  }
+  closeBulkRestock(): void {
+    this.unregisterRestock();
+    this.unregisterRestock = () => {};
+    this.showBulkRestock.set(false);
   }
 
   onEditVariant(v: ProductVariantDto): void {
@@ -1104,6 +1179,28 @@ export default class ProductDetail implements OnInit, OnDestroy {
       },
       error: (err: unknown) => {
         this.handleApiError(err, 'Error al actualizar los precios.');
+      },
+    });
+  }
+
+  onBulkRestockSave(payload: BulkRestockPayload): void {
+    this.submitting.set(true);
+    this.receptionService.addItemsToDraft(payload.receptionId, { items: payload.items }).subscribe({
+      next: (res) => {
+        this.submitting.set(false);
+        this.closeBulkRestock();
+        // Ya se repuso esa selección: no repetir el mismo POST.
+        this.clearSelection();
+        const units = payload.items.reduce((sum, i) => sum + i.quantityReceived, 0);
+        const target =
+          res.number != null ? `la recepción #${res.number}` : 'un borrador de recepción';
+        this.toastService.success(
+          `${units} ${units === 1 ? 'unidad agregada' : 'unidades agregadas'} a ${target}`,
+        );
+        // El borrador no mueve stock: el producto no necesita recargarse.
+      },
+      error: (err: unknown) => {
+        this.handleApiError(err, 'No se pudieron agregar los productos al borrador.');
       },
     });
   }

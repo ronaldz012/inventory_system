@@ -62,91 +62,110 @@
         }
       </div>
 
-      <!-- Productos -->
-      <div class="bg-bg-surface rounded-xl border border-border shadow-xs p-5">
-        <p class="section-title">
-          Productos · {{ groupedItems().length }}
-          {{ groupedItems().length === 1 ? 'producto' : 'productos' }}
-        </p>
+      <!-- Productos (un borrador vacío no muestra la tabla) -->
+      @if (itemsCount() > 0) {
+        <div class="bg-bg-surface rounded-xl border border-border shadow-xs p-5">
+          <p class="section-title">
+            Productos · {{ groupedItems().length }}
+            {{ groupedItems().length === 1 ? 'producto' : 'productos' }}
+          </p>
 
-        <div
-          class="hidden md:grid grid-cols-[1fr_80px_90px_110px_110px] gap-3 bg-bg-muted border-b border-border"
-        >
-          <div class="py-1.5 table-header">SKU</div>
-          <div class="py-1.5 table-header">Talla</div>
-          <div class="py-1.5 table-header text-right">Cant.</div>
-          <div class="py-1.5 table-header text-right">P. Compra</div>
-          <div class="py-1.5 table-header text-right">Subtotal</div>
-        </div>
+          <div
+            class="hidden md:grid grid-cols-[1fr_80px_90px_110px_110px] gap-3 bg-bg-muted border-b border-border"
+          >
+            <div class="py-1.5 table-header">SKU</div>
+            <div class="py-1.5 table-header">Talla</div>
+            <div class="py-1.5 table-header text-right">Cant.</div>
+            <div class="py-1.5 table-header text-right">P. Compra</div>
+            <div class="py-1.5 table-header text-right">Subtotal</div>
+          </div>
 
-        <div class="flex flex-col">
-          @for (product of groupedItems(); track product.productId) {
-            <div class="py-2 border-b border-border last:border-b-0">
-              <div class="flex items-baseline justify-between gap-2">
-                <p class="text-sm font-bold text-text-main truncate">
-                  @if (product.brandName) {
-                    <span>{{ product.brandName }} · </span>
-                  }
-                  {{ product.productName }}
-                  <span class="font-normal text-text-soft">· {{ product.units }} uds</span>
-                </p>
-                <p class="shrink-0 text-sm font-semibold text-text-main tabular-nums">
-                  {{ product.subtotal | money: 'symbol' }}
-                </p>
-              </div>
-              @for (color of product.colors; track color.color) {
-                <div class="table-group-header">
-                  <span class="table-header">{{ color.color }}</span>
+          <div class="flex flex-col">
+            @for (product of groupedItems(); track product.productId) {
+              <div class="py-2 border-b border-border last:border-b-0">
+                <div class="flex items-baseline justify-between gap-2">
+                  <p class="text-sm font-bold text-text-main truncate">
+                    @if (product.brandName) {
+                      <span>{{ product.brandName }} · </span>
+                    }
+                    {{ product.productName }}
+                    <span class="font-normal text-text-soft">· {{ product.units }} uds</span>
+                  </p>
+                  <p class="shrink-0 text-sm font-semibold text-text-main tabular-nums">
+                    {{ product.subtotal | money: 'symbol' }}
+                  </p>
                 </div>
-                @for (s of color.sizes; track s.sku) {
-                  <div
-                    class="flex items-center gap-2 py-1 odd:bg-bg-muted/30 hover:bg-accent-ui/5 rounded px-1 -mx-1 md:grid md:grid-cols-[1fr_80px_90px_110px_110px] md:gap-3"
-                  >
-                    <span
-                      class="flex-1 min-w-0 font-mono text-[11px] text-text-muted truncate md:max-w-[220px]"
-                      [title]="s.sku"
-                      >{{ s.sku }}</span
-                    >
-                    <span class="shrink-0 w-10 text-[12px] text-text-main md:w-auto">{{
-                      s.size
-                    }}</span>
-                    <span
-                      class="shrink-0 w-14 text-right text-[12px] tabular-nums text-text-main md:w-auto"
-                      >×{{ s.qty }}</span
-                    >
-                    <span
-                      class="shrink-0 w-16 text-right text-[12px] tabular-nums md:w-auto"
-                      [class.text-feedback-warning-text]="s.unitCost < MIN_UNIT_COST"
-                      [class.text-text-muted]="s.unitCost >= MIN_UNIT_COST"
-                      >{{ s.unitCost | money }}
-                      @if (s.unitCost < MIN_UNIT_COST) {
-                        <span
-                          class="ml-0.5 material-icons text-[10px] align-middle"
-                          title="Sin costo de compra — completalo para confirmar"
-                          >warning</span
-                        >
-                      }
-                    </span>
-                    <span
-                      class="shrink-0 w-20 text-right text-[12px] font-semibold tabular-nums text-text-main md:w-auto"
-                      >{{ s.subtotal | money }}</span
-                    >
+                @for (color of product.colors; track color.color) {
+                  <div class="table-group-header">
+                    <span class="table-header">{{ color.color }}</span>
                   </div>
+                  @for (s of color.sizes; track s.sku) {
+                    <div
+                      class="flex items-center gap-2 py-1 odd:bg-bg-muted/30 hover:bg-accent-ui/5 rounded px-1 -mx-1 md:grid md:grid-cols-[1fr_80px_90px_110px_110px] md:gap-3"
+                    >
+                      <span
+                        class="flex-1 min-w-0 font-mono text-[11px] text-text-muted truncate md:max-w-[220px]"
+                        [title]="s.sku"
+                        >{{ s.sku }}</span
+                      >
+                      <span class="shrink-0 w-10 text-[12px] text-text-main md:w-auto">{{
+                        s.size
+                      }}</span>
+                      <span
+                        class="shrink-0 w-14 text-right text-[12px] tabular-nums text-text-main md:w-auto"
+                        >×{{ s.qty }}</span
+                      >
+                      <span
+                        class="shrink-0 w-16 text-right text-[12px] tabular-nums md:w-auto"
+                        [class.text-feedback-warning-text]="s.unitCost < MIN_UNIT_COST"
+                        [class.text-text-muted]="s.unitCost >= MIN_UNIT_COST"
+                        >{{ s.unitCost | money }}
+                        @if (s.unitCost < MIN_UNIT_COST) {
+                          <span
+                            class="ml-0.5 material-icons text-[10px] align-middle"
+                            title="Sin costo de compra — completalo para confirmar"
+                            >warning</span
+                          >
+                        }
+                      </span>
+                      <span
+                        class="shrink-0 w-20 text-right text-[12px] font-semibold tabular-nums text-text-main md:w-auto"
+                        >{{ s.subtotal | money }}</span
+                      >
+                    </div>
+                  }
                 }
-              }
-            </div>
-          }
-        </div>
+              </div>
+            }
+          </div>
 
-        <div
-          class="pt-3 mt-1 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-1"
-        >
-          <span class="text-xs text-text-soft">{{ totalQuantity }} unidades en total</span>
-          <span class="text-sm font-semibold text-text-main tabular-nums">
-            {{ r.totalCost | money: 'symbol' }}
-          </span>
+          <div
+            class="pt-3 mt-1 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-1"
+          >
+            <span class="text-xs text-text-soft">{{ totalQuantity }} unidades en total</span>
+            <span class="text-sm font-semibold text-text-main tabular-nums">
+              {{ r.totalCost | money: 'symbol' }}
+            </span>
+          </div>
         </div>
-      </div>
+      }
+
+      <!-- Borrador sin ítems: existe como contenedor, pero no se confirma. -->
+      @if (r.status === Status.Borrador && itemsCount() === 0) {
+        <div
+          class="rounded-xl border border-feedback-warning/40 bg-feedback-warning/10 px-4 py-3 mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+        >
+          <p class="text-sm font-medium text-feedback-warning-text">
+            Este borrador está vacío — agregá productos para poder confirmar la recepción.
+          </p>
+          <a
+            [routerLink]="['/inventory', 'receptions', r.id, 'edit']"
+            class="text-xs font-bold text-accent-ui hover:underline shrink-0"
+          >
+            Agregar productos
+          </a>
+        </div>
+      }
 
       <!-- Ítems sin costo: el borrador los admite, confirmar no. -->
       @if (r.status === Status.Borrador && uncostedCount() > 0) {
@@ -179,7 +198,7 @@
           </a>
           <button
             (click)="openConfirmModal()"
-            [disabled]="uncostedCount() > 0"
+            [disabled]="itemsCount() === 0 || uncostedCount() > 0"
             class="btn-primary w-full py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Confirmar recepción

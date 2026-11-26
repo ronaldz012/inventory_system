@@ -286,14 +286,17 @@ export default class ReceptionForm implements OnInit, OnDestroy {
 
   /** Guarda directo como borrador: no mueve stock, por eso no pasa por el confirm. */
   saveDraft(): void {
-    if (!this.validateForSave()) return;
+    // El borrador es un contenedor: puede guardarse sin ítems (se completan
+    // después desde el catálogo o reponiendo desde un producto).
+    if (!this.validateForSave(false)) return;
 
     this.submitError.set(null);
     this.executeCreate(true);
   }
 
-  private validateForSave(): boolean {
-    if (!this.reception().items.length || this.isSubmitting()) return false;
+  private validateForSave(requireItems = true): boolean {
+    if (this.isSubmitting()) return false;
+    if (requireItems && !this.reception().items.length) return false;
 
     this.providerForm().markAsTouched();
     if (this.providerForm().invalid()) {

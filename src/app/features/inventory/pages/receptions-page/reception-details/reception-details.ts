@@ -71,6 +71,8 @@ export default class ReceptionDetails implements OnInit, OnDestroy {
   uncostedCount = computed(
     () => this.reception()?.items.filter((i) => i.unitCost < MIN_UNIT_COST).length ?? 0,
   );
+  /** Borrador sin ítems: puede existir (contenedor), pero no confirmarse. */
+  itemsCount = computed(() => this.reception()?.items.length ?? 0);
   readonly MIN_UNIT_COST = MIN_UNIT_COST;
 
   /** Para el modal de confirmación (el mismo del alta). */
@@ -153,6 +155,7 @@ export default class ReceptionDetails implements OnInit, OnDestroy {
 
   // ── Modal: Confirmar borrador ─────────────────────────────────────────────
   openConfirmModal(): void {
+    if (this.itemsCount() === 0 || this.uncostedCount() > 0) return;
     this.confirmModal.open();
   }
 
