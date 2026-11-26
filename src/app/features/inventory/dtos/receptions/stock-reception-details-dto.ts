@@ -1,5 +1,12 @@
 import { ReceptionStatus } from './stock-reception-list-dto';
 
+/**
+ * Mínimo de costo unitario para CONFIRMAR una recepción (espejo del
+ * `StockReceptionItem.MinUnitCost` del backend). Los borradores lo permiten
+ * en 0: no siempre se sabe el precio del proveedor al armar el pedido.
+ */
+export const MIN_UNIT_COST = 0.5;
+
 export interface StockReceptionDetailDto {
   id: GUID;
   number: number;

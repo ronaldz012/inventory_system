@@ -91,6 +91,11 @@
           Total:
           <span class="font-extrabold text-accent-ui">{{ totalCost() | money: 'symbol' }}</span>
         </span>
+        @if (uncostedCount() > 0) {
+          <span class="font-bold text-feedback-warning-text">
+            {{ uncostedCount() }} sin costo (solo borrador)
+          </span>
+        }
       </div>
 
       <div class="flex items-center gap-3">

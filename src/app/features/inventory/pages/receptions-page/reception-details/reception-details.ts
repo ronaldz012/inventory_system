@@ -13,7 +13,10 @@ import { LabelData } from '../../../interfaces/reception-labels';
 import { LabelPrintService, SheetFormat } from '../../../services/print-label-service';
 import { ReceptionLabelsDto } from '../../../dtos/receptions/reception-labels-dto';
 import { ReceptionStatus } from '../../../dtos/receptions/stock-reception-list-dto';
-import { StockReceptionDetailDto } from '../../../dtos/receptions/stock-reception-details-dto';
+import {
+  StockReceptionDetailDto,
+  MIN_UNIT_COST,
+} from '../../../dtos/receptions/stock-reception-details-dto';
 import SkeletonList from '@shared/ui/skeleton-list/skeleton-list';
 import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 import { ConfirmActionModal } from '../../transfer-page/confirm-action-modal/confirm-action-modal';
@@ -30,7 +33,6 @@ import { BranchContextService } from '@core/services/branch-context-service';
     MoneyPipe,
     SkeletonList,
     VerifyActionModal,
-    ConfirmActionModal,
     ReceptionConfirmModal,
   ],
   templateUrl: './reception-details.html',
@@ -64,6 +66,12 @@ export default class ReceptionDetails implements OnInit, OnDestroy {
   reception = signal<StockReceptionDetailDto | null>(null);
   loading = signal(true);
   error = signal<string | null>(null);
+
+  /** Ítems sin costo: el borrador los permite, el confirm no (mín. Bs 0.50). */
+  uncostedCount = computed(
+    () => this.reception()?.items.filter((i) => i.unitCost < MIN_UNIT_COST).length ?? 0,
+  );
+  readonly MIN_UNIT_COST = MIN_UNIT_COST;
 
   /** Para el modal de confirmación (el mismo del alta). */
   totalUnits = computed(

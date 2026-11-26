@@ -115,9 +115,18 @@
                       >×{{ s.qty }}</span
                     >
                     <span
-                      class="shrink-0 w-16 text-right text-[12px] tabular-nums text-text-muted md:w-auto"
-                      >{{ s.unitCost | money }}</span
-                    >
+                      class="shrink-0 w-16 text-right text-[12px] tabular-nums md:w-auto"
+                      [class.text-feedback-warning-text]="s.unitCost < MIN_UNIT_COST"
+                      [class.text-text-muted]="s.unitCost >= MIN_UNIT_COST"
+                      >{{ s.unitCost | money }}
+                      @if (s.unitCost < MIN_UNIT_COST) {
+                        <span
+                          class="ml-0.5 material-icons text-[10px] align-middle"
+                          title="Sin costo de compra — completalo para confirmar"
+                          >warning</span
+                        >
+                      }
+                    </span>
                     <span
                       class="shrink-0 w-20 text-right text-[12px] font-semibold tabular-nums text-text-main md:w-auto"
                       >{{ s.subtotal | money }}</span
@@ -139,6 +148,25 @@
         </div>
       </div>
 
+      <!-- Ítems sin costo: el borrador los admite, confirmar no. -->
+      @if (r.status === Status.Borrador && uncostedCount() > 0) {
+        <div
+          class="rounded-xl border border-feedback-warning/40 bg-feedback-warning/10 px-4 py-3 mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+        >
+          <p class="text-sm font-medium text-feedback-warning-text">
+            Este borrador tiene <span class="font-black">{{ uncostedCount() }}</span>
+            {{ uncostedCount() === 1 ? 'ítem sin costo' : 'ítems sin costo' }} — completá el costo
+            (mín. Bs 0.50) para poder confirmar.
+          </p>
+          <a
+            [routerLink]="['/inventory', 'receptions', r.id, 'edit']"
+            class="text-xs font-bold text-accent-ui hover:underline shrink-0"
+          >
+            Completar costos
+          </a>
+        </div>
+      }
+
       <!-- Acciones -->
       @if (r.status === Status.Borrador) {
         @if (perm.canUpdate('inventory', 'receptions')) {
@@ -149,7 +177,11 @@
             <span class="material-icons text-base">edit</span>
             Editar borrador
           </a>
-          <button (click)="openConfirmModal()" class="btn-primary w-full py-3 rounded-xl">
+          <button
+            (click)="openConfirmModal()"
+            [disabled]="uncostedCount() > 0"
+            class="btn-primary w-full py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed"
+          >
             Confirmar recepción
           </button>
         }

@@ -1,6 +1,7 @@
 import { Component, input, output, computed } from '@angular/core';
 import { MoneyPipe } from '@shared/pipes/money-pipe';
 import { ItemForm, VariantForm } from '@features/inventory/models/variant-form.model';
+import { MIN_UNIT_COST } from '@features/inventory/dtos/receptions/stock-reception-details-dto';
 
 interface ColorRow {
   colorId: GUID | null;
@@ -16,6 +17,9 @@ interface ColorRow {
   templateUrl: './reception-item.html',
 })
 export class ReceptionItem {
+  /** Umbral de costo para confirmar — el chip "sin costo" lo marca por fila. */
+  readonly MIN_UNIT_COST = MIN_UNIT_COST;
+
   group = input.required<ItemForm>();
   index = input.required<number>();
   remove = output<number>();

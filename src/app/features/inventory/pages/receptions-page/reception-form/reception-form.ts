@@ -11,6 +11,7 @@ import UpdateDraftDto from '@features/inventory/dtos/receptions/update-draft-dto
 import {
   StockReceptionDetailDto,
   StockReceptionItemDetailDto,
+  MIN_UNIT_COST,
 } from '@features/inventory/dtos/receptions/stock-reception-details-dto';
 import { ReceptionStatus } from '@features/inventory/dtos/receptions/stock-reception-list-dto';
 import { ReceptionService } from '@features/inventory/services/reception-service';
@@ -146,6 +147,17 @@ export default class ReceptionForm implements OnInit, OnDestroy {
 
   reception = signal<Reception>({ notes: '', items: [] });
 
+  /**
+   * Variantes sin costo de compra: el borrador las permite, el confirm no
+   * (mín. Bs 0.50 — espejo del backend). Guía al usuario antes del POST.
+   */
+  uncostedCount = computed(
+    () =>
+      this.reception()
+        .items.flatMap((g) => g.variants)
+        .filter((v) => (v.unitCost ?? 0) < MIN_UNIT_COST).length,
+  );
+
   existingProductIds = computed(() =>
     this.reception()
       .items.map((i) => i.product.id)
@@ -258,6 +270,16 @@ export default class ReceptionForm implements OnInit, OnDestroy {
   onSubmit(): void {
     if (!this.validateForSave()) return;
 
+    // Confirmar exige costo en todas las líneas; guardar borrador no.
+    if (this.uncostedCount() > 0) {
+      const n = this.uncostedCount();
+      this.submitError.set(
+        `${n} ${n === 1 ? 'talla/color sin' : 'tallas/colores sin'} costo. ` +
+          `Completá el costo (mín. Bs 0.50) para confirmar, o guardá como borrador.`,
+      );
+      return;
+    }
+
     this.submitError.set(null);
     this.openConfirm();
   }
@@ -287,7 +309,8 @@ export default class ReceptionForm implements OnInit, OnDestroy {
       g.variants.map((v) => ({
         productVariantId: v.id!,
         quantityReceived: v.quantityReceived!,
-        unitCost: v.unitCost!,
+        // Costo vacío = desconocido: el backend (decimal) recibe 0.
+        unitCost: v.unitCost ?? 0,
       })),
     );
   }
