@@ -1,4 +1,4 @@
-import { min, required, schema } from '@angular/forms/signals';
+import { min, required, schema, validate } from '@angular/forms/signals';
 
 export interface Reception {
   notes: string;
@@ -38,8 +38,13 @@ export const existingVariantSchema = schema<VariantForm>((v) => {
   required(v.id, { message: 'Seleccioná una talla/color' });
   required(v.quantityReceived, { message: 'Requerido' });
   min(v.quantityReceived, 1, { message: 'Mín 1' });
-  required(v.unitCost, { message: 'Requerido' });
-  min(v.unitCost, 0.5, { message: 'Mín Bs 0.50' });
+  // Costo vacío = desconocido (sale 0 al backend): el borrador lo permite y
+  // el mínimo real (Bs 0.50) se exige al confirmar, no al armarlo.
+  validate(v.unitCost, ({ value }) => {
+    const cost = value();
+    if (cost == null || cost >= 0) return null;
+    return { kind: 'min', message: 'No puede ser negativo' };
+  });
 });
 
 export const newVariantSchema = schema<VariantForm>((v) => {
@@ -47,8 +52,11 @@ export const newVariantSchema = schema<VariantForm>((v) => {
   required(v.colorId, { message: 'Requerido' });
   required(v.quantityReceived, { message: 'Requerido' });
   min(v.quantityReceived, 1, { message: 'Mín 1' });
-  required(v.unitCost, { message: 'Requerido' });
-  min(v.unitCost, 0.5, { message: 'Mín Bs 0.50' });
+  validate(v.unitCost, ({ value }) => {
+    const cost = value();
+    if (cost == null || cost >= 0) return null;
+    return { kind: 'min', message: 'No puede ser negativo' };
+  });
   required(v.price, { message: 'Requerido' });
   min(v.price, 0.5, { message: 'Mín Bs 0.50' });
 });

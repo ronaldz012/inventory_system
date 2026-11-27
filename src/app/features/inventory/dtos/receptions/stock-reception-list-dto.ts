@@ -7,6 +7,7 @@ export interface StockReceptionListDto {
   providerId: GUID;
   providerName: string;
   receivedAt: Date;
+  notes?: string;
   canRollback: boolean;
   status: ReceptionStatus;
   totalItems: number;
@@ -20,6 +21,8 @@ export interface ReceptionQueryParams extends BaseQueryDto {
   dateTo?: string;
   status?: ReceptionStatus;
   brandId?: GUID;
+  /** Búsqueda backend: # exacto si son dígitos, o proveedor/marca/notas. */
+  filter?: string;
 }
 // reception-enums.ts
 export enum ReceptionStatus {

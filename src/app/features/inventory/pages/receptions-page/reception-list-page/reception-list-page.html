@@ -31,13 +31,19 @@
   />
 
   @if (error()) {
-    <div class="flex flex-col items-center gap-3 p-8 rounded border border-border bg-bg-surface shadow-sm">
+    <div
+      class="flex flex-col items-center gap-3 p-8 rounded border border-border bg-bg-surface shadow-sm"
+    >
       <span class="material-icons text-3xl text-feedback-error-text">error_outline</span>
       <p class="text-sm text-text-main">{{ error() }}</p>
       <button class="btn btn-primary btn-sm" (click)="load()">Reintentar</button>
     </div>
-  } @else if (!loadingReceptions() && !error() && receptions().length === 0 && !hasActiveFilters()) {
-    <div class="flex flex-col items-center gap-3 p-12 rounded border border-border bg-bg-surface shadow-sm">
+  } @else if (
+    !loadingReceptions() && !error() && receptions().length === 0 && !hasActiveFilters()
+  ) {
+    <div
+      class="flex flex-col items-center gap-3 p-12 rounded border border-border bg-bg-surface shadow-sm"
+    >
       <span class="material-icons text-4xl text-text-soft opacity-60">inventory_2</span>
       <p class="text-sm text-text-muted">Todavía no hay recepciones.</p>
     </div>
@@ -60,6 +66,7 @@
             dateTo: undefined,
             status: undefined,
             brandId: undefined,
+            filter: undefined,
             page: 1,
           })
         "

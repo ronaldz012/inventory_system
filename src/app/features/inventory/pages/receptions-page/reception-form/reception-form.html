@@ -2,7 +2,12 @@
   <!-- Header -->
   <div class="flex flex-col gap-3 mb-5">
     <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <h2 class="font-inter text-base font-bold text-text-main">Nueva recepción</h2>
+      <h2 class="font-inter text-base font-bold text-text-main">
+        {{ editing() ? 'Editar borrador' : 'Nueva recepción' }}
+        @if (draftNumber(); as n) {
+          <span class="font-mono text-accent-ui">#{{ n }}</span>
+        }
+      </h2>
       <span class="flex items-center gap-1.5 text-lg font-black text-accent-ui">
         <span class="material-icons text-xl">store</span>
         {{ branchContext.active()?.branchName ?? '—' }}
@@ -86,6 +91,11 @@
           Total:
           <span class="font-extrabold text-accent-ui">{{ totalCost() | money: 'symbol' }}</span>
         </span>
+        @if (uncostedCount() > 0) {
+          <span class="font-bold text-feedback-warning-text">
+            {{ uncostedCount() }} sin costo (solo borrador)
+          </span>
+        }
       </div>
 
       <div class="flex items-center gap-3">
@@ -96,22 +106,34 @@
         >
           Cancelar
         </button>
-        <button
-          type="button"
-          (click)="saveDraft()"
-          [disabled]="isSubmitting()"
-          class="px-3 py-1.5 text-sm font-semibold text-btn-secondary-text border border-border bg-btn-secondary-bg rounded-md hover:bg-btn-secondary-hover disabled:opacity-50 transition-colors duration-150 shadow-sm"
-        >
-          Guardar borrador
-        </button>
-        <button
-          type="button"
-          (click)="onSubmit()"
-          [disabled]="isSubmitting()"
-          class="px-5 py-1.5 text-sm font-semibold bg-btn-primary-bg text-btn-primary-text rounded-md hover:bg-btn-primary-hover disabled:opacity-50 transition-colors duration-150 shadow-sm"
-        >
-          {{ isSubmitting() ? 'Guardando...' : 'Guardar recepción' }}
-        </button>
+        @if (editing()) {
+          <!-- Modo edición: guardar full-replace; confirmar vive en el detalle. -->
+          <button
+            type="button"
+            (click)="saveDraftEdit()"
+            [disabled]="isSubmitting()"
+            class="px-5 py-1.5 text-sm font-semibold bg-btn-primary-bg text-btn-primary-text rounded-md hover:bg-btn-primary-hover disabled:opacity-50 transition-colors duration-150 shadow-sm"
+          >
+            {{ isSubmitting() ? 'Guardando...' : 'Guardar cambios' }}
+          </button>
+        } @else {
+          <button
+            type="button"
+            (click)="saveDraft()"
+            [disabled]="isSubmitting()"
+            class="px-3 py-1.5 text-sm font-semibold text-btn-secondary-text border border-border bg-btn-secondary-bg rounded-md hover:bg-btn-secondary-hover disabled:opacity-50 transition-colors duration-150 shadow-sm"
+          >
+            Guardar borrador
+          </button>
+          <button
+            type="button"
+            (click)="onSubmit()"
+            [disabled]="isSubmitting()"
+            class="px-5 py-1.5 text-sm font-semibold bg-btn-primary-bg text-btn-primary-text rounded-md hover:bg-btn-primary-hover disabled:opacity-50 transition-colors duration-150 shadow-sm"
+          >
+            {{ isSubmitting() ? 'Guardando...' : 'Guardar recepción' }}
+          </button>
+        }
       </div>
     </div>
   </div>

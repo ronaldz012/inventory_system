@@ -83,7 +83,13 @@ describe('ReceptionForm confirm flow', () => {
     await TestBed.configureTestingModule({
       imports: [Host],
       providers: [
-        { provide: ActivatedRoute, useValue: { queryParamMap: params$.asObservable() } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            queryParamMap: params$.asObservable(),
+            snapshot: { paramMap: { get: () => null } },
+          },
+        },
         {
           provide: Router,
           useValue: {

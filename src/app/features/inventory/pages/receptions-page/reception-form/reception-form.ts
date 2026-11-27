@@ -1,12 +1,19 @@
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MoneyPipe } from '@shared/pipes/money-pipe';
-import { Router } from '@angular/router';
 import { form, required } from '@angular/forms/signals';
 import { ReceptionItem } from './reception-item/reception-item';
 import { ReceptionConfirmModal } from './reception-confirm-modal';
 import CatalogueItemModal from '../catalogue-item-modal/catalogue-item-modal';
 import CreateProductModal from '../../products-page/create-product-modal/create-product-modal';
 import CreateReceptionDto from '@features/inventory/dtos/receptions/create-reception-dto';
+import UpdateDraftDto from '@features/inventory/dtos/receptions/update-draft-dto';
+import {
+  StockReceptionDetailDto,
+  StockReceptionItemDetailDto,
+  MIN_UNIT_COST,
+} from '@features/inventory/dtos/receptions/stock-reception-details-dto';
+import { ReceptionStatus } from '@features/inventory/dtos/receptions/stock-reception-list-dto';
 import { ReceptionService } from '@features/inventory/services/reception-service';
 import { ColorService } from '@features/inventory/services/color-service';
 import { BrandService } from '@features/inventory/services/brand-service';
@@ -18,6 +25,53 @@ import ProviderSelectCtrl from '@features/inventory/components/provider-select-c
 import { ToastService } from '@core/services/toast-service';
 import { ModalStackService, useStackedModal } from '@core/modal-stack-service';
 import { BranchContextService } from '@core/services/branch-context-service';
+
+/**
+ * Arma el modelo del form desde el detail del borrador: agrupa por producto,
+ * igual que lo hace el flujo de crear (una `ItemForm` por producto).
+ */
+function groupDraftItems(items: StockReceptionItemDetailDto[]): ItemForm[] {
+  const groups: ItemForm[] = [];
+  const byProduct = new Map<GUID, ItemForm>();
+  for (const it of items) {
+    let group = byProduct.get(it.productId);
+    if (!group) {
+      group = {
+        product: {
+          id: it.productId,
+          productName: it.productName,
+          internalCode: '',
+          categoryName: '',
+          brandName: it.brandName,
+          genderName: '',
+          description: '',
+        },
+        variants: [],
+      };
+      byProduct.set(it.productId, group);
+      groups.push(group);
+    }
+    group.variants.push({
+      mode: 'ex',
+      id: it.productVariantId,
+      sizeId: it.sizeId,
+      sizeName: it.size,
+      // El sort del editor de ítems replica el orden del backend; sin el
+      // sizeOrder real, re-agregar una talla revolvería las precargadas.
+      sizeOrder: it.sizeOrder ?? 0,
+      colorId: it.colorId,
+      colorCode: '',
+      colorName: it.color,
+      // Alimenta el resumen Ventas/Ganancia esperada del editor.
+      price: it.price ?? null,
+      quantityReceived: it.quantityReceived,
+      unitCost: it.unitCost,
+      sku: it.sku,
+      selected: true,
+    });
+  }
+  return groups;
+}
 
 @Component({
   selector: 'app-reception-form',
@@ -32,11 +86,20 @@ import { BranchContextService } from '@core/services/branch-context-service';
   templateUrl: './reception-form.html',
 })
 export default class ReceptionForm implements OnInit, OnDestroy {
+  private route = inject(ActivatedRoute);
+
   ngOnInit(): void {
     this.categoryService.load();
     this.colorService.load();
     this.brandService.load();
     this.providerService.load();
+
+    // Modo edición: /receptions/:id/edit — misma vista, sobre un borrador.
+    const editId = this.route.snapshot.paramMap.get('id');
+    if (editId) {
+      this.editId.set(editId);
+      this.loadDraft(editId);
+    }
   }
 
   ngOnDestroy(): void {
@@ -45,6 +108,11 @@ export default class ReceptionForm implements OnInit, OnDestroy {
     this.productModal.destroy();
     this.confirmModal.destroy();
   }
+
+  /** Id del borrador en edición; null = modo creación. */
+  editId = signal<GUID | null>(null);
+  editing = computed(() => this.editId() !== null);
+  draftNumber = signal<number | null>(null);
 
   private receptionService = inject(ReceptionService);
   private categoryService = inject(CategoryService);
@@ -78,6 +146,17 @@ export default class ReceptionForm implements OnInit, OnDestroy {
   pendingCreated = signal<ProductSearchResult | null>(null);
 
   reception = signal<Reception>({ notes: '', items: [] });
+
+  /**
+   * Variantes sin costo de compra: el borrador las permite, el confirm no
+   * (mín. Bs 0.50 — espejo del backend). Guía al usuario antes del POST.
+   */
+  uncostedCount = computed(
+    () =>
+      this.reception()
+        .items.flatMap((g) => g.variants)
+        .filter((v) => (v.unitCost ?? 0) < MIN_UNIT_COST).length,
+  );
 
   existingProductIds = computed(() =>
     this.reception()
@@ -169,8 +248,37 @@ export default class ReceptionForm implements OnInit, OnDestroy {
     }));
   }
 
+  private loadDraft(id: GUID): void {
+    this.receptionService.getReceptionDetail(id).subscribe({
+      next: (d: StockReceptionDetailDto) => {
+        if (d.status !== ReceptionStatus.Borrador) {
+          this.toast.error('Solo las recepciones en borrador se pueden editar.');
+          this.router.navigate(['inventory', 'receptions', id]);
+          return;
+        }
+        this.draftNumber.set(d.number);
+        this.providerModel.set({ id: d.providerId, name: d.providerName });
+        this.reception.set({ notes: d.notes ?? '', items: groupDraftItems(d.items) });
+      },
+      error: () => {
+        this.toast.error('No se pudo cargar el borrador.');
+        this.router.navigate(['inventory', 'receptions']);
+      },
+    });
+  }
+
   onSubmit(): void {
     if (!this.validateForSave()) return;
+
+    // Confirmar exige costo en todas las líneas; guardar borrador no.
+    if (this.uncostedCount() > 0) {
+      const n = this.uncostedCount();
+      this.submitError.set(
+        `${n} ${n === 1 ? 'talla/color sin' : 'tallas/colores sin'} costo. ` +
+          `Completá el costo (mín. Bs 0.50) para confirmar, o guardá como borrador.`,
+      );
+      return;
+    }
 
     this.submitError.set(null);
     this.openConfirm();
@@ -178,14 +286,17 @@ export default class ReceptionForm implements OnInit, OnDestroy {
 
   /** Guarda directo como borrador: no mueve stock, por eso no pasa por el confirm. */
   saveDraft(): void {
-    if (!this.validateForSave()) return;
+    // El borrador es un contenedor: puede guardarse sin ítems (se completan
+    // después desde el catálogo o reponiendo desde un producto).
+    if (!this.validateForSave(false)) return;
 
     this.submitError.set(null);
     this.executeCreate(true);
   }
 
-  private validateForSave(): boolean {
-    if (!this.reception().items.length || this.isSubmitting()) return false;
+  private validateForSave(requireItems = true): boolean {
+    if (this.isSubmitting()) return false;
+    if (requireItems && !this.reception().items.length) return false;
 
     this.providerForm().markAsTouched();
     if (this.providerForm().invalid()) {
@@ -195,6 +306,18 @@ export default class ReceptionForm implements OnInit, OnDestroy {
     return true;
   }
 
+  /** Lista final de ítems — la misma forma para crear y para editar. */
+  private buildItemsPayload() {
+    return this.reception().items.flatMap((g) =>
+      g.variants.map((v) => ({
+        productVariantId: v.id!,
+        quantityReceived: v.quantityReceived!,
+        // Costo vacío = desconocido: el backend (decimal) recibe 0.
+        unitCost: v.unitCost ?? 0,
+      })),
+    );
+  }
+
   executeCreate(saveAsDraft = false): void {
     if (this.isSubmitting()) return;
 
@@ -202,13 +325,7 @@ export default class ReceptionForm implements OnInit, OnDestroy {
       notes: this.reception().notes,
       providerId: this.providerModel().id!,
       saveAsDraft,
-      items: this.reception().items.flatMap((g) =>
-        g.variants.map((v) => ({
-          productVariantId: v.id!,
-          quantityReceived: v.quantityReceived!,
-          unitCost: v.unitCost!,
-        })),
-      ),
+      items: this.buildItemsPayload(),
     };
 
     this.isSubmitting.set(true);
@@ -236,8 +353,47 @@ export default class ReceptionForm implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Modo edición: PUT full-replace con la lista final completa. El confirmar
+   * queda en el detalle — acá solo se guarda el borrador.
+   */
+  saveDraftEdit(): void {
+    const id = this.editId();
+    if (!id || !this.validateForSave() || this.isSubmitting()) return;
+
+    this.submitError.set(null);
+    const dto: UpdateDraftDto = {
+      providerId: this.providerModel().id!,
+      notes: this.reception().notes,
+      items: this.buildItemsPayload(),
+    };
+
+    this.isSubmitting.set(true);
+    this.receptionService.updateDraft(id, dto).subscribe({
+      next: () => {
+        this.isSubmitting.set(false);
+        this.toast.success('Borrador actualizado');
+        // replaceUrl: atrás desde el detalle no vuelve al edit ya consumido.
+        this.router.navigate(['inventory', 'receptions', id], { replaceUrl: true });
+      },
+      error: (err: unknown) => {
+        this.isSubmitting.set(false);
+        const e = err as { error?: { detail?: string; title?: string }; message?: string };
+        const msg =
+          e?.error?.detail ||
+          e?.error?.title ||
+          e?.message ||
+          'Error al guardar el borrador. Intentá de nuevo.';
+        this.submitError.set(msg);
+        this.toast.error(msg);
+      },
+    });
+  }
+
   onCancel(): void {
-    this.router.navigate(['inventory', 'receptions']);
+    const id = this.editId();
+    if (id) this.router.navigate(['inventory', 'receptions', id]);
+    else this.router.navigate(['inventory', 'receptions']);
   }
 
   editGroup(index: number) {

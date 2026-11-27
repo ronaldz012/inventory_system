@@ -92,7 +92,10 @@ export class ProductService {
       .map((b) => b.branchId)
       .join(',');
     const headers = branchIds ? new HttpHeaders({ 'X-Branch-Id': branchIds }) : undefined;
-    return this.http.get<ProductDetailDto>(this.product_url + '/' + number, headers ? { headers } : {});
+    return this.http.get<ProductDetailDto>(
+      this.product_url + '/' + number,
+      headers ? { headers } : {},
+    );
   }
   update(productId: GUID, dto: UpdateProductDto) {
     return this.http.put<void>(this.product_url + '/' + productId, dto);
@@ -136,11 +139,12 @@ export class ProductService {
   }
 
   /**
-   * Actualización masiva de precios. Endpoint bulk asumido (pendiente backend):
-   * PUT /api/Product/{productId}/variants/prices  { items: [{ variantId, price }] }
+   * Actualización masiva de precios vía el update del producto:
+   * PUT /api/Product/{productId} enviando SOLO `variantPrices` — el resto de
+   * los campos van omitidos y el backend los ignora (UpdateProductDto nullable).
    */
   updateVariantPrices(productId: GUID, items: BulkUpdateVariantPriceItem[]) {
-    return this.http.put<void>(`${this.product_url}/${productId}/variants/prices`, { items });
+    return this.http.put<void>(`${this.product_url}/${productId}`, { variantPrices: items });
   }
 
   adjustVariantStock(productId: GUID, variantId: GUID, dto: UpdateProductVariantStockDto) {

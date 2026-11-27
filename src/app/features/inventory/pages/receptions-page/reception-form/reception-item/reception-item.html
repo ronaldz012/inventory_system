@@ -59,10 +59,15 @@
         <div class="flex-1 flex flex-wrap gap-1 min-w-0">
           @for (v of row.items; track v.id) {
             <span
-              class="inline-flex items-baseline gap-1 px-2 py-0.5 rounded-md bg-bg-muted text-xs tabular-nums whitespace-nowrap"
+              class="inline-flex items-baseline gap-1 px-2 py-0.5 rounded-md text-xs tabular-nums whitespace-nowrap"
+              [class.bg-bg-muted]="(v.unitCost ?? 0) >= MIN_UNIT_COST"
+              [class.bg-feedback-warning/15]="(v.unitCost ?? 0) < MIN_UNIT_COST"
             >
               <span class="font-bold text-text-main">{{ v.sizeName }}</span>
               <span class="font-black text-accent-ui">×{{ v.quantityReceived }}</span>
+              @if ((v.unitCost ?? 0) < MIN_UNIT_COST) {
+                <span class="font-bold text-feedback-warning-text">· sin costo</span>
+              }
             </span>
           }
         </div>
